@@ -34,34 +34,34 @@ export default function Home() {
 
   const popularTrips = [
     {
-      from: 'Paris',
-      to: 'Marseille',
+      from: 'Montréal',
+      to: 'Québec',
       date: '30 Juil',
-      price: '45€',
+      price: '35$',
       driver: {
-        name: 'Léa Dubois',
+        name: 'Amélie Tremblay',
         avatar: PlaceHolderImages.find((img) => img.id === 'avatar-1')?.imageUrl || '',
         rating: 4.9,
       },
     },
     {
-      from: 'Lyon',
-      to: 'Bordeaux',
+      from: 'Longueuil',
+      to: 'Laval',
       date: '02 Août',
-      price: '38€',
+      price: '15$',
       driver: {
-        name: 'Thomas Roy',
+        name: 'Félix Bouchard',
         avatar: PlaceHolderImages.find((img) => img.id === 'avatar-2')?.imageUrl || '',
         rating: 4.8,
       },
     },
     {
-      from: 'Nice',
-      to: 'Toulouse',
+      from: 'Montréal',
+      to: 'Sherbrooke',
       date: '05 Août',
-      price: '42€',
+      price: '25$',
       driver: {
-        name: 'Chloé Martin',
+        name: 'Florence Gagnon',
         avatar: PlaceHolderImages.find((img) => img.id === 'avatar-3')?.imageUrl || '',
         rating: 5.0,
       },
