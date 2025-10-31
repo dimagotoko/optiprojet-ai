@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Users, Clock, Euro, Car } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Clock, DollarSign, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -97,7 +97,7 @@ export default function PostTripPage() {
                 <div className="grid gap-2">
                     <Label htmlFor="price">Prix par place</Label>
                      <div className="relative">
-                        <Euro className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input id="price" type="number" placeholder="ex: 25" className="pl-10 h-11" min="0" required />
                     </div>
                 </div>
