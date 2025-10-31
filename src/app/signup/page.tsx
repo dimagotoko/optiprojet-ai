@@ -47,11 +47,11 @@ export default function SignupPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="city">Ville</Label>
-                <Input id="city" placeholder="Paris" required />
+                <Input id="city" placeholder="Montréal" required />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="postal-code">Code Postal</Label>
-                <Input id="postal-code" placeholder="75001" required />
+                <Input id="postal-code" placeholder="H3A 0G4" required />
               </div>
             </div>
             <div className="grid gap-2">
