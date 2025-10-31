@@ -8,8 +8,8 @@ import { Logo } from '@/components/Logo';
 
 export function Header() {
   const navLinks = [
-    { href: '#trajets-populaires', label: 'Trajets' },
-    { href: '#comment-ca-marche', label: 'Comment ça marche ?' },
+    { href: '/#trajets-populaires', label: 'Trajets' },
+    { href: '/#comment-ca-marche', label: 'Comment ça marche ?' },
     { href: '/post-trip', label: 'Proposer un trajet' },
   ];
 
