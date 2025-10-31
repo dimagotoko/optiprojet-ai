@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, MapPin, Users, ArrowRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { AddressInput } from './AddressInput';
 
 export function TripSearchForm() {
   const [date, setDate] = React.useState<Date>();
@@ -19,8 +20,7 @@ export function TripSearchForm() {
       <CardContent className="p-4 sm:p-6">
         <form className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 items-center">
           <div className="relative md:col-span-3">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input type="text" placeholder="Départ" className="pl-10 h-12 text-base" />
+            <AddressInput placeholder="Départ (ex: Station Berri-UQAM)" />
           </div>
           
           <div className="hidden md:flex justify-center items-center md:col-span-1">
@@ -28,8 +28,7 @@ export function TripSearchForm() {
           </div>
 
           <div className="relative md:col-span-3">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input type="text" placeholder="Destination" className="pl-10 h-12 text-base" />
+            <AddressInput placeholder="Destination (ex: Carrefour Laval)" />
           </div>
           
           <div className="relative md:col-span-2">
