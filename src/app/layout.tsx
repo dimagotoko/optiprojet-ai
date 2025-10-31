@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { GoogleMapsProvider } from '@/components/GoogleMapsProvider';
 
 export const metadata: Metadata = {
   title: 'OptiTrajet AI',
@@ -25,12 +26,14 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <div className="relative flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
-        <Toaster />
+        <GoogleMapsProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+          <Toaster />
+        </GoogleMapsProvider>
       </body>
     </html>
   );

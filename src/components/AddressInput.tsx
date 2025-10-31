@@ -3,15 +3,56 @@
 import * as React from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import usePlacesAutocomplete, {
+  getGeocode,
+  getLatLng,
+} from 'use-places-autocomplete';
 
 type AddressInputProps = {
   placeholder: string;
 };
 
 export function AddressInput({ placeholder }: AddressInputProps) {
-  const [query, setQuery] = React.useState('');
-  // In a real application, you would fetch suggestions from an API here.
-  const suggestions: string[] = [];
+  const {
+    ready,
+    value,
+    suggestions: { status, data },
+    setValue,
+    clearSuggestions,
+  } = usePlacesAutocomplete({
+    requestOptions: {
+      componentRestrictions: { country: 'ca' },
+      types: ['establishment'],
+    },
+    debounce: 300,
+  });
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.target.value);
+  };
+
+  const handleSelect = ({ description }: { description: string }) => () => {
+    setValue(description, false);
+    clearSuggestions();
+  };
+
+  const renderSuggestions = () =>
+    data.map((suggestion) => {
+      const {
+        place_id,
+        structured_formatting: { main_text, secondary_text },
+      } = suggestion;
+
+      return (
+        <div
+          key={place_id}
+          onClick={handleSelect(suggestion)}
+          className="p-2 hover:bg-accent cursor-pointer rounded-md"
+        >
+          <strong>{main_text}</strong> <small>{secondary_text}</small>
+        </div>
+      );
+    });
 
   return (
     <div className="relative">
@@ -20,20 +61,13 @@ export function AddressInput({ placeholder }: AddressInputProps) {
         type="text"
         placeholder={placeholder}
         className="pl-10 h-12 text-base"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        value={value}
+        onChange={handleInput}
+        disabled={!ready}
       />
-      {suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-card border rounded-md shadow-lg">
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={index}
-              className="p-2 hover:bg-accent cursor-pointer"
-              onClick={() => setQuery(suggestion)}
-            >
-              {suggestion}
-            </div>
-          ))}
+      {status === 'OK' && (
+        <div className="absolute z-10 w-full mt-1 p-1 bg-card border rounded-md shadow-lg">
+          {renderSuggestions()}
         </div>
       )}
     </div>
