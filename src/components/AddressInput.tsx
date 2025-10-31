@@ -10,9 +10,10 @@ import usePlacesAutocomplete, {
 
 type AddressInputProps = {
   placeholder: string;
+  defaultValue?: string;
 };
 
-export function AddressInput({ placeholder }: AddressInputProps) {
+export function AddressInput({ placeholder, defaultValue }: AddressInputProps) {
   const {
     ready,
     value,
@@ -25,6 +26,7 @@ export function AddressInput({ placeholder }: AddressInputProps) {
       types: ['establishment'],
     },
     debounce: 300,
+    defaultValue,
   });
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {

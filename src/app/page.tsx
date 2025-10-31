@@ -1,12 +1,25 @@
+
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Star, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Users } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { TripCard } from '@/components/TripCard';
+import { Chatbot } from '@/components/Chatbot';
+import { useState } from 'react';
+
+type TripSearch = {
+  departure?: string;
+  destination?: string;
+  date?: Date;
+};
 
 export default function Home() {
+  const [tripSearch, setTripSearch] = useState<TripSearch>({});
+
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-background');
 
   const howItWorks = [
@@ -68,6 +81,16 @@ export default function Home() {
     },
   ];
 
+  const handleAiSearch = (search: any) => {
+    const newSearch: TripSearch = {};
+    if (search.departure) newSearch.departure = search.departure;
+    if (search.destination) newSearch.destination = search.destination;
+    // Note: The AI currently returns a string like "YYYY-MM-DD". The TripSearchForm will handle this.
+    if (search.date) newSearch.date = new Date(search.date);
+    setTripSearch(newSearch);
+  };
+
+
   return (
     <div className="flex flex-col min-h-[100dvh]">
       <section className="relative w-full h-[70vh] md:h-[80vh]">
@@ -91,7 +114,7 @@ export default function Home() {
               Optimisé par l'IA pour des trajets plus intelligents, économiques et conviviaux.
             </p>
             <div className="mt-8 w-full max-w-3xl">
-              <TripSearchForm />
+              <TripSearchForm key={JSON.stringify(tripSearch)} initialSearch={tripSearch} />
             </div>
           </div>
         </div>
@@ -143,6 +166,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <Chatbot onSearch={handleAiSearch} />
     </div>
   );
 }
