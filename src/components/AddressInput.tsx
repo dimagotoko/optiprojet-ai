@@ -3,10 +3,7 @@
 import * as React from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import usePlacesAutocomplete, {
-  getGeocode,
-  getLatLng,
-} from 'use-places-autocomplete';
+import usePlacesAutocomplete from 'use-places-autocomplete';
 
 type AddressInputProps = {
   placeholder: string;
@@ -24,34 +21,32 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: 'ca' },
-      types: ['geocode'],
+      // REMOVED: types: ['geocode'] to allow for more flexible address and place searching
     },
     debounce: 300,
     defaultValue: defaultValue || '',
   });
 
-  // Keep internal value in sync with the hook's value
+  // This effect handles updates from the parent component (e.g., from the AI chatbot)
+  React.useEffect(() => {
+    if (defaultValue !== undefined) {
+      setValue(defaultValue, false); // Set value without re-triggering suggestions
+    }
+  }, [defaultValue, setValue]);
+
+  // This effect reports the current value back to the parent form
   React.useEffect(() => {
     if (onValueChange) {
       onValueChange(value);
     }
   }, [value, onValueChange]);
-  
-  // When the component's defaultValue prop changes, update the hook's value.
-  // This is crucial for reacting to external changes, like from the AI chatbot.
-  React.useEffect(() => {
-    if (defaultValue !== undefined) {
-      setValue(defaultValue, false); // Set value without re-triggering fetch
-    }
-  }, [defaultValue, setValue]);
-
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
   };
 
-  const handleSelect = ({ description }: { description: string }) => () => {
-    setValue(description, false);
+  const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => () => {
+    setValue(suggestion.description, false);
     clearSuggestions();
   };
 
@@ -83,6 +78,7 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
         value={value}
         onChange={handleInput}
         disabled={!ready}
+        autoComplete="off"
       />
       {status === 'OK' && (
         <div className="absolute z-10 w-full mt-1 p-1 bg-card border rounded-md shadow-lg">
