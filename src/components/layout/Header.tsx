@@ -83,11 +83,10 @@ export function Header() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              {isProfilePage ? (
-                 <Link href="/">Quitter</Link>
-              ) : (
-                <Link href="/profile">Profil</Link>
-              )}
+              <Link href="/dashboard">Tableau de bord</Link>
+            </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+              <Link href="/profile">Gérer le profil</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
               Mes trajets
