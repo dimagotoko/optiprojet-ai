@@ -6,10 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/firebase';
-
+import { useAuth, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -47,6 +47,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
@@ -65,15 +66,34 @@ export default function SignupPage() {
   } = form;
 
   const onSubmit = async (values: SignupFormValues) => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     try {
+      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      await updateProfile(userCredential.user, {
+      const user = userCredential.user;
+
+      // 2. Update Firebase Auth profile
+      await updateProfile(user, {
         displayName: values.fullName,
       });
 
-      // Here you would typically save other user info (city, postalCode, userType) to Firestore
-      // For now, we'll just show a success message and redirect.
+      // 3. Create user document in Firestore
+      const userDocRef = doc(firestore, 'users', user.uid);
+      await setDoc(userDocRef, {
+        id: user.uid,
+        name: values.fullName,
+        email: values.email,
+        city: values.city,
+        postalCode: values.postalCode,
+        role: values.userType,
+        // Initialize other fields from your schema if needed
+        profilePictureUrl: '',
+        phoneNumber: '',
+        driverLicense: '',
+        stripeCustomerId: '',
+        averageRating: 0,
+        totalRatings: 0,
+      });
 
       toast({
         title: 'Compte créé avec succès!',
@@ -208,7 +228,7 @@ export default function SignupPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting || !auth}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || !auth || !firestore}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
