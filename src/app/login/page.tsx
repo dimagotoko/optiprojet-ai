@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -28,6 +27,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
+import { useAuth } from '@/lib/firebase';
+import React from 'react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Veuillez entrer une adresse email valide.' }),
@@ -39,6 +40,7 @@ type LoginFormValues = z.infer<typeof formSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -52,23 +54,38 @@ export default function LoginPage() {
   } = form;
 
   const onSubmit = async (values: LoginFormValues) => {
+    if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'Connexion réussie',
-        description: 'Vous allez être redirigé vers la page d\'accueil.',
+        description: "Vous allez être redirigé vers la page d'accueil.",
       });
       router.push('/');
+      router.refresh(); // Force a refresh to update header state
     } catch (error: any) {
       console.error('Login error:', error.code, error.message);
-      let description = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      let description;
+      let action;
+
+      if (error.code === 'auth/user-not-found') {
+        description = "Aucun compte n'est associé à cette adresse e-mail.";
+        action = (
+            <Button asChild variant="secondary">
+                <Link href="/signup">Créer un compte</Link>
+            </Button>
+        )
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         description = "L'adresse e-mail ou le mot de passe est incorrect.";
+      } else {
+        description = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
       }
+      
       toast({
         variant: 'destructive',
         title: 'Erreur de connexion',
         description: description,
+        action: action
       });
     }
   };
@@ -131,7 +148,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || !auth}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
