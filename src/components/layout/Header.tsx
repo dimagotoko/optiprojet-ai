@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -24,6 +24,7 @@ export function Header() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -50,6 +51,8 @@ export function Header() {
     { href: '/#comment-ca-marche', label: 'Comment ça marche ?' },
     { href: '/post-trip', label: 'Proposer un trajet' },
   ];
+  
+  const isProfilePage = pathname === '/profile';
 
   const renderUserMenu = () => {
     if (isUserLoading) {
@@ -80,7 +83,11 @@ export function Header() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/profile">Profil</Link>
+              {isProfilePage ? (
+                 <Link href="/">Quitter</Link>
+              ) : (
+                <Link href="/profile">Profil</Link>
+              )}
             </DropdownMenuItem>
             <DropdownMenuItem>
               Mes trajets
