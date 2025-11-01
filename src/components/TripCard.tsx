@@ -27,22 +27,46 @@ const mapContainerStyle = {
 
 const mapOptions = {
   disableDefaultUI: true,
-  zoomControl: true,
+  zoomControl: false,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: false,
 };
 
 export function TripCard({ from, to, date, price, driver }: TripCardProps) {
   const [directions, setDirections] = React.useState<google.maps.DirectionsResult | null>(null);
+  const [isRequestSent, setIsRequestSent] = React.useState(false);
 
-  const directionsCallback = (
-    response: google.maps.DirectionsResult | null,
-    status: google.maps.DirectionsStatus
-  ) => {
-    if (status === 'OK' && response) {
-      setDirections(response);
-    } else {
-      console.error(`Directions request failed due to ${status}`);
+  const directionsCallback = React.useCallback(
+    (
+      response: google.maps.DirectionsResult | null,
+      status: google.maps.DirectionsStatus
+    ) => {
+      if (status === 'OK' && response) {
+        setDirections(response);
+      } else if (status === 'ZERO_RESULTS') {
+        console.warn(`No route found between ${from} and ${to}.`);
+      }
+      else {
+        console.error(`Directions request failed due to ${status} for route ${from} to ${to}`);
+      }
+    },
+    [from, to]
+  );
+  
+  const directionsServiceOptions = React.useMemo(() => {
+    return {
+      destination: to,
+      origin: from,
+      travelMode: 'DRIVING' as google.maps.TravelMode,
+    };
+  }, [from, to]);
+
+  const handleMapLoad = React.useCallback(() => {
+    if (!isRequestSent) {
+      setIsRequestSent(true);
     }
-  };
+  }, [isRequestSent]);
 
   return (
     <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1">
@@ -66,18 +90,15 @@ export function TripCard({ from, to, date, price, driver }: TripCardProps) {
               mapContainerStyle={mapContainerStyle}
               zoom={8}
               options={mapOptions}
+              onLoad={handleMapLoad}
             >
-              {from && to && (
+              {directions === null && from && to && isRequestSent && (
                 <DirectionsService
-                  options={{
-                    destination: to,
-                    origin: from,
-                    travelMode: google.maps.TravelMode.DRIVING,
-                  }}
+                  options={directionsServiceOptions}
                   callback={directionsCallback}
                 />
               )}
-              {directions && (
+              {directions !== null && (
                 <DirectionsRenderer
                   options={{
                     directions: directions,
