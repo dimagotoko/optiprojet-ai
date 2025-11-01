@@ -32,6 +32,7 @@ export function Header() {
       await signOut(auth);
       toast({
         title: 'Déconnexion réussie',
+        description: 'Vous avez été déconnecté et redirigé vers la page d\'accueil.',
       });
       router.push('/');
       router.refresh();
