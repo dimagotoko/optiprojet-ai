@@ -5,7 +5,6 @@ import { ArrowRight, Calendar, Star } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
 type TripCardProps = {
   from: string;
@@ -19,55 +18,7 @@ type TripCardProps = {
   };
 };
 
-const mapContainerStyle = {
-  height: '200px',
-  width: '100%',
-  borderRadius: '0.5rem',
-};
-
-const mapOptions = {
-  disableDefaultUI: true,
-  zoomControl: false,
-  streetViewControl: false,
-  mapTypeControl: false,
-  fullscreenControl: false,
-};
-
 export function TripCard({ from, to, date, price, driver }: TripCardProps) {
-  const [directions, setDirections] = React.useState<google.maps.DirectionsResult | null>(null);
-  const [isRequestSent, setIsRequestSent] = React.useState(false);
-
-  const directionsCallback = React.useCallback(
-    (
-      response: google.maps.DirectionsResult | null,
-      status: google.maps.DirectionsStatus
-    ) => {
-      if (status === 'OK' && response) {
-        setDirections(response);
-      } else if (status === 'ZERO_RESULTS') {
-        console.warn(`No route found between ${from} and ${to}.`);
-      }
-      else {
-        console.error(`Directions request failed due to ${status} for route ${from} to ${to}`);
-      }
-    },
-    [from, to]
-  );
-  
-  const directionsServiceOptions = React.useMemo(() => {
-    return {
-      destination: to,
-      origin: from,
-      travelMode: 'DRIVING' as google.maps.TravelMode,
-    };
-  }, [from, to]);
-
-  const handleMapLoad = React.useCallback(() => {
-    if (!isRequestSent) {
-      setIsRequestSent(true);
-    }
-  }, [isRequestSent]);
-
   return (
     <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="p-4">
@@ -86,32 +37,7 @@ export function TripCard({ from, to, date, price, driver }: TripCardProps) {
           <span>{date}</span>
         </div>
         <div className="h-[200px] bg-muted rounded-lg flex items-center justify-center">
-           <GoogleMap
-              mapContainerStyle={mapContainerStyle}
-              zoom={8}
-              options={mapOptions}
-              onLoad={handleMapLoad}
-            >
-              {directions === null && from && to && isRequestSent && (
-                <DirectionsService
-                  options={directionsServiceOptions}
-                  callback={directionsCallback}
-                />
-              )}
-              {directions !== null && (
-                <DirectionsRenderer
-                  options={{
-                    directions: directions,
-                    suppressMarkers: true,
-                     polylineOptions: {
-                      strokeColor: 'hsl(var(--primary))',
-                      strokeOpacity: 0.8,
-                      strokeWeight: 6
-                    }
-                  }}
-                />
-              )}
-            </GoogleMap>
+            {/* Placeholder for map */}
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
