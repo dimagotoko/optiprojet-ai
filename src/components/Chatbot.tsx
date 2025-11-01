@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Loader2, User } from 'lucide-react';
+import { MessageSquare, Send, X, Loader2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -79,7 +79,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
         onClick={() => setIsOpen(true)}
         aria-label="Ouvrir le chatbot"
       >
-        <Bot className="w-8 h-8" />
+        <MessageSquare className="w-8 h-8" />
       </Button>
     );
   }
@@ -90,7 +90,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarFallback className="bg-primary text-primary-foreground">
-              <Bot />
+              <MessageSquare />
             </AvatarFallback>
           </Avatar>
           <CardTitle className="text-lg">Assistant OptiTrajet</CardTitle>
@@ -111,7 +111,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
             {msg.sender === 'bot' && (
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                  <Bot size={20}/>
+                  <MessageSquare size={20}/>
                 </AvatarFallback>
               </Avatar>
             )}
@@ -138,7 +138,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
             <div className="flex items-start gap-3 justify-start">
                  <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    <Bot size={20}/>
+                    <MessageSquare size={20}/>
                     </AvatarFallback>
                 </Avatar>
                 <div className="p-3 rounded-xl bg-muted flex items-center">
