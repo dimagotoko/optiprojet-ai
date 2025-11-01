@@ -85,8 +85,15 @@ export default function Home() {
     const newSearch: TripSearch = {};
     if (search.departure) newSearch.departure = search.departure;
     if (search.destination) newSearch.destination = search.destination;
-    // Note: The AI currently returns a string like "YYYY-MM-DD". The TripSearchForm will handle this.
-    if (search.date) newSearch.date = new Date(search.date);
+    // The AI returns a date string like "YYYY-MM-DD".
+    // new Date("YYYY-MM-DD") creates a date at midnight UTC.
+    // To avoid timezone issues where it might become the previous day,
+    // we create the date and then get the UTC components.
+    if (search.date) {
+      const dateParts = search.date.split('-').map(Number);
+      // Create date in UTC to avoid timezone shifts.
+      newSearch.date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+    }
     setTripSearch(newSearch);
   };
 
