@@ -31,16 +31,26 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/Logo';
 import React from 'react';
 
-const formSchema = z.object({
-  fullName: z.string().min(1, { message: 'Le nom complet est requis.' }),
-  email: z.string().email({ message: 'Veuillez entrer une adresse email valide.' }),
-  password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
-  city: z.string().min(1, { message: 'La ville est requise.' }),
-  postalCode: z.string().min(1, { message: 'Le code postal est requis.' }),
-  userType: z.enum(['voyageur', 'transporteur'], {
-    required_error: 'Veuillez sélectionner un type de compte.',
-  }),
-});
+const formSchema = z
+  .object({
+    fullName: z.string().min(1, { message: 'Le nom complet est requis.' }),
+    email: z
+      .string()
+      .email({ message: 'Veuillez entrer une adresse email valide.' }),
+    password: z
+      .string()
+      .min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
+    confirmPassword: z.string(),
+    city: z.string().min(1, { message: 'La ville est requise.' }),
+    postalCode: z.string().min(1, { message: 'Le code postal est requis.' }),
+    userType: z.enum(['voyageur', 'transporteur'], {
+      required_error: 'Veuillez sélectionner un type de compte.',
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Les mots de passe ne correspondent pas.',
+    path: ['confirmPassword'],
+  });
 
 type SignupFormValues = z.infer<typeof formSchema>;
 
@@ -52,13 +62,14 @@ function SignupPageInternal() {
   const firestore = useFirestore();
 
   const emailFromQuery = searchParams.get('email') || '';
-  
+
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: '',
       email: emailFromQuery,
       password: '',
+      confirmPassword: '',
       city: '',
       postalCode: '',
       userType: 'voyageur',
@@ -73,7 +84,11 @@ function SignupPageInternal() {
     if (!auth || !firestore) return;
     try {
       // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
       const user = userCredential.user;
 
       // 2. Update Firebase Auth profile
@@ -101,15 +116,17 @@ function SignupPageInternal() {
 
       toast({
         title: 'Compte créé avec succès!',
-        description: 'Vous allez être redirigé vers la page d\'accueil.',
+        description: "Vous allez être redirigé vers la page d'accueil.",
       });
       router.push('/');
       router.refresh(); // To update header state
     } catch (error: any) {
       console.error('Signup error:', error.code, error.message);
-      let description = "Une erreur est survenue lors de l'inscription. Veuillez réessayer.";
+      let description =
+        "Une erreur est survenue lors de l'inscription. Veuillez réessayer.";
       if (error.code === 'auth/email-already-in-use') {
-        description = 'Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.';
+        description =
+          'Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.';
       }
       toast({
         variant: 'destructive',
@@ -167,14 +184,27 @@ function SignupPageInternal() {
                   <FormItem>
                     <FormLabel>Mot de passe</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <Input type="password" {...field} autoComplete="new-password" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmer le mot de passe</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} autoComplete="new-password"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <div className="grid grid-cols-2 gap-4">
-                 <FormField
+                <FormField
                   control={form.control}
                   name="city"
                   render={({ field }) => (
@@ -187,7 +217,7 @@ function SignupPageInternal() {
                     </FormItem>
                   )}
                 />
-                 <FormField
+                <FormField
                   control={form.control}
                   name="postalCode"
                   render={({ field }) => (
@@ -223,7 +253,9 @@ function SignupPageInternal() {
                           <FormControl>
                             <RadioGroupItem value="transporteur" />
                           </FormControl>
-                          <FormLabel className="font-normal">Transporteur</FormLabel>
+                          <FormLabel className="font-normal">
+                            Transporteur
+                          </FormLabel>
                         </FormItem>
                       </RadioGroup>
                     </FormControl>
@@ -232,7 +264,11 @@ function SignupPageInternal() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting || !auth || !firestore}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || !auth || !firestore}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -256,7 +292,6 @@ function SignupPageInternal() {
   );
 }
 
-
 export default function SignupPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
@@ -264,4 +299,3 @@ export default function SignupPage() {
     </React.Suspense>
   );
 }
-
