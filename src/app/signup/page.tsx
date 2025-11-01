@@ -67,6 +67,7 @@ function SignupPageInternal() {
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange', // Validate on change
     defaultValues: {
       fullName: '',
       email: emailFromQuery,
@@ -81,7 +82,7 @@ function SignupPageInternal() {
   });
 
   const {
-    formState: { isSubmitting },
+    formState: { isSubmitting, isValid },
   } = form;
 
   const onSubmit = async (values: SignupFormValues) => {
@@ -305,7 +306,7 @@ function SignupPageInternal() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting || !auth || !firestore}
+                disabled={!isValid || isSubmitting || !auth || !firestore}
               >
                 {isSubmitting ? (
                   <>
