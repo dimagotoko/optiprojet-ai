@@ -23,7 +23,9 @@ export function AddressInput({ placeholder, defaultValue }: AddressInputProps) {
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: 'ca' },
-      types: ['establishment'],
+      // The previous 'establishment' type was too restrictive.
+      // 'geocode' is more general and suitable for addresses and cities.
+      types: ['geocode'],
     },
     debounce: 300,
     defaultValue,
