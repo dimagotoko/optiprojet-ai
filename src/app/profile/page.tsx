@@ -5,9 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -49,44 +48,66 @@ export default function ProfilePage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const [isDataLoading, setIsDataLoading] = React.useState(true);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: async () => {
-      if (user && firestore) {
-        const { doc: getDoc, getDocs, query, collection, where } = await import('firebase/firestore');
-        const userRef = doc(firestore, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          return {
-            fullName: userData.name || '',
-            email: userData.email || '',
-            phoneNumber: userData.phoneNumber || '',
-            city: userData.city || '',
-            postalCode: userData.postalCode || '',
-            profilePictureUrl: userData.profilePictureUrl || '',
-            userType: userData.role || 'voyageur',
-          };
-        }
-      }
-      return {
-        fullName: '',
-        email: '',
-        phoneNumber: '',
-        city: '',
-        postalCode: '',
-        profilePictureUrl: '',
-        userType: 'voyageur',
-      };
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      city: '',
+      postalCode: '',
+      profilePictureUrl: '',
+      userType: 'voyageur',
     },
   });
 
   React.useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isUserLoading) return; // Wait until user auth state is resolved
+    if (!user) {
       router.push('/login');
+      return;
     }
-  }, [user, isUserLoading, router]);
+    if (!firestore) {
+      setIsDataLoading(false);
+      return;
+    };
+
+    const fetchUserData = async () => {
+      setIsDataLoading(true);
+      const userRef = doc(firestore, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        form.reset({
+          fullName: userData.name || '',
+          email: userData.email || user.email || '',
+          phoneNumber: userData.phoneNumber || '',
+          city: userData.city || '',
+          postalCode: userData.postalCode || '',
+          profilePictureUrl: userData.profilePictureUrl || '',
+          userType: userData.role || 'voyageur',
+        });
+      } else {
+        // Pre-fill with what we know from auth if no DB entry
+        form.reset({
+            fullName: user.displayName || '',
+            email: user.email || '',
+            phoneNumber: '',
+            city: '',
+            postalCode: '',
+            profilePictureUrl: user.photoURL || '',
+            userType: 'voyageur',
+        });
+      }
+      setIsDataLoading(false);
+    };
+
+    fetchUserData();
+  }, [user, isUserLoading, firestore, router, form]);
+
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user || !firestore) return;
@@ -107,7 +128,7 @@ export default function ProfilePage() {
       if (user) {
         await updateProfile(user, {
           displayName: values.fullName,
-          photoURL: values.profilePictureUrl || null,
+          photoURL: values.profilePictureUrl || undefined,
         });
       }
 
@@ -126,13 +147,19 @@ export default function ProfilePage() {
     }
   };
 
-  if (isUserLoading || !user || form.formState.isLoading) {
+  if (isUserLoading || isDataLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
+  
+  if (!user) {
+    // This will be briefly visible before the redirect kicks in
+    return null;
+  }
+
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -144,7 +171,7 @@ export default function ProfilePage() {
               <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-3xl font-bold">{user.displayName}</CardTitle>
+              <CardTitle className="text-3xl font-bold">{form.watch('fullName') || user.displayName}</CardTitle>
               <CardDescription>{user.email}</CardDescription>
             </div>
           </div>
