@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -95,7 +95,7 @@ export default function ProfilePage() {
         form.reset({
             fullName: user.displayName || '',
             email: user.email || '',
-            phoneNumber: '',
+            phoneNumber: user.phoneNumber || '',
             city: '',
             postalCode: '',
             profilePictureUrl: user.photoURL || '',
@@ -115,17 +115,18 @@ export default function ProfilePage() {
     try {
       // Update Firestore document
       const userDocRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userDocRef, {
+      await setDoc(userDocRef, {
         name: values.fullName,
+        email: values.email,
         phoneNumber: values.phoneNumber,
         city: values.city,
         postalCode: values.postalCode,
         profilePictureUrl: values.profilePictureUrl,
         role: values.userType,
-      });
+      }, { merge: true });
 
       // Update Firebase Auth profile
-      if (user) {
+      if (user.displayName !== values.fullName || user.photoURL !== values.profilePictureUrl) {
         await updateProfile(user, {
           displayName: values.fullName,
           photoURL: values.profilePictureUrl || undefined,
