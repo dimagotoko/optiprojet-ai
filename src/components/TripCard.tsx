@@ -1,8 +1,11 @@
+'use client';
+
+import * as React from 'react';
 import { ArrowRight, Calendar, Star } from 'lucide-react';
-import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
 type TripCardProps = {
   from: string;
@@ -16,7 +19,31 @@ type TripCardProps = {
   };
 };
 
+const mapContainerStyle = {
+  height: '200px',
+  width: '100%',
+  borderRadius: '0.5rem',
+};
+
+const mapOptions = {
+  disableDefaultUI: true,
+  zoomControl: true,
+};
+
 export function TripCard({ from, to, date, price, driver }: TripCardProps) {
+  const [directions, setDirections] = React.useState<google.maps.DirectionsResult | null>(null);
+
+  const directionsCallback = (
+    response: google.maps.DirectionsResult | null,
+    status: google.maps.DirectionsStatus
+  ) => {
+    if (status === 'OK' && response) {
+      setDirections(response);
+    } else {
+      console.error(`Directions request failed due to ${status}`);
+    }
+  };
+
   return (
     <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="p-4">
@@ -29,10 +56,41 @@ export function TripCard({ from, to, date, price, driver }: TripCardProps) {
           <Badge variant="secondary" className="text-base font-bold">{price}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-4 pt-0">
+      <CardContent className="flex-grow p-4 pt-0 space-y-4">
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="mr-2 h-4 w-4" />
           <span>{date}</span>
+        </div>
+        <div className="h-[200px] bg-muted rounded-lg flex items-center justify-center">
+           <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              zoom={8}
+              options={mapOptions}
+            >
+              {from && to && (
+                <DirectionsService
+                  options={{
+                    destination: to,
+                    origin: from,
+                    travelMode: google.maps.TravelMode.DRIVING,
+                  }}
+                  callback={directionsCallback}
+                />
+              )}
+              {directions && (
+                <DirectionsRenderer
+                  options={{
+                    directions: directions,
+                    suppressMarkers: true,
+                     polylineOptions: {
+                      strokeColor: 'hsl(var(--primary))',
+                      strokeOpacity: 0.8,
+                      strokeWeight: 6
+                    }
+                  }}
+                />
+              )}
+            </GoogleMap>
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
