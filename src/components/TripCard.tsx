@@ -5,6 +5,7 @@ import { ArrowRight, Calendar, Star } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 type TripCardProps = {
   from: string;
@@ -19,6 +20,14 @@ type TripCardProps = {
 };
 
 export function TripCard({ from, to, date, price, driver }: TripCardProps) {
+  // Simple hash function to get a numeric seed from a string for picsum.photos
+  const toSeed = (s: string) => {
+    return s.split('').reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+  };
+  
   return (
     <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="p-4">
@@ -32,12 +41,18 @@ export function TripCard({ from, to, date, price, driver }: TripCardProps) {
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-4 pt-0 space-y-4">
+        <div className="relative h-48 w-full rounded-lg overflow-hidden">
+          <Image
+            src={`https://picsum.photos/seed/${toSeed(to)}/600/400`}
+            alt={`Paysage représentant la destination: ${to}`}
+            fill
+            className="object-cover"
+            data-ai-hint="landscape"
+          />
+        </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="mr-2 h-4 w-4" />
           <span>{date}</span>
-        </div>
-        <div className="h-[200px] bg-muted rounded-lg flex items-center justify-center">
-            {/* Placeholder for map */}
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
