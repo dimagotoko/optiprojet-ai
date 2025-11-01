@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -121,9 +122,9 @@ function SignupPageInternal() {
 
       toast({
         title: 'Compte créé avec succès!',
-        description: "Vous allez être redirigé vers la page d'accueil.",
+        description: "Vous allez être redirigé vers votre tableau de bord.",
       });
-      router.push('/');
+      router.push('/dashboard');
       router.refresh(); // To update header state
     } catch (error: any) {
       console.error('Signup error:', error.code, error.message);

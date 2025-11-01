@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -59,9 +60,9 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'Connexion réussie',
-        description: "Vous allez être redirigé vers la page d'accueil.",
+        description: "Vous allez être redirigé vers votre tableau de bord.",
       });
-      router.push('/');
+      router.push('/dashboard');
       router.refresh(); // Force a refresh to update header state
     } catch (error: any) {
       console.error('Login error:', error.code, error.message);

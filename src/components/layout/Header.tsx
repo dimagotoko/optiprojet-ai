@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, UserCircle, LogOut } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,14 +19,31 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { signOut } from 'firebase/auth';
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import React from 'react';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 export function Header() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  const [userRole, setUserRole] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setUserRole(docSnap.data().role);
+        }
+      });
+    } else {
+      setUserRole(null);
+    }
+  }, [user, firestore]);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -47,12 +65,9 @@ export function Header() {
   };
 
   const navLinks = [
-    { href: '/#trajets-populaires', label: 'Trajets' },
+    { href: '/trips', label: 'Trajets' },
     { href: '/#comment-ca-marche', label: 'Comment ça marche ?' },
-    { href: '/post-trip', label: 'Proposer un trajet' },
   ];
-  
-  const isProfilePage = pathname === '/profile';
 
   const renderUserMenu = () => {
     if (isUserLoading) {
@@ -132,6 +147,14 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            {userRole === 'transporteur' && (
+               <Link
+                href="/post-trip"
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                Proposer un trajet
+              </Link>
+            )}
           </nav>
         </div>
 
@@ -153,6 +176,11 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+               {userRole === 'transporteur' && (
+                 <Link href="/post-trip" className="text-sm font-medium">
+                    Proposer un trajet
+                </Link>
+              )}
             </div>
           </SheetContent>
         </Sheet>

@@ -3,6 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Users } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ type TripSearch = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [tripSearch, setTripSearch] = useState<TripSearch>({});
 
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-background');
@@ -174,7 +176,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <Chatbot onSearch={handleAiSearch} />
+      <Chatbot onSearch={(search) => router.push(`/trips?departure=${search.departure}&destination=${search.destination}&date=${search.date}`)} />
     </div>
   );
 }

@@ -1,9 +1,22 @@
 
+'use client';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-export default function TripsPage() {
+function TripsPageContent() {
+  const searchParams = useSearchParams();
+  const departure = searchParams.get('departure') || undefined;
+  const destination = searchParams.get('destination') || undefined;
+  const dateStr = searchParams.get('date');
+  
+  let date: Date | undefined = undefined;
+  if (dateStr && !isNaN(new Date(dateStr).getTime())) {
+    date = new Date(dateStr);
+  }
+
   const allTrips = [
     {
       from: 'Montréal',
@@ -84,7 +97,7 @@ export default function TripsPage() {
         </div>
       </div>
       <div className="mb-12">
-        <TripSearchForm />
+        <TripSearchForm initialSearch={{ departure, destination, date }} />
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {allTrips.map((trip, index) => (
@@ -93,4 +106,13 @@ export default function TripsPage() {
       </div>
     </div>
   );
+}
+
+
+export default function TripsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TripsPageContent />
+    </Suspense>
+  )
 }

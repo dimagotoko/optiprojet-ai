@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { planTrip } from '@/ai/flows/trip-planner-flow';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
 
 type Message = {
   sender: 'user' | 'bot';
@@ -20,6 +21,7 @@ type ChatbotProps = {
 }
 
 export function Chatbot({ onSearch }: ChatbotProps) {
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -36,8 +38,11 @@ export function Chatbot({ onSearch }: ChatbotProps) {
     if (isOpen) {
         setIsThinking(true);
         setTimeout(() => {
+            const welcomeMessage = user 
+                ? 'Comment puis-je vous aider à planifier votre prochain voyage ?'
+                : 'Bonjour ! Comment puis-je vous aider à trouver votre prochain covoiturage ? Dites-moi simplement où vous voulez aller. Par exemple: "Un trajet de Montréal à Québec demain."';
             setMessages([
-                { sender: 'bot', text: 'Bonjour ! Comment puis-je vous aider à trouver votre prochain covoiturage ? Dites-moi simplement où vous voulez aller. Par exemple: "Un trajet de Montréal à Québec demain."' }
+                { sender: 'bot', text: welcomeMessage }
             ]);
             setIsThinking(false);
         }, 1000);
@@ -45,7 +50,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
         setMessages([]);
         setInputValue('');
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,14 +64,18 @@ export function Chatbot({ onSearch }: ChatbotProps) {
     try {
       const result = await planTrip(inputValue);
       
-      const botResponse = `Super ! J'ai configuré la recherche pour un trajet de ${result.departure || '...'} à ${result.destination || '...'}${result.date ? ` pour le ${new Date(result.date).toLocaleDateString('fr-CA', { timeZone: 'UTC' })}` : ''}. Vous pouvez ajuster les détails ci-dessus.`;
+      const botResponse = `Super ! J'ai configuré la recherche pour un trajet de ${result.departure || '...'} à ${result.destination || '...'}${result.date ? ` pour le ${new Date(result.date).toLocaleDateString('fr-CA', { timeZone: 'UTC' })}` : ''}. Vous pouvez ajuster les détails ci-dessus ou sur la page des trajets.`;
 
       setMessages((prev) => [...prev, { sender: 'bot', text: botResponse }]);
       onSearch(result);
 
     } catch (error) {
       console.error('Error planning trip:', error);
-      setMessages((prev) => [...prev, { sender: 'bot', text: "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer." }]);
+      let errorMessage = "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer.";
+      if ((error as Error).message.includes('Authentication required')) {
+          errorMessage = "Veuillez vous connecter pour utiliser cette fonctionnalité.";
+      }
+      setMessages((prev) => [...prev, { sender: 'bot', text: errorMessage }]);
     } finally {
       setIsThinking(false);
     }
