@@ -1,0 +1,388 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the OptiTrajet AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the user."
+        },
+        "city": {
+          "type": "string",
+          "description": "City of the user."
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "Postal code of the user."
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the user (for travelers)."
+        },
+        "driverLicense": {
+          "type": "string",
+          "description": "Driver's license (for transporters)."
+        },
+        "stripeCustomerId": {
+          "type": "string",
+          "description": "Stripe customer ID associated with the user."
+        },
+        "averageRating": {
+          "type": "number",
+          "description": "Average rating of the user."
+        },
+        "totalRatings": {
+          "type": "number",
+          "description": "Total number of ratings received by the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user in the system (e.g., traveler, transporter)."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "city",
+        "postalCode",
+        "role"
+      ]
+    },
+    "Trip": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Trip",
+      "type": "object",
+      "description": "Represents a trip offered or requested on the OptiTrajet AI platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Trip entity."
+        },
+        "origin": {
+          "type": "string",
+          "description": "Origin address of the trip."
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination address of the trip."
+        },
+        "departureTime": {
+          "type": "string",
+          "description": "Departure time of the trip.",
+          "format": "date-time"
+        },
+        "offeredBy": {
+          "type": "string",
+          "description": "Reference to User who is offering the trip. (Relationship: User 1:N Trip)"
+        }
+      },
+      "required": [
+        "id",
+        "origin",
+        "destination",
+        "departureTime",
+        "offeredBy"
+      ]
+    },
+    "Booking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Booking",
+      "type": "object",
+      "description": "Represents a booking made for a trip.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Booking entity."
+        },
+        "tripId": {
+          "type": "string",
+          "description": "Reference to the Trip being booked. (Relationship: Trip 1:N Booking)"
+        },
+        "travelerId": {
+          "type": "string",
+          "description": "Reference to the User who is booking the trip. (Relationship: User 1:N Booking)"
+        },
+        "paymentIntentId": {
+          "type": "string",
+          "description": "Stripe Payment Intent ID associated with the booking."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Payment status of the booking (e.g., pending, succeeded)."
+        }
+      },
+      "required": [
+        "id",
+        "tripId",
+        "travelerId",
+        "paymentIntentId",
+        "paymentStatus"
+      ]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a chat message exchanged between users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChatMessage entity."
+        },
+        "chatChannelId": {
+          "type": "string",
+          "description": "Reference to the ChatChannel this message belongs to. (Relationship: ChatChannel 1:N ChatMessage)"
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to the User who sent the message. (Relationship: User 1:N ChatMessage)"
+        },
+        "message": {
+          "type": "string",
+          "description": "Content of the chat message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the message was sent.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "chatChannelId",
+        "senderId",
+        "message",
+        "timestamp"
+      ]
+    },
+    "ChatChannel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatChannel",
+      "type": "object",
+      "description": "Represents a chat channel between two users related to a specific trip.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChatChannel entity."
+        },
+        "tripId": {
+          "type": "string",
+          "description": "Reference to the Trip associated with this chat channel. (Relationship: Trip 1:N ChatChannel)"
+        },
+        "participant1Id": {
+          "type": "string",
+          "description": "Reference to the first User participating in the chat. (Relationship: User 1:N ChatChannel)"
+        },
+        "participant2Id": {
+          "type": "string",
+          "description": "Reference to the second User participating in the chat. (Relationship: User 1:N ChatChannel)"
+        }
+      },
+      "required": [
+        "id",
+        "tripId",
+        "participant1Id",
+        "participant2Id"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a review given by one user to another for a specific trip.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "tripId": {
+          "type": "string",
+          "description": "Reference to the Trip the review is for. (Relationship: Trip 1:N Review)"
+        },
+        "reviewerId": {
+          "type": "string",
+          "description": "Reference to the User who wrote the review. (Relationship: User 1:N Review)"
+        },
+        "revieweeId": {
+          "type": "string",
+          "description": "Reference to the User who is being reviewed. (Relationship: User 1:N Review)"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating given in the review."
+        },
+        "comment": {
+          "type": "string",
+          "description": "Comment written in the review."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the review was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "tripId",
+        "reviewerId",
+        "revieweeId",
+        "rating",
+        "comment",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Access control is based on the `userId` matching `request.auth.uid`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/trips/{tripId}",
+        "definition": {
+          "entityName": "Trip",
+          "schema": {
+            "$ref": "#/backend/entities/Trip"
+          },
+          "description": "Stores trip information. Includes the `offeredBy` field for determining the trip creator.",
+          "params": [
+            {
+              "name": "tripId",
+              "description": "The unique ID of the trip."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/trips/{tripId}/bookings/{bookingId}",
+        "definition": {
+          "entityName": "Booking",
+          "schema": {
+            "$ref": "#/backend/entities/Booking"
+          },
+          "description": "Stores bookings associated with a trip. Includes `travelerId` and payment status for authorization independence. No `get()` calls are necessary. Denormalized trip details might be included here.",
+          "params": [
+            {
+              "name": "tripId",
+              "description": "The unique ID of the trip."
+            },
+            {
+              "name": "bookingId",
+              "description": "The unique ID of the booking."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_channels/{chatChannelId}",
+        "definition": {
+          "entityName": "ChatChannel",
+          "schema": {
+            "$ref": "#/backend/entities/ChatChannel"
+          },
+          "description": "Stores chat channels between users related to a trip. Includes `tripId`, `participant1Id`, and `participant2Id` for authorization.",
+          "params": [
+            {
+              "name": "chatChannelId",
+              "description": "The unique ID of the chat channel."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_channels/{chatChannelId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Stores chat messages within a channel.  Access is controlled by the parent `chatChannelId`.",
+          "params": [
+            {
+              "name": "chatChannelId",
+              "description": "The unique ID of the chat channel."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique ID of the chat message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores reviews given to a user. Path-based ownership enables clear security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user being reviewed."
+            },
+            {
+              "name": "reviewId",
+              "description": "The unique ID of the review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "role",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates the user is an admin. Existence of the document grants admin privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and debuggability, adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization. For example, chat channel and booking data will include denormalized trip and user details where relevant to avoid costly and insecure `get()` calls in security rules.\n\n**Collection Structure Justification:**\n\n*   `/users/{userId}`: Stores user profiles. User-specific data benefits from path-based ownership. The `userId` is obtained from `request.auth.uid`.\n*   `/trips/{tripId}`: Stores trip details. The `offeredBy` field indicates the trip creator. This allows listing all trips and allows rules based on the `offeredBy`.\n*   `/trips/{tripId}/bookings/{bookingId}`: Subcollection to store bookings associated with a trip. Includes `travelerId` (denormalized from the user) and trip details to avoid fetching parent data in security rules. The payment status is stored here, which triggers notifications and access to chat channels. The `travelerId` is included to allow traveler-centric booking queries.\n*   `/chat_channels/{chatChannelId}`: Top-level collection for chat channels to enable list operations without filtering. The `tripId`, `participant1Id`, and `participant2Id` fields are used for routing and authorization. The payment status is checked (denormalized in rules) to allow access to chat channels.\n*   `/chat_channels/{chatChannelId}/messages/{messageId}`: Subcollection storing chat messages within a channel. Messages inherit the channel's security context.\n*   `/users/{userId}/reviews/{reviewId}`: Subcollection to store reviews given to a user. Path-based ownership enables clear security rules.\n*   `/roles_admin/{userId}`: Document existence indicates admin role.\n\n**Authorization Independence:**\n\n*   Access to bookings is determined by the `travelerId` in the booking document, rather than retrieving the user ID from a parent trip document or using custom claims.\n*   Chat channel access is authorized via the `participant1Id` and `participant2Id` fields in the `chat_channels` collection, ensuring that rules don't depend on fetching user data.\n\n**QAPs (Rules are not Filters):**\n\n*   The segregation of user data (`/users/{userId}`) and trip data (`/trips/{tripId}`) allows for secure list operations. For example, listing all trips does not require filtering based on user roles, which would violate QAPs.\n*   Membership map (`members: {uid1: \"role\", uid2: \"role\"}`) authorization is not required given the above design decisions.\n\nThis structure promotes clarity, security, and scalability by eliminating hierarchical authorization dependencies and enabling efficient list operations. It also supports the addition of more complex authorization schemes in the future without refactoring the core data structure."
+  }
+}

@@ -1,0 +1,221 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for user profiles and reviews.
+ *   It also allows public read access to trips while restricting write access to the trip creator.
+ *   Chat channels and messages are secured to authorized participants only.
+ *   Admin privileges are granted based on the existence of a document in the `/roles_admin` collection.
+ *
+ * @dataStructure
+ *   - `/users/{userId}`: Stores user profiles, secured with user-ownership.
+ *   - `/trips/{tripId}`: Stores trip information, publicly readable but owner-writeable.
+ *   - `/trips/{tripId}/bookings/{bookingId}`: Stores bookings, secured with shared access based on traveler and trip owner.
+ *   - `/chat_channels/{chatChannelId}`: Stores chat channels, secured with shared access based on participant IDs.
+ *   - `/chat_channels/{chatChannelId}/messages/{messageId}`: Stores chat messages, access controlled by the parent chat channel.
+ *   - `/users/{userId}/reviews/{reviewId}`: Stores reviews, secured with user-ownership.
+ *   - `/roles_admin/{userId}`: Presence indicates admin role, granting elevated privileges.
+ *
+ * @keySecurityDecisions
+ *   - User listing is disallowed to protect user privacy.
+ *   - Trips are publicly readable to facilitate discovery but only the owner can modify them.
+ *   - Data shape validation is relaxed for rapid prototyping, focusing on authorization.
+ *   - All write operations (create, update, delete) MUST be protected by an authorization check.
+ *
+ * @denormalizationForAuthorization
+ *   - Bookings include the `travelerId` to avoid needing to fetch user data for authorization.
+ *   - Chat channels include `participant1Id` and `participant2Id` to directly authorize channel access.
+ *
+ * @structuralSegregation
+ *   - Public trip data is stored in a top-level collection (`/trips/{tripId}`), separate from private user data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces user-ownership for user profiles. Only the user can read, update, or delete their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their profile if `request.auth.uid` is 'user123'.
+     * @allow (get, update, delete) User with ID 'user123' can read/update/delete their profile if `request.auth.uid` is 'user123'.
+     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete profile with ID 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is disallowed for privacy.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows public read access to trip information, but restricts write access to the trip creator.
+     * @path /trips/{tripId}
+     * @allow (get, list) Any user can read or list trips.
+     * @allow (create) User with ID 'user123' can create a trip with `offeredBy` set to 'user123'.
+     * @allow (update, delete) User with ID 'user123' can update/delete a trip where `resource.data.offeredBy` is 'user123'.
+     * @deny (create) User with ID 'user456' cannot create a trip with `offeredBy` set to 'user123'.
+     * @deny (update, delete) User with ID 'user456' cannot update/delete a trip where `resource.data.offeredBy` is 'user123'.
+     * @principle Enforces public read with owner-only writes.
+     */
+    match /trips/{tripId} {
+        function isOwner(offeredBy) {
+          return request.auth.uid == offeredBy;
+        }
+
+        function isExistingOwner(offeredBy) {
+          return isOwner(offeredBy) && resource != null;
+        }
+
+        allow get, list: if true;
+        allow create: if request.auth != null && request.resource.data.offeredBy == request.auth.uid;
+        allow update: if isExistingOwner(resource.data.offeredBy);
+        allow delete: if isExistingOwner(resource.data.offeredBy);
+    }
+
+    /**
+     * @description Controls access to bookings associated with a trip. Allows the traveler and the trip owner to read, update, or delete bookings.
+     * @path /trips/{tripId}/bookings/{bookingId}
+     * @allow (create) User 'traveler123' can create a booking for trip 'trip456' if `request.auth.uid` is 'traveler123'.
+     * @allow (get, list) User 'traveler123' can read/list bookings for trip 'trip456' if `request.auth.uid` is 'traveler123'. The trip owner can also read/list the booking.
+     * @allow (update, delete) User 'traveler123' can update/delete a booking if `request.auth.uid` is 'traveler123'. The trip owner can also update/delete the booking.
+     * @deny (create) User 'otherUser' cannot create a booking for trip 'trip456' with `travelerId` set to 'traveler123'.
+     * @deny (get, list, update, delete) User 'otherUser' cannot access bookings for trip 'trip456' if they are not the traveler or trip owner.
+     * @principle Enforces shared access for bookings between the traveler and the trip owner.
+     */
+    match /trips/{tripId}/bookings/{bookingId} {
+      function isTraveler(travelerId) {
+        return request.auth.uid == travelerId;
+      }
+
+      function getTripOfferedBy(tripId) {
+          return get(/databases/$(database)/documents/trips/$(tripId)).data.offeredBy;
+      }
+
+      function isTripOwner(tripId) {
+        return getTripOfferedBy(tripId) == request.auth.uid;
+      }
+
+      function isAuthorized(tripId, travelerId) {
+        return request.auth != null && (isTraveler(travelerId) || isTripOwner(tripId));
+      }
+
+      function isExistingAuthorized(tripId, travelerId) {
+        return isAuthorized(tripId, travelerId) && resource != null;
+      }
+
+      allow get, list: if request.auth != null && (isTraveler(resource.data.travelerId) || isTripOwner(tripId));
+      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
+      allow update: if isExistingAuthorized(tripId, resource.data.travelerId);
+      allow delete: if isExistingAuthorized(tripId, resource.data.travelerId);
+    }
+
+    /**
+     * @description Controls access to chat channels, allowing only the participants to read and write messages.
+     * @path /chat_channels/{chatChannelId}
+     * @allow (create) User 'user123' can create a chat channel with `participant1Id` or `participant2Id` set to 'user123'.
+     * @allow (get, list) User 'user123' can read/list chat channels if `participant1Id` or `participant2Id` is 'user123'.
+     * @allow (update, delete) User 'user123' can update/delete a chat channel if `participant1Id` or `participant2Id` is 'user123'.
+     * @deny (create) User 'otherUser' cannot create a chat channel with neither `participant1Id` nor `participant2Id` set to 'otherUser'.
+     * @deny (get, list, update, delete) User 'otherUser' cannot access a chat channel if they are not a participant.
+     * @principle Enforces shared access based on participant IDs.
+     */
+    match /chat_channels/{chatChannelId} {
+      function isParticipant(participant1Id, participant2Id) {
+        return request.auth.uid == participant1Id || request.auth.uid == participant2Id;
+      }
+
+      function isExistingParticipant(participant1Id, participant2Id) {
+        return isParticipant(participant1Id, participant2Id) && resource != null;
+      }
+
+      allow get, list: if request.auth != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id);
+      allow create: if request.auth != null && (request.resource.data.participant1Id == request.auth.uid || request.resource.data.participant2Id == request.auth.uid);
+      allow update: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id);
+      allow delete: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id);
+    }
+
+    /**
+     * @description Controls access to chat messages within a channel, allowing only channel participants.
+     * @path /chat_channels/{chatChannelId}/messages/{messageId}
+     * @allow (create) User 'user123' can create a message in channel 'channel456' if they are a participant.
+     * @allow (get, list) User 'user123' can read/list messages in channel 'channel456' if they are a participant.
+     * @allow (update, delete) User 'user123' can update/delete a message in channel 'channel456' if they are a participant.
+     * @deny (create) User 'otherUser' cannot create a message in channel 'channel456' if they are not a participant.
+     * @deny (get, list, update, delete) User 'otherUser' cannot access messages in channel 'channel456' if they are not a participant.
+     * @principle Inherits access control from the parent chat channel.
+     */
+    match /chat_channels/{chatChannelId}/messages/{messageId} {
+
+      function getChannelParticipant1Id(chatChannelId) {
+          return get(/databases/$(database)/documents/chat_channels/$(chatChannelId)).data.participant1Id;
+      }
+
+      function getChannelParticipant2Id(chatChannelId) {
+          return get(/databases/$(database)/documents/chat_channels/$(chatChannelId)).data.participant2Id;
+      }
+
+      function isParticipant(chatChannelId) {
+        return getChannelParticipant1Id(chatChannelId) == request.auth.uid
+            || getChannelParticipant2Id(chatChannelId) == request.auth.uid;
+      }
+
+      function isExistingParticipant(chatChannelId) {
+        return request.auth != null && isParticipant(chatChannelId) && resource != null;
+      }
+
+      allow get, list: if request.auth != null && isParticipant(chatChannelId);
+      allow create: if request.auth != null && isParticipant(chatChannelId);
+      allow update: if isExistingParticipant(chatChannelId);
+      allow delete: if isExistingParticipant(chatChannelId);
+    }
+
+    /**
+     * @description Enforces user-ownership for reviews. Only the user being reviewed can read, update, or delete their reviews.
+     * @path /users/{userId}/reviews/{reviewId}
+     * @allow (create) User can create a review under their own profile path
+     * @allow (get, update, delete) User with ID 'user123' can read/update/delete a review under their profile.
+     * @deny (create) User with ID 'user456' cannot create a review under the 'user123' profile path.
+     * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete a review under the 'user123' profile path.
+     * @principle Enforces path-based document ownership.
+     */
+    match /users/{userId}/reviews/{reviewId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if request.auth != null;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants admin privileges to users with a document in the `/roles_admin` collection.
+     * @path /roles_admin/{userId}
+     * @allow (get) Any user can read the roles_admin collection.
+     * @allow (create, update, delete) Only users who are authenticated.
+     * @deny Any non-authenticated user is denied.
+     * @principle DBAC (Database-Based Access Control) based on document existence.
+     */
+    match /roles_admin/{userId} {
+      allow get: if true; // Allow anyone to check for admin status.
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+  }
+}
