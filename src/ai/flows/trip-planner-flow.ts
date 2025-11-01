@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { requireUser } from '@/lib/auth';
 import { z } from 'genkit';
 
 // We define the schemas here, but we don't export them directly.
@@ -48,12 +49,11 @@ const planTripFlow = ai.defineFlow(
     outputSchema: TripPlanOutputSchema,
   },
   async (query) => {
-    // SECURITY NOTE: This flow is currently public.
-    // To protect it, you would uncomment the following lines:
-    // const { user } = await requireUser();
-    // if (!user) {
-    //   throw new Error("Authentication required.");
-    // }
+    // SECURITY NOTE: This flow is now protected.
+    const { user } = await requireUser();
+    if (!user) {
+      throw new Error("Authentication required.");
+    }
     
     const { output } = await prompt(query);
     return output!;
