@@ -78,8 +78,8 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              Profil
+            <DropdownMenuItem asChild>
+              <Link href="/profile">Profil</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
               Mes trajets
