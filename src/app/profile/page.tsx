@@ -16,6 +16,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Form,
@@ -49,6 +50,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isDataLoading, setIsDataLoading] = React.useState(true);
+  const [initialData, setInitialData] = React.useState<ProfileFormValues | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -62,6 +64,8 @@ export default function ProfilePage() {
       userType: 'voyageur',
     },
   });
+  
+  const { formState: { isSubmitting, isDirty } } = form;
 
   React.useEffect(() => {
     if (isUserLoading) return; // Wait until user auth state is resolved
@@ -79,9 +83,10 @@ export default function ProfilePage() {
       const userRef = doc(firestore, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
+      let dataToSet;
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        form.reset({
+        dataToSet = {
           fullName: userData.name || '',
           email: userData.email || user.email || '',
           phoneNumber: userData.phoneNumber || '',
@@ -89,10 +94,10 @@ export default function ProfilePage() {
           postalCode: userData.postalCode || '',
           profilePictureUrl: userData.profilePictureUrl || '',
           userType: userData.role || 'voyageur',
-        });
+        };
       } else {
         // Pre-fill with what we know from auth if no DB entry
-        form.reset({
+        dataToSet = {
             fullName: user.displayName || '',
             email: user.email || '',
             phoneNumber: user.phoneNumber || '',
@@ -100,8 +105,10 @@ export default function ProfilePage() {
             postalCode: '',
             profilePictureUrl: user.photoURL || '',
             userType: 'voyageur',
-        });
+        };
       }
+      form.reset(dataToSet);
+      setInitialData(dataToSet);
       setIsDataLoading(false);
     };
 
@@ -137,6 +144,7 @@ export default function ProfilePage() {
         title: 'Profil mis à jour',
         description: 'Vos informations ont été sauvegardées avec succès.',
       });
+      form.reset(values); // Resets form to new values, making it "not dirty"
       router.refresh();
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -147,6 +155,13 @@ export default function ProfilePage() {
       });
     }
   };
+  
+  const handleCancel = () => {
+    if (initialData) {
+      form.reset(initialData);
+    }
+  }
+
 
   if (isUserLoading || isDataLoading) {
     return (
@@ -164,22 +179,22 @@ export default function ProfilePage() {
 
   return (
     <div className="container py-12 px-4 md:px-6">
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={form.watch('profilePictureUrl') || user.photoURL || undefined} alt={user.displayName || 'Avatar'} />
-              <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-3xl font-bold">{form.watch('fullName') || user.displayName}</CardTitle>
-              <CardDescription>{user.email}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <Card className="w-full max-w-2xl mx-auto">
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={form.watch('profilePictureUrl') || user.photoURL || undefined} alt={user.displayName || 'Avatar'} />
+                  <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-3xl font-bold">{form.watch('fullName') || user.displayName}</CardTitle>
+                  <CardDescription>{user.email}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <FormField
                 control={form.control}
                 name="fullName"
@@ -294,14 +309,21 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Mettre à jour le profil
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+            <CardFooter className="border-t px-6 py-4">
+                <div className="flex justify-end gap-3 w-full">
+                    <Button type="button" variant="outline" onClick={handleCancel} disabled={!isDirty || isSubmitting}>
+                        Annuler
+                    </Button>
+                    <Button type="submit" disabled={!isDirty || isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Mettre à jour le profil
+                    </Button>
+                </div>
+            </CardFooter>
+          </Card>
+        </form>
+      </Form>
     </div>
   );
 }
