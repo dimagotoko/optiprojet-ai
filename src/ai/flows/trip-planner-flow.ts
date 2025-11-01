@@ -48,6 +48,13 @@ const planTripFlow = ai.defineFlow(
     outputSchema: TripPlanOutputSchema,
   },
   async (query) => {
+    // SECURITY NOTE: This flow is currently public.
+    // To protect it, you would uncomment the following lines:
+    // const { user } = await requireUser();
+    // if (!user) {
+    //   throw new Error("Authentication required.");
+    // }
+    
     const { output } = await prompt(query);
     return output!;
   }
