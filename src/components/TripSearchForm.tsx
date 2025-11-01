@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -19,6 +20,10 @@ type TripSearchFormProps = {
     date?: Date;
   };
 };
+
+// Helper to check if a value is a valid Date object
+const isValidDate = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
+
 
 export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
   const [date, setDate] = React.useState<Date | undefined>(initialSearch?.date);
@@ -56,7 +61,7 @@ export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-5 w-5" />
-                  {date ? format(date, 'd MMM yyyy', { locale: fr }) : <span>Date</span>}
+                  {isValidDate(date) ? format(date, 'd MMM yyyy', { locale: fr }) : <span>Date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
