@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, UserCircle, LogOut } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { useUser, useAuth } from '@/lib/firebase';
+import { useUser, useAuth } from '@/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 
 
 export function Header() {
-  const { user, loading } = useUser();
+  const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -51,7 +51,7 @@ export function Header() {
   ];
 
   const renderUserMenu = () => {
-    if (loading) {
+    if (isUserLoading) {
       return null; // or a loading spinner
     }
 

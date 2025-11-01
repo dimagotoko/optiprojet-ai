@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { GoogleMapsProvider } from '@/components/GoogleMapsProvider';
-import { FirebaseClientProvider } from '@/lib/firebase/client-provider';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'OptiTrajet AI',

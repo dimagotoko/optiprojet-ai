@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
-import { useAuth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
 import React from 'react';
 
 const formSchema = z.object({
