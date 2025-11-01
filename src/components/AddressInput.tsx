@@ -11,9 +11,10 @@ import usePlacesAutocomplete, {
 type AddressInputProps = {
   placeholder: string;
   defaultValue?: string;
+  onValueChange?: (value: string) => void;
 };
 
-export function AddressInput({ placeholder, defaultValue }: AddressInputProps) {
+export function AddressInput({ placeholder, defaultValue, onValueChange }: AddressInputProps) {
   const {
     ready,
     value,
@@ -23,13 +24,27 @@ export function AddressInput({ placeholder, defaultValue }: AddressInputProps) {
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: 'ca' },
-      // The previous 'establishment' type was too restrictive.
-      // 'geocode' is more general and suitable for addresses and cities.
       types: ['geocode'],
     },
     debounce: 300,
-    defaultValue,
+    defaultValue: defaultValue || '',
   });
+
+  // Keep internal value in sync with the hook's value
+  React.useEffect(() => {
+    if (onValueChange) {
+      onValueChange(value);
+    }
+  }, [value, onValueChange]);
+  
+  // When the component's defaultValue prop changes, update the hook's value.
+  // This is crucial for reacting to external changes, like from the AI chatbot.
+  React.useEffect(() => {
+    if (defaultValue !== undefined) {
+      setValue(defaultValue, false); // Set value without re-triggering fetch
+    }
+  }, [defaultValue, setValue]);
+
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
