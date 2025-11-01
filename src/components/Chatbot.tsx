@@ -6,7 +6,7 @@ import { MessageSquare, Send, X, Loader2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { planTrip } from '@/ai/flows/trip-planner-flow';
+import { planTrip, TripPlanOutput } from '@/ai/flows/trip-planner-flow';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
@@ -27,6 +27,10 @@ export function Chatbot({ onSearch }: ChatbotProps) {
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // This state will hold the partial search information
+  const [currentSearch, setCurrentSearch] = useState<Partial<TripPlanOutput>>({});
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,6 +53,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
     } else {
         setMessages([]);
         setInputValue('');
+        setCurrentSearch({});
     }
   }, [isOpen, user]);
 
@@ -57,21 +62,43 @@ export function Chatbot({ onSearch }: ChatbotProps) {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = { sender: 'user', text: inputValue };
+    const fullQuery = `${Object.values(currentSearch).join(' ')} ${inputValue}`.trim();
+    
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsThinking(true);
 
     try {
-      const result = await planTrip(inputValue);
+      const result = await planTrip(fullQuery);
       
-      const botResponse = `Super ! J'ai configuré la recherche pour un trajet de ${result.departure || '...'} à ${result.destination || '...'}${result.date ? ` pour le ${new Date(result.date).toLocaleDateString('fr-CA', { timeZone: 'UTC' })}` : ''}. Vous pouvez ajuster les détails ci-dessus ou sur la page des trajets.`;
+      const newSearch = { ...currentSearch, ...result };
+      setCurrentSearch(newSearch);
+
+      let botResponse: string;
+
+      if (result.isComplete) {
+        botResponse = `Super ! J'ai configuré la recherche pour un trajet de ${newSearch.departure || '...'} à ${newSearch.destination || '...'}${newSearch.date ? ` pour le ${new Date(newSearch.date).toLocaleDateString('fr-CA', { timeZone: 'UTC' })}` : ''}. Vous pouvez ajuster les détails ci-dessus.`;
+        onSearch(newSearch);
+        setCurrentSearch({}); // Reset for the next independent search
+      } else {
+        switch (result.missingInfo) {
+            case 'departure':
+                botResponse = `Ok, pour ${result.destination}. D'où partez-vous ?`;
+                break;
+            case 'destination':
+                botResponse = `Parfait, un départ de ${result.departure}. Quelle est votre destination ?`;
+                break;
+            default:
+                botResponse = `Pouvez-vous préciser votre demande ? Par exemple, "un trajet de Montréal à Québec".`;
+                break;
+        }
+      }
 
       setMessages((prev) => [...prev, { sender: 'bot', text: botResponse }]);
-      onSearch(result);
 
     } catch (error) {
       console.error('Error planning trip:', error);
-      let errorMessage = "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer.";
+      let errorMessage = "Désolé, une erreur est survenue. Veuillez réessayer.";
       if ((error as Error).message.includes('Authentication required')) {
           errorMessage = "Veuillez vous connecter pour utiliser cette fonctionnalité.";
       }
