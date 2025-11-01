@@ -72,7 +72,7 @@ export default function LoginPage() {
         description = "Aucun compte n'est associé à cette adresse e-mail.";
         action = (
             <Button asChild variant="secondary">
-                <Link href="/signup">Créer un compte</Link>
+                <Link href={`/signup?email=${encodeURIComponent(values.email)}`}>Créer un compte</Link>
             </Button>
         )
       } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {

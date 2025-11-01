@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,6 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/Logo';
+import React from 'react';
 
 const formSchema = z.object({
   fullName: z.string().min(1, { message: 'Le nom complet est requis.' }),
@@ -43,17 +44,20 @@ const formSchema = z.object({
 
 type SignupFormValues = z.infer<typeof formSchema>;
 
-export default function SignupPage() {
+function SignupPageInternal() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+
+  const emailFromQuery = searchParams.get('email') || '';
   
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: '',
-      email: '',
+      email: emailFromQuery,
       password: '',
       city: '',
       postalCode: '',
@@ -251,3 +255,13 @@ export default function SignupPage() {
     </div>
   );
 }
+
+
+export default function SignupPage() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <SignupPageInternal />
+    </React.Suspense>
+  );
+}
+
