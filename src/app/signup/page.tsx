@@ -44,6 +44,7 @@ const formSchema = z
     confirmPassword: z.string(),
     city: z.string().min(1, { message: 'La ville est requise.' }),
     postalCode: z.string().min(1, { message: 'Le code postal est requis.' }),
+    profilePictureUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).optional().or(z.literal('')),
     userType: z.enum(['voyageur', 'transporteur'], {
       required_error: 'Veuillez sélectionner un type de compte.',
     }),
@@ -74,6 +75,7 @@ function SignupPageInternal() {
       confirmPassword: '',
       city: '',
       postalCode: '',
+      profilePictureUrl: '',
       userType: 'voyageur',
     },
   });
@@ -96,6 +98,7 @@ function SignupPageInternal() {
       // 2. Update Firebase Auth profile
       await updateProfile(user, {
         displayName: values.fullName,
+        photoURL: values.profilePictureUrl || null,
       });
 
       // 3. Create user document in Firestore
@@ -108,7 +111,7 @@ function SignupPageInternal() {
         postalCode: values.postalCode,
         role: values.userType,
         phoneNumber: values.phoneNumber,
-        profilePictureUrl: '',
+        profilePictureUrl: values.profilePictureUrl || '',
         driverLicense: '',
         stripeCustomerId: '',
         averageRating: 0,
@@ -193,6 +196,25 @@ function SignupPageInternal() {
                   )}
                 />
               </div>
+               <FormField
+                control={form.control}
+                name="profilePictureUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Photo de profil <span className="text-muted-foreground">(URL, optionnel)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://example.com/photo.jpg"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="password"
