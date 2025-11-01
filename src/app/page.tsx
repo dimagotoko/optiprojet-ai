@@ -86,13 +86,13 @@ export default function Home() {
     if (search.departure) newSearch.departure = search.departure;
     if (search.destination) newSearch.destination = search.destination;
     // The AI returns a date string like "YYYY-MM-DD".
-    // new Date("YYYY-MM-DD") creates a date at midnight UTC.
-    // To avoid timezone issues where it might become the previous day,
-    // we create the date and then get the UTC components.
+    // new Date("YYYY-MM-DD") creates a date at midnight in the browser's local timezone.
+    // However, if the user is in a timezone ahead of UTC, this might result in the previous day in UTC.
+    // To handle this, we can split the date string and construct the date with Date.UTC
+    // to ensure it's consistent. But a simpler approach for this app is to just add T00:00:00
+    // to ensure it's parsed as local time correctly.
     if (search.date) {
-      const dateParts = search.date.split('-').map(Number);
-      // Create date in UTC to avoid timezone shifts.
-      newSearch.date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+      newSearch.date = new Date(`${search.date}T00:00:00`);
     }
     setTripSearch(newSearch);
   };
