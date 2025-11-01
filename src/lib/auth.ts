@@ -24,6 +24,8 @@ export async function getCurrentUser() {
     return { user };
   } catch (error) {
     console.error('Error verifying session cookie:', error);
+    // Clear the invalid cookie
+    cookies().set('__session', '', { maxAge: 0 });
     return { user: null };
   }
 }
