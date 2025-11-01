@@ -37,6 +37,7 @@ const formSchema = z
     email: z
       .string()
       .email({ message: 'Veuillez entrer une adresse email valide.' }),
+    phoneNumber: z.string().min(10, { message: 'Le numéro de téléphone est requis.' }),
     password: z
       .string()
       .min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
@@ -68,6 +69,7 @@ function SignupPageInternal() {
     defaultValues: {
       fullName: '',
       email: emailFromQuery,
+      phoneNumber: '',
       password: '',
       confirmPassword: '',
       city: '',
@@ -105,9 +107,8 @@ function SignupPageInternal() {
         city: values.city,
         postalCode: values.postalCode,
         role: values.userType,
-        // Initialize other fields from your schema if needed
+        phoneNumber: values.phoneNumber,
         profilePictureUrl: '',
-        phoneNumber: '',
         driverLicense: '',
         stripeCustomerId: '',
         averageRating: 0,
@@ -164,19 +165,34 @@ function SignupPageInternal() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="m@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="m@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Téléphone</FormLabel>
+                      <FormControl>
+                        <Input type="tel" placeholder="514-555-1234" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="password"

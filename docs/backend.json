@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -63,7 +64,8 @@
         "name",
         "city",
         "postalCode",
-        "role"
+        "role",
+        "phoneNumber"
       ]
     },
     "Trip": {
