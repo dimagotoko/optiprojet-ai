@@ -80,6 +80,15 @@
     }
   }
 
+  @keyframes spin-wheels {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .animate-car-rumble {
     animation: car-rumble 0.2s linear infinite;
   }
@@ -90,5 +99,9 @@
   .animate-smoke-puff-2 {
     transform-origin: center;
     animation: smoke-puff 2s ease-out 1s infinite;
+  }
+  .animate-spin-wheels {
+    transform-origin: center;
+    animation: spin-wheels 1s linear infinite;
   }
 }
