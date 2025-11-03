@@ -111,7 +111,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
   if (!isOpen) {
     return (
       <Button
-        className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg"
+        className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg z-50"
         onClick={() => setIsOpen(true)}
         aria-label="Ouvrir le chatbot"
       >
@@ -121,7 +121,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
   }
 
   return (
-    <Card className="fixed bottom-8 right-8 w-96 shadow-xl rounded-2xl flex flex-col h-[60vh]">
+    <Card className="fixed bottom-8 right-8 w-96 shadow-xl rounded-2xl flex flex-col h-[60vh] z-50">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar>
