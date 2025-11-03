@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
   Calendar as CalendarIcon, Users, Clock, DollarSign, Car, Plus,
-  Luggage, Briefcase, Dog, Cigarette, Info
+  Luggage, Briefcase, Dog, CigaretteOff
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -87,7 +87,7 @@ const tripSchema = z.object({
         allowLargeBags: z.boolean(),
         allowSmallBags: z.boolean(),
         allowPets: z.boolean(),
-        allowSmoking: z.boolean(),
+        isNonSmoking: z.boolean(),
     }),
     details: z.string().optional(),
 });
@@ -136,9 +136,9 @@ export default function PostTripPage() {
         vehicleId: '',
         options: {
             allowLargeBags: false,
-            allowSmallBags: false,
+            allowSmallBags: true,
             allowPets: false,
-            allowSmoking: false,
+            isNonSmoking: true,
         },
         details: '',
     },
@@ -445,8 +445,8 @@ export default function PostTripPage() {
                                         <Toggle aria-label="Animaux autorisés" pressed={field.value.allowPets} onPressedChange={(pressed) => tripForm.setValue('options.allowPets', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
                                             <Dog className="h-5 w-5" /> Animaux
                                         </Toggle>
-                                        <Toggle aria-label="Fumeurs autorisés" pressed={field.value.allowSmoking} onPressedChange={(pressed) => tripForm.setValue('options.allowSmoking', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
-                                            <Cigarette className="h-5 w-5" /> Fumeurs
+                                        <Toggle aria-label="Trajet non-fumeur" pressed={field.value.isNonSmoking} onPressedChange={(pressed) => tripForm.setValue('options.isNonSmoking', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
+                                            <CigaretteOff className="h-5 w-5" /> Non-fumeur
                                         </Toggle>
                                     </div>
                                     <FormMessage />
@@ -508,7 +508,7 @@ export default function PostTripPage() {
                                 {submittedTripData.options.allowLargeBags && <span>Grands bagages</span>}
                                 {submittedTripData.options.allowSmallBags && <span>Sac à dos</span>}
                                 {submittedTripData.options.allowPets && <span>Animaux</span>}
-                                {submittedTripData.options.allowSmoking && <span>Fumeurs</span>}
+                                {submittedTripData.options.isNonSmoking && <span>Non-fumeur</span>}
                                 {!Object.values(submittedTripData.options).some(Boolean) && <span>Aucune</span>}
                             </div>
                         </div>
