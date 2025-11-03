@@ -477,16 +477,16 @@ export default function PostTripPage() {
                                 <FormItem className="grid gap-2">
                                     <FormLabel>Options du trajet</FormLabel>
                                     <div className="flex flex-wrap gap-2">
-                                        <Toggle aria-label="Grands bagages autorisés" pressed={field.value.allowLargeBags} onPressedChange={(pressed) => tripForm.setValue('options.allowLargeBags', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
+                                        <Toggle aria-label="Grands bagages autorisés" pressed={field.value.allowLargeBags} onPressedChange={(pressed) => tripForm.setValue('options', { ...field.value, allowLargeBags: pressed })} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
                                             <Luggage className="h-5 w-5" /> Grands bagages
                                         </Toggle>
-                                        <Toggle aria-label="Petits bagages (sac à dos) autorisés" pressed={field.value.allowSmallBags} onPressedChange={(pressed) => tripForm.setValue('options.allowSmallBags', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
+                                        <Toggle aria-label="Petits bagages (sac à dos) autorisés" pressed={field.value.allowSmallBags} onPressedChange={(pressed) => tripForm.setValue('options', { ...field.value, allowSmallBags: pressed })} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
                                             <Briefcase className="h-5 w-5" /> Sac à dos
                                         </Toggle>
-                                        <Toggle aria-label="Animaux autorisés" pressed={field.value.allowPets} onPressedChange={(pressed) => tripForm.setValue('options.allowPets', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
+                                        <Toggle aria-label="Animaux autorisés" pressed={field.value.allowPets} onPressedChange={(pressed) => tripForm.setValue('options', { ...field.value, allowPets: pressed })} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
                                             <Dog className="h-5 w-5" /> Animaux
                                         </Toggle>
-                                        <Toggle aria-label="Trajet non-fumeur" pressed={field.value.isNonSmoking} onPressedChange={(pressed) => tripForm.setValue('options.isNonSmoking', pressed)} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
+                                        <Toggle aria-label="Trajet non-fumeur" pressed={field.value.isNonSmoking} onPressedChange={(pressed) => tripForm.setValue('options', { ...field.value, isNonSmoking: pressed })} variant="outline" className="flex items-center gap-2 px-3 h-11 data-[state=on]:bg-primary/20">
                                             <CigaretteOff className="h-5 w-5" /> Non-fumeur
                                         </Toggle>
                                     </div>
@@ -573,5 +573,3 @@ export default function PostTripPage() {
     </div>
   );
 }
-
-    
