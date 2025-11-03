@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
+import usePlacesAutocomplete from 'use-places-autocomplete';
 
 type AddressInputProps = {
   placeholder: string;
@@ -12,6 +12,25 @@ type AddressInputProps = {
 };
 
 export function AddressInput({ placeholder, defaultValue, onValueChange }: AddressInputProps) {
+  const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
+
+  React.useEffect(() => {
+    // Demander la géolocalisation de l'utilisateur
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Erreur de géolocalisation: ", error);
+        }
+      );
+    }
+  }, []);
+
   const {
     ready,
     value,
@@ -22,16 +41,24 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: 'ca' },
+      // Biais les résultats vers la localisation de l'utilisateur si disponible
+      ...(location && {
+        location: new google.maps.LatLng(location.lat, location.lng),
+        radius: 100 * 1000, // 100km en mètres
+      }),
     },
     debounce: 300,
     defaultValue: defaultValue || '',
-    initOnMount: false, // Nous allons initialiser manuellement
+    initOnMount: false,
   });
-  
+
   // Initialisation manuelle quand le composant est monté
   React.useEffect(() => {
+    if (ready) {
+      return;
+    }
     init();
-  }, [init]);
+  }, [init, ready]);
 
 
   // Cet effet gère les mises à jour venant du parent (ex: du chatbot AI)
