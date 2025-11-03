@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -19,7 +18,6 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Star } from 'lucide-react';
-import { TripCard } from '@/components/TripCard';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
 import { LoadingLogo } from '@/components/LoadingLogo';
@@ -34,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { TripDetailsCard } from '@/components/TripDetailsCard';
 
 
 type Trip = {
@@ -43,6 +42,7 @@ type Trip = {
     departureTime: Timestamp;
     pricePerSeat: number;
     offeredBy: string;
+    availableSeats: number;
 };
 
 type UserProfile = {
@@ -53,8 +53,7 @@ type UserProfile = {
     role?: string;
 }
 
-
-function TripList({ trips, userProfile, currentUserId, onDeleteClick }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void }) {
+function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClick }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void }) {
     if (!trips || trips.length === 0) {
         return (
             <Card>
@@ -77,27 +76,16 @@ function TripList({ trips, userProfile, currentUserId, onDeleteClick }: { trips:
 
     return (
         <div className="grid gap-6">
-            {trips.map((trip) => {
-                const driver = {
-                    name: userProfile?.name || 'Conducteur',
-                    avatar: userProfile?.profilePictureUrl || '',
-                    rating: userProfile?.averageRating || 0,
-                };
-                
-                return (
-                    <TripCard
-                        key={trip.id}
-                        id={trip.id}
-                        from={trip.origin}
-                        to={trip.destination}
-                        date={format(trip.departureTime.toDate(), 'd MMM yyyy', { locale: fr })}
-                        price={`${trip.pricePerSeat}$`}
-                        driver={driver}
-                        showTripActions={trip.offeredBy === currentUserId}
-                        onDelete={() => onDeleteClick(trip.id)}
-                    />
-                );
-            })}
+            {trips.map((trip) => (
+                <TripDetailsCard 
+                    key={trip.id}
+                    trip={trip}
+                    driverProfile={userProfile}
+                    currentUserId={currentUserId}
+                    onDeleteClick={onDeleteClick}
+                    onEditClick={onEditClick}
+                />
+            ))}
         </div>
     );
 }
@@ -114,11 +102,11 @@ export default function DashboardPage() {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: userData, isLoading: isUserDocLoading } = useDoc<any>(userDocRef);
+  const { data: userData, isLoading: isUserDocLoading } = useDoc<UserProfile>(userDocRef);
   
   const tripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    if (userData?.role === 'transporteur') {
+    if (!firestore || !user || !userData) return null;
+    if (userData.role === 'transporteur') {
         return query(collection(firestore, 'trips'), where('offeredBy', '==', user.uid));
     }
     // TODO: Implement logic for travelers (e.g., query bookings subcollection)
@@ -158,6 +146,14 @@ export default function DashboardPage() {
   const handleDeleteClick = (tripId: string) => {
     // TODO: Check for bookings before allowing deletion
     setTripToDelete(tripId);
+  };
+
+  const handleEditClick = (tripId: string) => {
+    // TODO: Implement edit functionality
+    toast({
+        title: "Fonctionnalité à venir",
+        description: "La modification des trajets sera bientôt disponible.",
+    });
   };
   
   const handleConfirmDelete = async () => {
@@ -242,11 +238,23 @@ export default function DashboardPage() {
                 <TabsTrigger value="history">Historique des trajets</TabsTrigger>
               </TabsList>
               <TabsContent value="upcoming" className="mt-6">
-                <TripList trips={upcomingTrips} userProfile={userData} currentUserId={user.uid} onDeleteClick={handleDeleteClick} />
+                <TripList 
+                    trips={upcomingTrips} 
+                    userProfile={userData} 
+                    currentUserId={user.uid} 
+                    onDeleteClick={handleDeleteClick}
+                    onEditClick={handleEditClick}
+                />
               </TabsContent>
               <TabsContent value="history" className="mt-6">
                   {pastTrips.length > 0 ? (
-                      <TripList trips={pastTrips} userProfile={userData} currentUserId={user.uid} onDeleteClick={handleDeleteClick}/>
+                      <TripList 
+                          trips={pastTrips} 
+                          userProfile={userData} 
+                          currentUserId={user.uid} 
+                          onDeleteClick={handleDeleteClick}
+                          onEditClick={handleEditClick}
+                      />
                   ) : (
                       <Card>
                           <CardContent className="p-6 text-center">
@@ -279,3 +287,4 @@ export default function DashboardPage() {
     </>
   );
 }
+    

@@ -15,7 +15,7 @@ import {
 import { Button } from './ui/button';
 
 type TripCardProps = {
-  id: string;
+  id?: string;
   from: string;
   to: string;
   date: string;
@@ -33,6 +33,7 @@ type TripCardProps = {
 export function TripCard({ id, from, to, date, price, driver, showTripActions = false, onEdit, onDelete }: TripCardProps) {
   // Simple hash function to get a numeric seed from a string for picsum.photos
   const toSeed = (s: string) => {
+    if(!s) return 0;
     return s.split('').reduce((a, b) => {
       a = (a << 5) - a + b.charCodeAt(0);
       return a & a;
@@ -103,3 +104,5 @@ export function TripCard({ id, from, to, date, price, driver, showTripActions = 
     </Card>
   );
 }
+
+    
