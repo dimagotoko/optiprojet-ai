@@ -3,8 +3,11 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, where, Timestamp, DocumentData } from 'firebase/firestore';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,50 +20,72 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Star } from 'lucide-react';
 import { TripCard } from '@/components/TripCard';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
 import { LoadingLogo } from '@/components/LoadingLogo';
 
-// Mock data, to be replaced with Firestore data
-const upcomingTrips = [
-    {
-      from: 'Montréal',
-      to: 'Québec',
-      date: '15 Août',
-      price: '35$',
-      driver: {
-        name: 'Amélie Tremblay',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-1')?.imageUrl || '',
-        rating: 4.9,
-      },
-    }
-];
 
-const pastTrips = [
-    {
-      from: 'Longueuil',
-      to: 'Laval',
-      date: '02 Août',
-      price: '15$',
-      driver: {
-        name: 'Félix Bouchard',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-2')?.imageUrl || '',
-        rating: 4.8,
-      },
-    },
-    {
-      from: 'Montréal',
-      to: 'Sherbrooke',
-      date: '28 Juil',
-      price: '25$',
-      driver: {
-        name: 'Florence Gagnon',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-3')?.imageUrl || '',
-        rating: 5.0,
-      },
+type Trip = {
+    id: string;
+    origin: string;
+    destination: string;
+    departureTime: Timestamp;
+    pricePerSeat: number;
+    offeredBy: string;
+};
+
+type UserProfile = {
+    id: string;
+    name: string;
+    profilePictureUrl?: string;
+    averageRating?: number;
+}
+
+
+function TripList({ trips, userProfile }: { trips: Trip[] | null, userProfile: UserProfile | null }) {
+    if (!trips || trips.length === 0) {
+        return (
+            <Card>
+                <CardContent className="p-6 text-center">
+                    <p className="text-muted-foreground">
+                        {userProfile?.role === 'transporteur' 
+                            ? "Vous n'avez aucun trajet programmé."
+                            : "Vous n'avez aucun trajet à venir pour le moment."
+                        }
+                    </p>
+                    <Button asChild className="mt-4">
+                        <Link href={userProfile?.role === 'transporteur' ? "/post-trip" : "/trips"}>
+                            {userProfile?.role === 'transporteur' ? "Proposer un trajet" : "Trouver un trajet"}
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        );
     }
-];
+
+    return (
+        <div className="grid gap-6">
+            {trips.map((trip) => {
+                const driver = {
+                    name: userProfile?.name || 'Conducteur',
+                    avatar: userProfile?.profilePictureUrl || '',
+                    rating: userProfile?.averageRating || 0,
+                };
+                
+                return (
+                    <TripCard
+                        key={trip.id}
+                        from={trip.origin}
+                        to={trip.destination}
+                        date={format(trip.departureTime.toDate(), 'd MMM yyyy', { locale: fr })}
+                        price={`${trip.pricePerSeat}$`}
+                        driver={driver}
+                    />
+                );
+            })}
+        </div>
+    );
+}
 
 
 export default function DashboardPage() {
@@ -68,24 +93,56 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  // Create a memoized document reference
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
+  const { data: userData, isLoading: isUserDocLoading } = useDoc<any>(userDocRef);
+  
+  const tripsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    // Query for trips where the user is either the transporter OR a booked passenger
+    // This example only implements the transporter part for "trajets publiés".
+    // A more complex query would be needed for a traveler's booked trips.
+    if (userData?.role === 'transporteur') {
+        return query(collection(firestore, 'trips'), where('offeredBy', '==', user.uid));
+    }
+    // TODO: Implement logic for travelers (e.g., query a 'bookings' subcollection)
+    return null; 
+  }, [firestore, user, userData]);
 
-  // Use the useDoc hook to get real-time user data
-  const { data: userData, isLoading: isDataLoading } = useDoc(userDocRef);
+  const { data: allTrips, isLoading: isTripsLoading } = useCollection<Trip>(tripsQuery);
+
+  const { upcomingTrips, pastTrips } = React.useMemo(() => {
+    if (!allTrips) return { upcomingTrips: [], pastTrips: [] };
+    
+    const now = new Date();
+    const upcoming: Trip[] = [];
+    const past: Trip[] = [];
+
+    allTrips.forEach(trip => {
+      if (trip.departureTime.toDate() >= now) {
+        upcoming.push(trip);
+      } else {
+        past.push(trip);
+      }
+    });
+
+    // Sort trips by date
+    upcoming.sort((a, b) => a.departureTime.toMillis() - b.departureTime.toMillis());
+    past.sort((a, b) => b.departureTime.toMillis() - a.departureTime.toMillis());
+
+    return { upcomingTrips: upcoming, pastTrips: past };
+  }, [allTrips]);
+  
 
   React.useEffect(() => {
-    // Redirect if user is not logged in after auth state is resolved
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // Combined loading state
-  const isLoading = isUserLoading || isDataLoading;
+  const isLoading = isUserLoading || isUserDocLoading || (!!tripsQuery && isTripsLoading);
 
   if (isLoading) {
     return (
@@ -96,8 +153,6 @@ export default function DashboardPage() {
   }
   
   if (!user || !userData) {
-    // This can happen briefly during redirect or if the user document doesn't exist
-    // You might want to show a more specific message if userData is null but user is not
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <p>Utilisateur non trouvé.</p>
@@ -144,30 +199,15 @@ export default function DashboardPage() {
             </h1>
             <Tabs defaultValue="upcoming">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="upcoming">Trajets à venir</TabsTrigger>
+                <TabsTrigger value="upcoming">{userData?.role === 'transporteur' ? "Trajets publiés" : "Trajets à venir"}</TabsTrigger>
                 <TabsTrigger value="history">Historique des trajets</TabsTrigger>
               </TabsList>
               <TabsContent value="upcoming" className="mt-6">
-                  {upcomingTrips.length > 0 ? (
-                      <div className="grid gap-6">
-                          {upcomingTrips.map((trip, index) => <TripCard key={index} {...trip} />)}
-                      </div>
-                  ) : (
-                      <Card>
-                          <CardContent className="p-6 text-center">
-                              <p className="text-muted-foreground">Vous n'avez aucun trajet à venir pour le moment.</p>
-                              <Button asChild className="mt-4">
-                                  <Link href="/trips">Trouver un trajet</Link>
-                              </Button>
-                          </CardContent>
-                      </Card>
-                  )}
+                <TripList trips={upcomingTrips} userProfile={userData} />
               </TabsContent>
               <TabsContent value="history" className="mt-6">
                   {pastTrips.length > 0 ? (
-                      <div className="grid gap-6">
-                          {pastTrips.map((trip, index) => <TripCard key={index} {...trip} />)}
-                      </div>
+                      <TripList trips={pastTrips} userProfile={userData} />
                   ) : (
                       <Card>
                           <CardContent className="p-6 text-center">
@@ -184,3 +224,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
