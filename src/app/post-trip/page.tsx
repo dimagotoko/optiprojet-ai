@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -86,7 +87,7 @@ const tripSchema = z.object({
         allowLargeBags: z.boolean(),
         allowSmallBags: z.boolean(),
         allowPets: z.boolean(),
-        allowSmoking: z-boolean(),
+        allowSmoking: z.boolean(),
     }),
     details: z.string().optional(),
 });
