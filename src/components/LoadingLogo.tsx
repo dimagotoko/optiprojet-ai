@@ -20,8 +20,9 @@ export function LoadingLogo({ className, ...props }: SVGProps<SVGSVGElement>) {
         <path d="M9 17h6" />
         <circle cx="17" cy="17" r="2" />
       </g>
-      <path d="M4 17H2" className="animate-smoke-puff-1" stroke="currentColor" strokeWidth="1" opacity="0" />
-      <path d="M4 17H2" className="animate-smoke-puff-2" stroke="currentColor" strokeWidth="1" opacity="0" />
+      {/* Replaced path with circle for a better puff effect */}
+      <circle cx="2.5" cy="17" r="1.5" className="animate-smoke-puff-1" stroke="currentColor" strokeWidth="1" opacity="0" />
+      <circle cx="2.5" cy="17" r="1.5" className="animate-smoke-puff-2" stroke="currentColor" strokeWidth="1" opacity="0" />
     </svg>
   );
 }
