@@ -7,6 +7,7 @@
  *
  * @dataStructure
  *   - `/users/{userId}`: Stores user profiles, secured with user-ownership.
+ *   - `/users/{userId}/vehicles/{vehicleId}`: Stores vehicles, secured with user-ownership.
  *   - `/trips/{tripId}`: Stores trip information, publicly readable but owner-writeable.
  *   - `/trips/{tripId}/bookings/{bookingId}`: Stores bookings, secured with shared access based on traveler and trip owner.
  *   - `/chat_channels/{chatChannelId}`: Stores chat channels, secured with shared access based on participant IDs.
@@ -54,6 +55,25 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
+    }
+    
+    /**
+     * @description Enforces user-ownership for vehicles. Only the user can manage their own vehicles.
+     * @path /users/{userId}/vehicles/{vehicleId}
+     * @allow (get, list, create, update, delete) User 'user123' can manage vehicles if `request.auth.uid` matches `userId`.
+     * @deny User 'user456' cannot access vehicles belonging to 'user123'.
+     * @principle Path-based ownership for subcollections.
+     */
+    match /users/{userId}/vehicles/{vehicleId} {
+        function isOwner(userId) {
+            return request.auth.uid == userId;
+        }
+
+        function isExistingOwner(userId) {
+            return isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+        }
+
+        allow read, write: if isExistingOwner(userId);
     }
 
     /**
@@ -219,3 +239,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
