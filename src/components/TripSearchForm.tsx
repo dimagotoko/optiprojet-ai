@@ -111,7 +111,7 @@ export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
             />
           </div>
 
-          <Button type="submit" className="md:col-span-2 h-12 text-base">
+          <Button type="submit" className="md:col-span-2 h-12 text-base" disabled={!date}>
             Rechercher
           </Button>
         </form>
