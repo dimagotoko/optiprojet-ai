@@ -16,8 +16,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ArrowRight, Calendar, Users, MoreVertical, Edit, Trash2, MessageSquare, Phone } from 'lucide-react';
+import { ArrowRight, Calendar, Users, MoreVertical, Edit, Trash2, MessageSquare, Phone, Lock, Unlock } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -29,6 +30,7 @@ type Trip = {
     pricePerSeat: number;
     availableSeats: number;
     offeredBy: string;
+    isClosed?: boolean;
 };
 
 type Booking = {
@@ -99,7 +101,7 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
     );
 };
 
-export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteClick, onEditClick }: { trip: Trip, driverProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void }) => {
+export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteClick, onEditClick, onToggleCloseTrip }: { trip: Trip, driverProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void, onToggleCloseTrip: (tripId: string, currentState: boolean) => void }) => {
     const firestore = useFirestore();
 
     const bookingsQuery = useMemoFirebase(() => {
@@ -113,6 +115,7 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
     const totalSeats = trip.availableSeats + reservedSeats;
     const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
     const isOwner = trip.offeredBy === currentUserId;
+    const isPastTrip = trip.departureTime.toDate() < new Date();
 
     return (
         <Card className="w-full">
@@ -130,10 +133,10 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
                         </CardDescription>
                     </div>
                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-lg font-bold">
+                        <Badge variant={trip.isClosed ? 'destructive' : 'secondary'} className="text-lg font-bold">
                             {trip.pricePerSeat}$
                         </Badge>
-                         {isOwner && (
+                         {isOwner && !isPastTrip && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -141,6 +144,11 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => onToggleCloseTrip(trip.id, !!trip.isClosed)}>
+                                        {trip.isClosed ? <Unlock className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
+                                        <span>{trip.isClosed ? 'Rouvrir' : 'Fermer'} les réservations</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => onEditClick(trip.id)}>
                                         <Edit className="mr-2 h-4 w-4" />
                                         <span>Modifier</span>

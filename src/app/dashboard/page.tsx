@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp, DocumentData, deleteDoc } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, DocumentData, deleteDoc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -44,6 +44,7 @@ type Trip = {
     pricePerSeat: number;
     offeredBy: string;
     availableSeats: number;
+    isClosed?: boolean;
 };
 
 type UserProfile = {
@@ -55,7 +56,7 @@ type UserProfile = {
     totalRatings?: number;
 }
 
-function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClick }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void }) {
+function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClick, onToggleCloseTrip }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void, onToggleCloseTrip: (tripId: string, currentState: boolean) => void }) {
     if (!trips || trips.length === 0) {
         return (
             <Card>
@@ -86,6 +87,7 @@ function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClic
                     currentUserId={currentUserId}
                     onDeleteClick={onDeleteClick}
                     onEditClick={onEditClick}
+                    onToggleCloseTrip={onToggleCloseTrip}
                 />
             ))}
         </div>
@@ -156,6 +158,25 @@ export default function DashboardPage() {
         title: "Fonctionnalité à venir",
         description: "La modification des trajets sera bientôt disponible.",
     });
+  };
+
+  const handleToggleCloseTrip = async (tripId: string, currentState: boolean) => {
+    if (!firestore) return;
+    try {
+        const tripRef = doc(firestore, 'trips', tripId);
+        await updateDoc(tripRef, { isClosed: !currentState });
+        toast({
+            title: "Mise à jour réussie",
+            description: `Les réservations pour ce trajet ont été ${!currentState ? 'fermées' : 'rouvertes'}.`
+        });
+    } catch (error) {
+        console.error("Error toggling trip state: ", error);
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de mettre à jour le statut du trajet."
+        });
+    }
   };
   
   const handleConfirmDelete = async () => {
@@ -246,6 +267,7 @@ export default function DashboardPage() {
                     currentUserId={user.uid} 
                     onDeleteClick={handleDeleteClick}
                     onEditClick={handleEditClick}
+                    onToggleCloseTrip={handleToggleCloseTrip}
                 />
               </TabsContent>
               <TabsContent value="history" className="mt-6">
@@ -256,6 +278,7 @@ export default function DashboardPage() {
                           currentUserId={user.uid} 
                           onDeleteClick={handleDeleteClick}
                           onEditClick={handleEditClick}
+                          onToggleCloseTrip={handleToggleCloseTrip}
                       />
                   ) : (
                       <Card>

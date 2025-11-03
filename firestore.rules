@@ -116,12 +116,16 @@ service cloud.firestore {
         return request.auth.uid == travelerId;
       }
 
-      function getTripOfferedBy(tripId) {
-          return get(/databases/$(database)/documents/trips/$(tripId)).data.offeredBy;
+      function getTripData(tripId) {
+          return get(/databases/$(database)/documents/trips/$(tripId)).data;
       }
 
       function isTripOwner(tripId) {
-        return getTripOfferedBy(tripId) == request.auth.uid;
+        return getTripData(tripId).offeredBy == request.auth.uid;
+      }
+      
+      function isTripOpen(tripId) {
+        return getTripData(tripId).isClosed == false;
       }
 
       function isAuthorized(tripId, travelerId) {
@@ -133,7 +137,7 @@ service cloud.firestore {
       }
 
       allow get, list: if request.auth != null && (isTraveler(resource.data.travelerId) || isTripOwner(tripId));
-      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid && isTripOpen(tripId);
       allow update: if isExistingAuthorized(tripId, resource.data.travelerId);
       allow delete: if isExistingAuthorized(tripId, resource.data.travelerId);
     }
@@ -239,5 +243,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

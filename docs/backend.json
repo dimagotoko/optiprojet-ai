@@ -127,6 +127,10 @@
           "type": "number",
           "description": "Price per seat."
         },
+        "isClosed": {
+          "type": "boolean",
+          "description": "Indicates if the trip is closed for new bookings."
+        },
         "options": {
           "type": "object",
           "properties": {

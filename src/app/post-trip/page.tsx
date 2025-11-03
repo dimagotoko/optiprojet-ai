@@ -205,6 +205,7 @@ export default function PostTripPage() {
             availableSeats: submittedTripData.seats,
             pricePerSeat: submittedTripData.price,
             offeredBy: user.uid,
+            isClosed: false,
             createdAt: serverTimestamp(),
         });
 
