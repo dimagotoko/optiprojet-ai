@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -150,7 +149,7 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={isSubmitting || !auth}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Logo className="mr-2 h-4 w-4 animate-spin" />
                     Connexion en cours...
                   </>
                 ) : (

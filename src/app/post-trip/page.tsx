@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Users, Clock, DollarSign, Car, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Clock, DollarSign, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import { AddressInput } from '@/components/AddressInput';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Logo } from '@/components/Logo';
 
 export default function PostTripPage() {
   const { user, isUserLoading } = useUser();
@@ -42,7 +43,7 @@ export default function PostTripPage() {
   if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <Logo className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }

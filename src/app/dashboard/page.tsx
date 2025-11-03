@@ -15,11 +15,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { TripCard } from '@/components/TripCard';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
+import { Logo } from '@/components/Logo';
 
 // Mock data, to be replaced with Firestore data
 const upcomingTrips = [
@@ -89,7 +90,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <Logo className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
