@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import usePlacesAutocomplete from 'use-places-autocomplete';
+import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
 
 type AddressInputProps = {
   placeholder: string;
@@ -18,6 +18,7 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
     suggestions: { status, data },
     setValue,
     clearSuggestions,
+    init,
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: 'ca' },
@@ -26,6 +27,12 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
     defaultValue: defaultValue || '',
     initOnMount: false, // We will manually initialize
   });
+  
+  // Manual initialization when the component mounts
+  React.useEffect(() => {
+    init();
+  }, [init]);
+
 
   // This effect handles updates from the parent component (e.g., from the AI chatbot)
   React.useEffect(() => {
@@ -41,12 +48,6 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
     }
   }, [value, onValueChange]);
   
-  // Manual initialization when the component mounts
-  React.useEffect(() => {
-    if (usePlacesAutocomplete().init) {
-      usePlacesAutocomplete().init();
-    }
-  }, []);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
@@ -84,7 +85,6 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
         className="pl-10 h-12 text-base"
         value={value}
         onChange={handleInput}
-        disabled={!ready} // Field is disabled until the script is loaded
         autoComplete="off"
       />
       {status === 'OK' && (
