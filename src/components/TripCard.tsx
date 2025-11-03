@@ -1,13 +1,21 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, Calendar, Star } from 'lucide-react';
+import { ArrowRight, Calendar, Star, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from './ui/button';
 
 type TripCardProps = {
+  id: string;
   from: string;
   to: string;
   date: string;
@@ -17,9 +25,12 @@ type TripCardProps = {
     avatar: string;
     rating: number;
   };
+  showTripActions?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
 };
 
-export function TripCard({ from, to, date, price, driver }: TripCardProps) {
+export function TripCard({ id, from, to, date, price, driver, showTripActions = false, onEdit, onDelete }: TripCardProps) {
   // Simple hash function to get a numeric seed from a string for picsum.photos
   const toSeed = (s: string) => {
     return s.split('').reduce((a, b) => {
@@ -30,7 +41,26 @@ export function TripCard({ from, to, date, price, driver }: TripCardProps) {
   
   return (
     <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1">
-      <CardHeader className="p-4">
+      <CardHeader className="p-4 relative">
+        {showTripActions && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                <span>Modifier</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-red-500 focus:text-red-500">
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Annuler le trajet</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-lg font-semibold">
             <span>{from}</span>

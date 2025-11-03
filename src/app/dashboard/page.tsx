@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp, DocumentData } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, DocumentData, deleteDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -23,6 +23,17 @@ import { TripCard } from '@/components/TripCard';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 type Trip = {
@@ -39,10 +50,11 @@ type UserProfile = {
     name: string;
     profilePictureUrl?: string;
     averageRating?: number;
+    role?: string;
 }
 
 
-function TripList({ trips, userProfile }: { trips: Trip[] | null, userProfile: UserProfile | null }) {
+function TripList({ trips, userProfile, currentUserId, onDeleteClick }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void }) {
     if (!trips || trips.length === 0) {
         return (
             <Card>
@@ -75,11 +87,14 @@ function TripList({ trips, userProfile }: { trips: Trip[] | null, userProfile: U
                 return (
                     <TripCard
                         key={trip.id}
+                        id={trip.id}
                         from={trip.origin}
                         to={trip.destination}
                         date={format(trip.departureTime.toDate(), 'd MMM yyyy', { locale: fr })}
                         price={`${trip.pricePerSeat}$`}
                         driver={driver}
+                        showTripActions={trip.offeredBy === currentUserId}
+                        onDelete={() => onDeleteClick(trip.id)}
                     />
                 );
             })}
@@ -92,6 +107,8 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+  const [tripToDelete, setTripToDelete] = React.useState<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -101,13 +118,10 @@ export default function DashboardPage() {
   
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // Query for trips where the user is either the transporter OR a booked passenger
-    // This example only implements the transporter part for "trajets publiés".
-    // A more complex query would be needed for a traveler's booked trips.
     if (userData?.role === 'transporteur') {
         return query(collection(firestore, 'trips'), where('offeredBy', '==', user.uid));
     }
-    // TODO: Implement logic for travelers (e.g., query a 'bookings' subcollection)
+    // TODO: Implement logic for travelers (e.g., query bookings subcollection)
     return null; 
   }, [firestore, user, userData]);
 
@@ -128,7 +142,6 @@ export default function DashboardPage() {
       }
     });
 
-    // Sort trips by date
     upcoming.sort((a, b) => a.departureTime.toMillis() - b.departureTime.toMillis());
     past.sort((a, b) => b.departureTime.toMillis() - a.departureTime.toMillis());
 
@@ -141,6 +154,32 @@ export default function DashboardPage() {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
+
+  const handleDeleteClick = (tripId: string) => {
+    // TODO: Check for bookings before allowing deletion
+    setTripToDelete(tripId);
+  };
+  
+  const handleConfirmDelete = async () => {
+    if (!tripToDelete || !firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'trips', tripToDelete));
+      toast({
+        title: "Trajet annulé",
+        description: "Votre trajet a été supprimé avec succès."
+      });
+    } catch (error) {
+      console.error("Error deleting trip: ", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'annuler le trajet. Veuillez réessayer."
+      });
+    } finally {
+      setTripToDelete(null);
+    }
+  };
+
 
   const isLoading = isUserLoading || isUserDocLoading || (!!tripsQuery && isTripsLoading);
 
@@ -203,11 +242,11 @@ export default function DashboardPage() {
                 <TabsTrigger value="history">Historique des trajets</TabsTrigger>
               </TabsList>
               <TabsContent value="upcoming" className="mt-6">
-                <TripList trips={upcomingTrips} userProfile={userData} />
+                <TripList trips={upcomingTrips} userProfile={userData} currentUserId={user.uid} onDeleteClick={handleDeleteClick} />
               </TabsContent>
               <TabsContent value="history" className="mt-6">
                   {pastTrips.length > 0 ? (
-                      <TripList trips={pastTrips} userProfile={userData} />
+                      <TripList trips={pastTrips} userProfile={userData} currentUserId={user.uid} onDeleteClick={handleDeleteClick}/>
                   ) : (
                       <Card>
                           <CardContent className="p-6 text-center">
@@ -221,8 +260,22 @@ export default function DashboardPage() {
         </div>
       </div>
       <Chatbot onSearch={(search) => router.push(`/trips?departure=${search.departure}&destination=${search.destination}&date=${search.date}`)} />
+      
+      <AlertDialog open={!!tripToDelete} onOpenChange={(open) => !open && setTripToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler ce trajet ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Voulez-vous vraiment annuler ce trajet ?
+              Cette option est disponible car aucune réservation n'a encore été effectuée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Non</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Oui, annuler le trajet</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-    

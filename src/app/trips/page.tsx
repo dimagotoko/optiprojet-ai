@@ -19,6 +19,7 @@ function TripsPageContent() {
 
   const allTrips = [
     {
+      id: 'trip-1',
       from: 'Montréal',
       to: 'Québec',
       date: '30 Juil',
@@ -30,6 +31,7 @@ function TripsPageContent() {
       },
     },
     {
+      id: 'trip-2',
       from: 'Longueuil',
       to: 'Laval',
       date: '02 Août',
@@ -41,6 +43,7 @@ function TripsPageContent() {
       },
     },
     {
+      id: 'trip-3',
       from: 'Montréal',
       to: 'Sherbrooke',
       date: '05 Août',
@@ -52,6 +55,7 @@ function TripsPageContent() {
       },
     },
     {
+      id: 'trip-4',
       from: 'Québec',
       to: 'Trois-Rivières',
       date: '08 Août',
@@ -63,6 +67,7 @@ function TripsPageContent() {
       },
     },
     {
+      id: 'trip-5',
       from: 'Ottawa',
       to: 'Montréal',
       date: '10 Août',
@@ -74,6 +79,7 @@ function TripsPageContent() {
       },
     },
     {
+      id: 'trip-6',
       from: 'Gatineau',
       to: 'Montréal',
       date: '11 Août',
@@ -100,8 +106,8 @@ function TripsPageContent() {
         <TripSearchForm initialSearch={{ departure, destination, date }} />
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {allTrips.map((trip, index) => (
-          <TripCard key={index} {...trip} />
+        {allTrips.map((trip) => (
+          <TripCard key={trip.id} {...trip} />
         ))}
       </div>
     </div>
