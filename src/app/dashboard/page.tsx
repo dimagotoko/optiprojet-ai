@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -51,6 +52,7 @@ type UserProfile = {
     profilePictureUrl?: string;
     averageRating?: number;
     role?: string;
+    totalRatings?: number;
 }
 
 function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClick }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void }) {
@@ -287,4 +289,3 @@ export default function DashboardPage() {
     </>
   );
 }
-    

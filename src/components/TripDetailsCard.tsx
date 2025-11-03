@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ArrowRight, Calendar, Users, MoreVertical, Edit, Trash2, MessageSquare, Phone } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 type Trip = {
     id: string;
@@ -27,6 +28,7 @@ type Trip = {
     departureTime: Timestamp;
     pricePerSeat: number;
     availableSeats: number;
+    offeredBy: string;
 };
 
 type Booking = {
@@ -108,7 +110,8 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
     const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
 
     const reservedSeats = bookings?.length ?? 0;
-    const progressValue = (reservedSeats / trip.availableSeats) * 100;
+    const totalSeats = trip.availableSeats + reservedSeats;
+    const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
     const isOwner = trip.offeredBy === currentUserId;
 
     return (
@@ -159,9 +162,9 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
                             <Users className="h-4 w-4" />
                             <span>Places réservées</span>
                         </div>
-                        <span className="font-semibold">{reservedSeats} / {trip.availableSeats}</span>
+                        <span className="font-semibold">{reservedSeats} / {totalSeats}</span>
                     </div>
-                    <Progress value={progressValue} aria-label={`${reservedSeats} sur ${trip.availableSeats} places réservées`} />
+                    <Progress value={progressValue} aria-label={`${reservedSeats} sur ${totalSeats} places réservées`} />
                 </div>
             </CardContent>
             {isOwner && bookings && bookings.length > 0 && (
@@ -175,5 +178,3 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
         </Card>
     );
 };
-
-    
