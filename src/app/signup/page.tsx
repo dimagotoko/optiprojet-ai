@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/Logo';
 import React from 'react';
+import { LoadingLogo } from '@/components/LoadingLogo';
 
 const formSchema = z
   .object({
@@ -310,7 +311,7 @@ function SignupPageInternal() {
               >
                 {isSubmitting ? (
                   <>
-                    <Logo className="mr-2 h-4 w-4 animate-spin" />
+                    <LoadingLogo className="mr-2 h-4 w-4" />
                     Création en cours...
                   </>
                 ) : (

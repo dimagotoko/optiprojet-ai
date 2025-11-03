@@ -20,7 +20,7 @@ import { TripCard } from '@/components/TripCard';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
-import { Logo } from '@/components/Logo';
+import { LoadingLogo } from '@/components/LoadingLogo';
 
 // Mock data, to be replaced with Firestore data
 const upcomingTrips = [
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Logo className="h-12 w-12 animate-spin text-primary" />
+        <LoadingLogo className="h-12 w-12 text-primary" />
       </div>
     );
   }

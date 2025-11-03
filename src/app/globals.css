@@ -57,3 +57,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes car-rumble {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-0.5px); }
+    75% { transform: translateX(0.5px); }
+  }
+
+  @keyframes smoke-puff {
+    0% {
+      opacity: 0;
+      transform: translate(-10px, 1px) scale(0.5);
+    }
+    50% {
+      opacity: 0.6;
+      transform: translate(-20px, -3px) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-35px, -8px) scale(1.5);
+    }
+  }
+
+  .animate-car-rumble {
+    animation: car-rumble 0.2s linear infinite;
+  }
+  .animate-smoke-puff-1 {
+    transform-origin: center;
+    animation: smoke-puff 2s ease-out infinite;
+  }
+  .animate-smoke-puff-2 {
+    transform-origin: center;
+    animation: smoke-puff 2s ease-out 1s infinite;
+  }
+}

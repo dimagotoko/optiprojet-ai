@@ -26,7 +26,7 @@ import { AddressInput } from '@/components/AddressInput';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Logo } from '@/components/Logo';
+import { LoadingLogo } from '@/components/LoadingLogo';
 
 export default function PostTripPage() {
   const { user, isUserLoading } = useUser();
@@ -43,7 +43,7 @@ export default function PostTripPage() {
   if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Logo className="h-12 w-12 animate-spin text-primary" />
+        <LoadingLogo className="h-12 w-12 text-primary" />
       </div>
     );
   }

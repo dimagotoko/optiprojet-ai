@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/firebase';
 import React from 'react';
+import { LoadingLogo } from '@/components/LoadingLogo';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Veuillez entrer une adresse email valide.' }),
@@ -149,7 +150,7 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={isSubmitting || !auth}>
                 {isSubmitting ? (
                   <>
-                    <Logo className="mr-2 h-4 w-4 animate-spin" />
+                    <LoadingLogo className="mr-2 h-4 w-4" />
                     Connexion en cours...
                   </>
                 ) : (

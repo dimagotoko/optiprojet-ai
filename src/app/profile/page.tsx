@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Logo } from '@/components/Logo';
+import { LoadingLogo } from '@/components/LoadingLogo';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, 'Le nom complet est requis.'),
@@ -166,7 +166,7 @@ export default function ProfilePage() {
   if (isUserLoading || isDataLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Logo className="h-12 w-12 animate-spin text-primary" />
+        <LoadingLogo className="h-12 w-12 text-primary" />
       </div>
     );
   }
@@ -316,7 +316,7 @@ export default function ProfilePage() {
                         Annuler
                     </Button>
                     <Button type="submit" disabled={!isDirty || isSubmitting}>
-                        {isSubmitting && <Logo className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting && <LoadingLogo className="mr-2 h-4 w-4" />}
                         Mettre à jour le profil
                     </Button>
                 </div>
