@@ -3,8 +3,8 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,35 +66,25 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const [userData, setUserData] = React.useState<any>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+
+  // Create a memoized document reference
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  // Use the useDoc hook to get real-time user data
+  const { data: userData, isLoading: isDataLoading } = useDoc(userDocRef);
 
   React.useEffect(() => {
-    if (isUserLoading) {
-        return; // Wait until user state is resolved
-    }
-    if (!user) {
+    // Redirect if user is not logged in after auth state is resolved
+    if (!isUserLoading && !user) {
       router.push('/login');
-      return;
     }
-    
-    // User is authenticated, now fetch their data
-    if (firestore) {
-      const userRef = doc(firestore, 'users', user.uid);
-      getDoc(userRef).then(userSnap => {
-        if (userSnap.exists()) {
-          setUserData(userSnap.data());
-        }
-        setIsLoading(false);
-      }).catch(error => {
-          console.error("Failed to fetch user data:", error);
-          setIsLoading(false);
-      });
-    } else {
-        // Firestore not ready yet
-        setIsLoading(false);
-    }
-  }, [user, isUserLoading, firestore, router]);
+  }, [user, isUserLoading, router]);
+
+  // Combined loading state
+  const isLoading = isUserLoading || isDataLoading;
 
   if (isLoading) {
     return (
@@ -104,8 +94,14 @@ export default function DashboardPage() {
     );
   }
   
-  if (!user) {
-    return null; // Redirecting
+  if (!user || !userData) {
+    // This can happen briefly during redirect or if the user document doesn't exist
+    // You might want to show a more specific message if userData is null but user is not
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <p>Utilisateur non trouvé.</p>
+      </div>
+    );
   }
 
   const getInitials = (name: string) => {
