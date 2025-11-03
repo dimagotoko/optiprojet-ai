@@ -176,7 +176,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <Chatbot onSearch={(search) => router.push(`/trips?departure=${search.departure}&destination=${search.destination}&date=${search.date}`)} />
+      <Chatbot onSearch={handleAiSearch} />
     </div>
   );
 }
