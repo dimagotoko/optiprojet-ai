@@ -5,11 +5,21 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { GoogleMapsProvider } from '@/components/GoogleMapsProvider';
+import { Suspense } from 'react';
+import { LoadingLogo } from '@/components/LoadingLogo';
 
 export const metadata: Metadata = {
   title: 'OptiTrajet AI',
   description: "Trouvez votre covoiturage idéal, optimisé par l'IA",
 };
+
+function RootLoading() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+      <LoadingLogo className="h-16 w-16 text-primary" />
+    </div>
+  )
+}
 
 export default function RootLayout({
   children,
@@ -27,16 +37,18 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <GoogleMapsProvider>
-          <FirebaseClientProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-            <Toaster />
-          </FirebaseClientProvider>
-        </GoogleMapsProvider>
+        <Suspense fallback={<RootLoading />}>
+          <GoogleMapsProvider>
+            <FirebaseClientProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </div>
+              <Toaster />
+            </FirebaseClientProvider>
+          </GoogleMapsProvider>
+        </Suspense>
       </body>
     </html>
   );
