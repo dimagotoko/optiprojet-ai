@@ -25,23 +25,23 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
     },
     debounce: 300,
     defaultValue: defaultValue || '',
-    initOnMount: false, // We will manually initialize
+    initOnMount: false, // Nous allons initialiser manuellement
   });
   
-  // Manual initialization when the component mounts
+  // Initialisation manuelle quand le composant est monté
   React.useEffect(() => {
     init();
   }, [init]);
 
 
-  // This effect handles updates from the parent component (e.g., from the AI chatbot)
+  // Cet effet gère les mises à jour venant du parent (ex: du chatbot AI)
   React.useEffect(() => {
     if (defaultValue !== undefined) {
-      setValue(defaultValue, false); // Set value without re-triggering suggestions
+      setValue(defaultValue, false); // Met à jour la valeur sans déclencher de nouvelles suggestions
     }
   }, [defaultValue, setValue]);
 
-  // This effect reports the current value back to the parent form
+  // Cet effet rapporte la valeur actuelle au formulaire parent
   React.useEffect(() => {
     if (onValueChange) {
       onValueChange(value);
@@ -85,6 +85,7 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
         className="pl-10 h-12 text-base"
         value={value}
         onChange={handleInput}
+        disabled={!ready}
         autoComplete="off"
       />
       {status === 'OK' && (
