@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
-  Calendar as CalendarIcon, Users, Clock, DollarSign, Car, Plus,
+  Calendar as CalendarIcon, Users, Clock, DollarSign, Plus,
   Luggage, Briefcase, Dog, CigaretteOff
 } from 'lucide-react';
 
@@ -63,7 +63,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 
@@ -79,7 +79,8 @@ const tripSchema = z.object({
     departure: z.string().min(3, 'Le lieu de départ est requis.'),
     destination: z.string().min(3, 'Le lieu de destination est requis.'),
     date: z.date({ required_error: 'La date est requise.' }),
-    time: z.string().min(1, "L'heure est requise."),
+    time: z.string().min(1, "L'heure de départ est requise."),
+    arrivalTime: z.string().optional(),
     seats: z.coerce.number().min(1, 'Il doit y avoir au moins une place.'),
     price: z.coerce.number().min(0, 'Le prix doit être positif.'),
     vehicleId: z.string().min(1, 'Veuillez sélectionner un véhicule.'),
@@ -131,6 +132,7 @@ export default function PostTripPage() {
         departure: '',
         destination: '',
         time: '',
+        arrivalTime: '',
         seats: 1,
         price: 10,
         vehicleId: '',
@@ -168,20 +170,33 @@ export default function PostTripPage() {
     if (!submittedTripData || !firestore || !user) return;
 
     try {
-        const departureDateTime = new Date(submittedTripData.date);
-        const [hours, minutes] = submittedTripData.time.split(':').map(Number);
+        const { date, time, arrivalTime, ...rest } = submittedTripData;
+
+        const departureDateTime = new Date(date);
+        const [hours, minutes] = time.split(':').map(Number);
         departureDateTime.setHours(hours, minutes);
 
+        let arrivalTimestamp: Timestamp | null = null;
+        if (arrivalTime) {
+            const arrivalDateTime = new Date(date);
+            const [arrHours, arrMinutes] = arrivalTime.split(':').map(Number);
+            arrivalDateTime.setHours(arrHours, arrMinutes);
+            // If arrival is on the next day
+            if (arrivalDateTime < departureDateTime) {
+                arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
+            }
+            arrivalTimestamp = Timestamp.fromDate(arrivalDateTime);
+        }
+
         await addDoc(collection(firestore, 'trips'), {
+            ...rest,
             origin: submittedTripData.departure,
             destination: submittedTripData.destination,
-            departureTime: serverTimestamp(),
+            departureTime: Timestamp.fromDate(departureDateTime),
+            arrivalTime: arrivalTimestamp,
             availableSeats: submittedTripData.seats,
             pricePerSeat: submittedTripData.price,
             offeredBy: user.uid,
-            vehicleId: submittedTripData.vehicleId,
-            options: submittedTripData.options,
-            details: submittedTripData.details,
             createdAt: serverTimestamp(),
         });
 
@@ -307,22 +322,40 @@ export default function PostTripPage() {
                                 </FormItem>
                             )}
                             />
-                          <FormField
-                            control={tripForm.control}
-                            name="time"
-                            render={({ field }) => (
-                                <FormItem className="grid gap-2">
-                                    <FormLabel>Heure de départ</FormLabel>
-                                    <div className="relative">
-                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <FormControl>
-                                            <Input type="time" className="pl-10 h-11" {...field} />
-                                        </FormControl>
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                            />
+                            <div className="grid grid-cols-2 gap-2">
+                                <FormField
+                                    control={tripForm.control}
+                                    name="time"
+                                    render={({ field }) => (
+                                        <FormItem className="grid gap-2">
+                                            <FormLabel>Heure de départ</FormLabel>
+                                            <div className="relative">
+                                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                                <FormControl>
+                                                    <Input type="time" className="pl-10 h-11" {...field} />
+                                                </FormControl>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={tripForm.control}
+                                    name="arrivalTime"
+                                    render={({ field }) => (
+                                        <FormItem className="grid gap-2">
+                                            <FormLabel>Heure d'arrivée</FormLabel>
+                                            <div className="relative">
+                                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                                <FormControl>
+                                                    <Input type="time" className="pl-10 h-11" {...field} />
+                                                </FormControl>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -492,7 +525,7 @@ export default function PostTripPage() {
                     <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                         <div>
                             <p className="font-medium text-foreground">Date & Heure</p>
-                            <p>{format(submittedTripData.date, 'd MMMM yyyy', { locale: fr })} à {submittedTripData.time}</p>
+                            <p>{format(submittedTripData.date, 'd MMMM yyyy', { locale: fr })} à {submittedTripData.time} {submittedTripData.arrivalTime ? `(arrivée ~${submittedTripData.arrivalTime})`: ''}</p>
                         </div>
                          <div>
                             <p className="font-medium text-foreground">Prix & Places</p>
