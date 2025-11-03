@@ -21,10 +21,10 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: 'ca' },
-      // REMOVED: types: ['geocode'] to allow for more flexible address and place searching
     },
     debounce: 300,
     defaultValue: defaultValue || '',
+    initOnMount: false, // We will manually initialize
   });
 
   // This effect handles updates from the parent component (e.g., from the AI chatbot)
@@ -40,6 +40,13 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
       onValueChange(value);
     }
   }, [value, onValueChange]);
+  
+  // Manual initialization when the component mounts
+  React.useEffect(() => {
+    if (usePlacesAutocomplete().init) {
+      usePlacesAutocomplete().init();
+    }
+  }, []);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
@@ -77,7 +84,7 @@ export function AddressInput({ placeholder, defaultValue, onValueChange }: Addre
         className="pl-10 h-12 text-base"
         value={value}
         onChange={handleInput}
-        disabled={!ready}
+        disabled={!ready} // Field is disabled until the script is loaded
         autoComplete="off"
       />
       {status === 'OK' && (
