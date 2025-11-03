@@ -67,33 +67,36 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const [userData, setUserData] = React.useState<any>(null);
-  const [isDataLoading, setIsDataLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (isUserLoading) return;
+    if (isUserLoading) {
+        return; // Wait until user state is resolved
+    }
     if (!user) {
       router.push('/login');
       return;
     }
-    if (!firestore) {
-      setIsDataLoading(false);
-      return;
-    }
-
-    const fetchUserData = async () => {
-      setIsDataLoading(true);
+    
+    // User is authenticated, now fetch their data
+    if (firestore) {
       const userRef = doc(firestore, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        setUserData(userSnap.data());
-      }
-      setIsDataLoading(false);
-    };
-
-    fetchUserData();
+      getDoc(userRef).then(userSnap => {
+        if (userSnap.exists()) {
+          setUserData(userSnap.data());
+        }
+        setIsLoading(false);
+      }).catch(error => {
+          console.error("Failed to fetch user data:", error);
+          setIsLoading(false);
+      });
+    } else {
+        // Firestore not ready yet
+        setIsLoading(false);
+    }
   }, [user, isUserLoading, firestore, router]);
 
-  if (isUserLoading || isDataLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -120,7 +123,7 @@ export default function DashboardPage() {
                 <Avatar className="h-24 w-24 mb-4">
                     <AvatarImage src={userData?.profilePictureUrl || user.photoURL || undefined} alt={userData?.name || 'Avatar'} />
                     <AvatarFallback className="text-3xl">
-                        {userData?.name ? getInitials(userData.name) : user.displayName?.charAt(0).toUpperCase()}
+                        {userData?.name ? getInitials(userData.name) : (user.displayName ? getInitials(user.displayName) : '')}
                     </AvatarFallback>
                   </Avatar>
                 <CardTitle className="text-2xl">{userData?.name || user.displayName}</CardTitle>
@@ -140,7 +143,7 @@ export default function DashboardPage() {
           </div>
           <div className="md:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight mb-8">
-              Bonjour, {userData?.name || user.displayName} !
+              Bonjour, {userData?.name?.split(' ')[0] || user.displayName?.split(' ')[0]} !
             </h1>
             <Tabs defaultValue="upcoming">
               <TabsList className="grid w-full grid-cols-2">

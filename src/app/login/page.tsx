@@ -62,22 +62,20 @@ export default function LoginPage() {
         title: 'Connexion réussie',
         description: "Vous allez être redirigé vers votre tableau de bord.",
       });
-      router.push('/dashboard');
-      router.refresh(); // Force a refresh to update header state
+      // Use window.location.href for a full page reload to ensure all states (like Header) are reset
+      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Login error:', error.code, error.message);
       let description;
       let action;
 
-      if (error.code === 'auth/user-not-found') {
-        description = "Aucun compte n'est associé à cette adresse e-mail.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        description = "L'adresse e-mail ou le mot de passe est incorrect.";
         action = (
             <Button asChild variant="secondary">
                 <Link href={`/signup?email=${encodeURIComponent(values.email)}`}>Créer un compte</Link>
             </Button>
         )
-      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        description = "L'adresse e-mail ou le mot de passe est incorrect.";
       } else {
         description = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
       }

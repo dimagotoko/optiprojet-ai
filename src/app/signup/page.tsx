@@ -124,8 +124,8 @@ function SignupPageInternal() {
         title: 'Compte créé avec succès!',
         description: "Vous allez être redirigé vers votre tableau de bord.",
       });
-      router.push('/dashboard');
-      router.refresh(); // To update header state
+       // Use window.location.href for a full page reload to ensure all states (like Header) are reset
+      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Signup error:', error.code, error.message);
       let description =
