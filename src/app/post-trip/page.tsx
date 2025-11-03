@@ -91,6 +91,14 @@ const tripSchema = z.object({
         isNonSmoking: z.boolean(),
     }),
     details: z.string().optional(),
+}).refine(data => {
+    if (!data.arrivalTime) return true; // Pas de validation si l'heure d'arrivée n'est pas définie
+    const departureDateTime = new Date(`${format(data.date, 'yyyy-MM-dd')}T${data.time}`);
+    const arrivalDateTime = new Date(`${format(data.date, 'yyyy-MM-dd')}T${data.arrivalTime}`);
+    return arrivalDateTime >= departureDateTime;
+}, {
+    message: "L'heure d'arrivée doit être après l'heure de départ.",
+    path: ['arrivalTime'],
 });
 
 
@@ -565,3 +573,5 @@ export default function PostTripPage() {
     </div>
   );
 }
+
+    
