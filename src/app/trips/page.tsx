@@ -34,32 +34,8 @@ type Trip = {
     }
 };
 
-type UserProfile = {
-    id: string;
-    name: string;
-    profilePictureUrl?: string;
-    averageRating?: number;
-};
-
-// A small component to fetch driver info for a TripCard
+// Simplified Wrapper: It no longer fetches driver data.
 const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClick: (type: 'departure' | 'destination', value: string) => void }) => {
-    const firestore = useFirestore();
-    const { user, isUserLoading } = useUser();
-
-    // Only fetch driver if user is logged in
-    const shouldFetchDriver = !isUserLoading && !!user;
-
-    const driverRef = useMemoFirebase(() => {
-        if (!firestore || !trip.offeredBy || !shouldFetchDriver) return null;
-        return doc(firestore, 'users', trip.offeredBy);
-    }, [firestore, trip.offeredBy, shouldFetchDriver]);
-
-    const { data: driver, isLoading } = useDoc<UserProfile>(driverRef);
-
-    if (isLoading && shouldFetchDriver) {
-        return <div className="w-full h-96 rounded-lg bg-muted animate-pulse" />;
-    }
-    
     return (
         <TripCard
             id={trip.id}
@@ -67,11 +43,6 @@ const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClic
             to={trip.destination}
             date={format(trip.departureTime.toDate(), 'd MMM')}
             price={`${trip.pricePerSeat}$`}
-            driver={driver ? {
-                name: driver.name,
-                avatar: driver.profilePictureUrl || '',
-                rating: driver.averageRating || 0,
-            } : undefined}
             onLocationClick={onLocationClick}
         />
     );
