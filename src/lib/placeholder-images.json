@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-background",
-      "description": "Un groupe d'amis souriants dans une voiture, représentant un road trip convivial.",
-      "imageUrl": "https://images.unsplash.com/photo-1517734014902-6c5f74415842?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyb2FkJTIwdHJpcCUyMGZyaWVuZHN8ZW58MHx8fHwxNzIyNDI5OTM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "road trip friends"
+      "description": "Une route pittoresque pour le covoiturage.",
+      "imageUrl": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxyb2FkJTIwdHJpcHxlbnwwfHx8fDE3NjIyMjUzMjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "road trip"
     },
     {
       "id": "avatar-1",
