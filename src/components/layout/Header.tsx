@@ -71,7 +71,7 @@ export function Header() {
 
   const renderUserMenu = () => {
     if (isUserLoading) {
-      return null; // or a loading spinner
+      return null; // Affiche rien pendant la vérification
     }
 
     if (user) {
