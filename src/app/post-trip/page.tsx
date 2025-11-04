@@ -11,7 +11,6 @@ import {
   Calendar as CalendarIcon, Users, Clock, DollarSign, Plus,
   Luggage, Briefcase, Dog, CigaretteOff
 } from 'lucide-react';
-import { getGeocode, getLatLng } from 'use-places-autocomplete';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -61,7 +60,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { AddressInput, type Address } from '@/components/AddressInput';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { collection, addDoc, serverTimestamp, doc, Timestamp } from 'firebase/firestore';
@@ -119,9 +118,11 @@ export default function PostTripPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [showReturnTripDialog, setShowReturnTripDialog] = useState(false);
   const [submittedTripData, setSubmittedTripData] = useState<TripFormValues | null>(null);
 
   // Fetch user's vehicles
@@ -162,6 +163,35 @@ export default function PostTripPage() {
     mode: 'onChange',
   });
 
+   // Pre-fill form for return trip
+  useEffect(() => {
+    if (searchParams.has('return')) {
+      try {
+        const returnData = JSON.parse(searchParams.get('return') || '{}');
+        
+        // Swap departure and destination
+        const departure = returnData.destination;
+        const destination = returnData.departure;
+        
+        tripForm.reset({
+            departure: departure,
+            destination: destination,
+            seats: returnData.seats,
+            price: returnData.price,
+            vehicleId: returnData.vehicleId,
+            options: returnData.options,
+            details: returnData.details,
+            // Clear date and time
+            date: undefined,
+            time: '',
+            arrivalTime: '',
+        });
+      } catch (error) {
+        console.error("Failed to parse return trip data:", error);
+      }
+    }
+  }, [searchParams, tripForm]);
+
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
     try {
@@ -185,7 +215,7 @@ export default function PostTripPage() {
     if (!submittedTripData || !firestore || !user) return;
 
     try {
-        const { date, time, arrivalTime, ...rest } = submittedTripData;
+        const { date, time, arrivalTime } = submittedTripData;
 
         const departureDateTime = new Date(date);
         const [hours, minutes] = time.split(':').map(Number);
@@ -196,7 +226,6 @@ export default function PostTripPage() {
             const arrivalDateTime = new Date(date);
             const [arrHours, arrMinutes] = arrivalTime.split(':').map(Number);
             arrivalDateTime.setHours(arrHours, arrMinutes);
-            // If arrival is on the next day
             if (arrivalDateTime < departureDateTime) {
                 arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
             }
@@ -225,7 +254,8 @@ export default function PostTripPage() {
             description: "Votre trajet est maintenant visible par la communauté."
         });
         
-        router.push('/dashboard');
+        setShowConfirmationDialog(false);
+        setShowReturnTripDialog(true); // Show the next dialog
 
     } catch (error) {
         console.error("Error publishing trip: ", error);
@@ -234,10 +264,25 @@ export default function PostTripPage() {
             title: "Erreur de publication",
             description: "Une erreur est survenue. Veuillez réessayer."
         });
-    } finally {
         setShowConfirmationDialog(false);
         setSubmittedTripData(null);
     }
+  };
+  
+  const handleProposeReturnTrip = () => {
+    if (!submittedTripData) return;
+    // Encode the necessary data for the return trip into a query parameter
+    const returnTripData = {
+        departure: submittedTripData.departure,
+        destination: submittedTripData.destination,
+        seats: submittedTripData.seats,
+        price: submittedTripData.price,
+        vehicleId: submittedTripData.vehicleId,
+        options: submittedTripData.options,
+        details: submittedTripData.details,
+    };
+    const query = new URLSearchParams({ return: JSON.stringify(returnTripData) });
+    router.push(`/post-trip?${query.toString()}`);
   };
 
 
@@ -257,9 +302,9 @@ export default function PostTripPage() {
       <form onSubmit={tripForm.handleSubmit(onSubmitTrip)} className="space-y-8">
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
-            <CardTitle className="text-3xl font-bold">Proposer un trajet</CardTitle>
+            <CardTitle className="text-3xl font-bold">{searchParams.has('return') ? 'Proposer un trajet retour' : 'Proposer un trajet'}</CardTitle>
             <CardDescription>
-                Partagez votre itinéraire et vos places disponibles avec la communauté.
+                {searchParams.has('return') ? 'Vérifiez et complétez les informations pour votre trajet retour.' : 'Partagez votre itinéraire et vos places disponibles avec la communauté.'}
             </CardDescription>
             </CardHeader>
             <CardContent>
@@ -279,6 +324,7 @@ export default function PostTripPage() {
                                         <FormLabel>Départ</FormLabel>
                                         <FormControl>
                                             <AddressInput 
+                                                key={field.value?.description} // Re-render when value changes
                                                 placeholder="Adresse de départ" 
                                                 onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}
@@ -296,6 +342,7 @@ export default function PostTripPage() {
                                         <FormLabel>Destination</FormLabel>
                                         <FormControl>
                                             <AddressInput 
+                                                key={field.value?.description} // Re-render when value changes
                                                 placeholder="Adresse de destination" 
                                                 onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}
@@ -333,7 +380,7 @@ export default function PostTripPage() {
                                         mode="single"
                                         selected={field.value}
                                         onSelect={field.onChange}
-                                        disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                                         initialFocus
                                         />
                                     </PopoverContent>
@@ -428,7 +475,7 @@ export default function PostTripPage() {
                                 <FormItem className="grid gap-2">
                                     <FormLabel>Véhicule</FormLabel>
                                     <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger className="h-11">
                                                     <SelectValue placeholder="Sélectionnez votre véhicule" />
@@ -576,11 +623,29 @@ export default function PostTripPage() {
                 </div>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmAndPublish}>Confirmer et publier</AlertDialogAction>
+                    <AlertDialogAction onClick={handleConfirmAndPublish} disabled={tripForm.formState.isSubmitting}>
+                        {tripForm.formState.isSubmitting && <LoadingLogo className="mr-2 h-4 w-4" />}
+                        Confirmer et publier
+                    </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
     )}
+
+    <AlertDialog open={showReturnTripDialog} onOpenChange={setShowReturnTripDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Trajet publié avec succès !</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Souhaitez-vous maintenant publier le trajet retour ? Les informations seront pré-remplies pour vous.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => router.push('/dashboard')}>Non, merci</AlertDialogCancel>
+                <AlertDialogAction onClick={handleProposeReturnTrip}>Oui, proposer le retour</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 
     </div>
   );
