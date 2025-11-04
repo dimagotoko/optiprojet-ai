@@ -1,0 +1,306 @@
+
+'use client';
+
+import * as React from 'react';
+import Image from 'next/image';
+import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
+import { doc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useParams, useRouter } from 'next/navigation';
+import { LoadingLogo } from '@/components/LoadingLogo';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import type { Trip, UserProfile, Booking } from '@/types/db';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+function TripDetailsPageContent() {
+    const firestore = useFirestore();
+    const { user, isUserLoading } = useUser();
+    const params = useParams();
+    const router = useRouter();
+    const { toast } = useToast();
+
+    const tripId = params.tripId as string;
+    const [showBookingConfirm, setShowBookingConfirm] = React.useState(false);
+    const [isBooking, setIsBooking] = React.useState(false);
+
+
+    const tripRef = useMemoFirebase(() => {
+        if (!firestore || !tripId) return null;
+        return doc(firestore, 'trips', tripId);
+    }, [firestore, tripId]);
+    const { data: trip, isLoading: isTripLoading } = useDoc<Trip>(tripRef);
+    
+    const driverId = trip?.offeredBy;
+    const driverRef = useMemoFirebase(() => {
+        if (!firestore || !driverId) return null;
+        return doc(firestore, 'users', driverId);
+    }, [firestore, driverId]);
+    const { data: driver, isLoading: isDriverLoading } = useDoc<UserProfile>(driverRef);
+
+    const bookingsRef = useMemoFirebase(() => {
+        if (!firestore || !tripId) return null;
+        return collection(firestore, 'trips', tripId, 'bookings');
+    }, [firestore, tripId]);
+    const { data: bookings, isLoading: areBookingsLoading } = useCollection<Booking>(bookingsRef);
+
+    const userBookingQuery = useMemoFirebase(() => {
+        if (!firestore || !tripId || !user) return null;
+        return query(bookingsRef!, where('travelerId', '==', user.uid));
+    }, [firestore, tripId, user, bookingsRef]);
+    const { data: userBooking } = useCollection<Booking>(userBookingQuery);
+
+    const isLoading = isUserLoading || isTripLoading || isDriverLoading || areBookingsLoading;
+
+    const toSeed = (s: string) => {
+        if (!s) return 0;
+        return s.split('').reduce((a, b) => {
+        a = (a << 5) - a + b.charCodeAt(0);
+        return a & a;
+        }, 0);
+    };
+
+    const getInitials = (name: string | undefined) => {
+        if (!name) return '';
+        return name.split(' ').map(n => n[0]).join('');
+    }
+
+    const handleBookTrip = async () => {
+        if (!firestore || !user || !trip) return;
+
+        setIsBooking(true);
+        try {
+            // This is a placeholder for payment logic
+            // In a real app, you would integrate Stripe here and get a paymentIntentId
+            const fakePaymentIntentId = `pi_${Date.now()}`;
+
+            const bookingsCollection = collection(firestore, 'trips', trip.id, 'bookings');
+            await addDoc(bookingsCollection, {
+                tripId: trip.id,
+                travelerId: user.uid, // This was missing!
+                paymentIntentId: fakePaymentIntentId,
+                paymentStatus: 'succeeded', // Assume payment is successful for now
+                createdAt: serverTimestamp(),
+            });
+
+            toast({
+                title: "Réservation confirmée !",
+                description: "Votre place est réservée. Bon voyage !",
+            });
+            router.push('/dashboard');
+
+        } catch (error: any) {
+            console.error("Booking error: ", error);
+             toast({
+                variant: "destructive",
+                title: "Erreur de réservation",
+                description: error.message || "Impossible de réserver ce trajet. Veuillez réessayer."
+            });
+        } finally {
+            setIsBooking(false);
+            setShowBookingConfirm(false);
+        }
+    }
+
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+                <LoadingLogo className="h-12 w-12 text-primary" />
+            </div>
+        );
+    }
+    
+    if (!trip || !driver) {
+        return (
+            <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+                <p>Trajet non trouvé.</p>
+            </div>
+        );
+    }
+    
+    const departureDate = trip.departureTime.toDate();
+    const reservedSeats = bookings?.length ?? 0;
+    const totalSeats = trip.availableSeats + reservedSeats;
+    const remainingSeats = totalSeats - reservedSeats;
+    const isOwner = user?.uid === driver.id;
+    const hasAlreadyBooked = userBooking ? userBooking.length > 0 : false;
+    const isSoldOut = remainingSeats <= 0;
+
+    return (
+        <>
+            <div className="container py-12 px-4 md:px-6">
+                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                {/* Main Content */}
+                <div className="md:col-span-2 space-y-8">
+                    {/* Header */}
+                    <div>
+                        <div className="relative h-64 md:h-96 w-full rounded-lg overflow-hidden mb-4">
+                            <Image
+                                src={`https://picsum.photos/seed/${toSeed(trip.destination)}/1200/800`}
+                                alt={`Paysage représentant la destination: ${trip.destination}`}
+                                fill
+                                className="object-cover"
+                                priority
+                            />
+                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                            <div className="absolute bottom-4 left-4 text-white">
+                                <h1 className="text-3xl md:text-4xl font-bold">{trip.origin} &rarr; {trip.destination}</h1>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-lg text-muted-foreground">
+                                <Calendar className="h-5 w-5" />
+                                <span>{format(departureDate, 'd MMMM yyyy', { locale: fr })} à {format(departureDate, 'HH:mm')}</span>
+                            </div>
+                            <Badge variant="secondary" className="text-2xl font-bold py-1 px-4">{trip.pricePerSeat}$</Badge>
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Driver Info */}
+                    <div className="flex items-center justify-between">
+                         <h2 className="text-2xl font-bold">Votre conducteur</h2>
+                         <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <p className="font-bold text-lg">{driver.name}</p>
+                                <div className="flex items-center justify-end gap-1 text-muted-foreground">
+                                    <Star className="w-5 h-5 fill-primary text-primary" />
+                                    <span className="font-semibold">{driver.averageRating?.toFixed(1) ?? 'N/A'}</span>
+                                    <span>({driver.totalRatings ?? 0} avis)</span>
+                                </div>
+                            </div>
+                            <Avatar className="h-16 w-16">
+                                <AvatarImage src={driver.profilePictureUrl} alt={driver.name} />
+                                <AvatarFallback>{getInitials(driver.name)}</AvatarFallback>
+                            </Avatar>
+                         </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Trip Options & Details */}
+                     <div>
+                        <h2 className="text-2xl font-bold mb-4">Détails et options</h2>
+                        <Card>
+                            <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <div className="flex items-center gap-3">
+                                    <Users className="h-8 w-8 text-primary" />
+                                    <div>
+                                        <p className="font-semibold">Places restantes</p>
+                                        <p className="text-muted-foreground">{remainingSeats} / {totalSeats}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3" data-glowing={trip.options?.isNonSmoking}>
+                                    <CigaretteOff className={cn("h-8 w-8", trip.options?.isNonSmoking ? "text-primary": "text-muted-foreground/50")} />
+                                    <div>
+                                        <p className="font-semibold">Non-fumeur</p>
+                                        <p className="text-muted-foreground">{trip.options?.isNonSmoking ? 'Oui' : 'Non'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Dog className={cn("h-8 w-8", trip.options?.allowPets ? "text-primary": "text-muted-foreground/50")} />
+                                    <div>
+                                        <p className="font-semibold">Animaux</p>
+                                        <p className="text-muted-foreground">{trip.options?.allowPets ? 'Permis' : 'Non permis'}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center gap-3">
+                                    <Luggage className={cn("h-8 w-8", trip.options?.allowLargeBags ? "text-primary": "text-muted-foreground/50")} />
+                                    <div>
+                                        <p className="font-semibold">Grands bagages</p>
+                                        <p className="text-muted-foreground">{trip.options?.allowLargeBags ? 'Permis' : 'Non permis'}</p>
+                                    </div>
+                                 </div>
+                            </CardContent>
+                            {trip.details && (
+                                <>
+                                    <Separator/>
+                                    <CardContent className="p-6">
+                                        <p className="text-muted-foreground italic">"{trip.details}"</p>
+                                    </CardContent>
+                                </>
+                            )}
+                        </Card>
+                    </div>
+
+                </div>
+
+                {/* Sidebar/Booking */}
+                <div className="md:col-span-1">
+                    <Card className="sticky top-24">
+                        <CardContent className="p-6">
+                            <h3 className="text-lg font-bold mb-4">Réservez votre place</h3>
+                            <div className="flex justify-between items-baseline mb-4">
+                                <span className="text-muted-foreground">Prix par passager</span>
+                                <span className="text-2xl font-bold">{trip.pricePerSeat}$</span>
+                            </div>
+                            
+                            {isOwner ? (
+                                <Button className="w-full" disabled>Vous êtes le conducteur</Button>
+                            ) : hasAlreadyBooked ? (
+                                 <Button className="w-full" disabled>Vous avez déjà réservé</Button>
+                            ) : isSoldOut ? (
+                                <Button className="w-full" disabled>Complet</Button>
+                            ) : (
+                                 <Button className="w-full" size="lg" onClick={() => user ? setShowBookingConfirm(true) : router.push('/login')}>Réserver ce trajet</Button>
+                            )}
+
+                            <p className="text-xs text-muted-foreground text-center mt-4">Le paiement est sécurisé. Vous ne serez pas débité avant la confirmation du conducteur.</p>
+                        </CardContent>
+                    </Card>
+                </div>
+                </div>
+            </div>
+            
+            <AlertDialog open={showBookingConfirm} onOpenChange={setShowBookingConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmer la réservation ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Vous êtes sur le point de réserver une place pour le trajet de <strong>{trip.origin}</strong> à <strong>{trip.destination}</strong> pour <strong>{trip.pricePerSeat}$</strong>.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isBooking}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBookTrip} disabled={isBooking}>
+                             {isBooking && <LoadingLogo className="mr-2 h-4 w-4 animate-spin" />}
+                            Confirmer et Payer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}
+
+
+export default function TripDetailsPage() {
+    return (
+        <React.Suspense fallback={
+            <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+                <LoadingLogo className="h-12 w-12 text-primary" />
+            </div>
+        }>
+            <TripDetailsPageContent />
+        </React.Suspense>
+    )
+}
+
+    
