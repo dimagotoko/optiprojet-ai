@@ -103,8 +103,8 @@ export function Header() {
              <DropdownMenuItem asChild>
               <Link href="/profile">Gérer le profil</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              Mes trajets
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard">Mes trajets</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
