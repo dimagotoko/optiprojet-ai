@@ -104,7 +104,7 @@ const tripSchema = z.object({
         interac: z.boolean(),
     }).refine(data => data.cash || data.interac, {
         message: 'Veuillez sélectionner au moins une option de paiement.',
-        path: ['cash'], // Attach error to a specific field if needed
+        path: [], // Attach error to the group
     }),
     details: z.string().optional(),
 }).refine(data => {
@@ -571,9 +571,9 @@ export default function PostTripPage() {
                         <FormField
                             control={tripForm.control}
                             name="paymentOptions"
-                            render={() => (
+                            render={({ field: { value }, fieldState }) => (
                                 <FormItem>
-                                    <div className="mb-4">
+                                    <div className="mb-2">
                                         <FormLabel className="text-base">Options de paiement</FormLabel>
                                         <p className="text-sm text-muted-foreground">
                                             Comment souhaitez-vous être payé ?
@@ -615,7 +615,7 @@ export default function PostTripPage() {
                                             )}
                                         />
                                     </div>
-                                    <FormMessage />
+                                    {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
                                 </FormItem>
                             )}
                         />
