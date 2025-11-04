@@ -103,18 +103,20 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
 
 export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteClick, onEditClick, onToggleCloseTrip }: { trip: Trip, driverProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void, onToggleCloseTrip: (tripId: string, currentState: boolean) => void }) => {
     const firestore = useFirestore();
+    const isOwner = trip.offeredBy === currentUserId;
 
+    // Only fetch bookings if the current user is the owner of the trip
     const bookingsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !isOwner) return null;
         return collection(firestore, 'trips', trip.id, 'bookings');
-    }, [firestore, trip.id]);
+    }, [firestore, trip.id, isOwner]);
 
     const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
 
-    const reservedSeats = bookings?.length ?? 0;
-    const totalSeats = trip.availableSeats + reservedSeats;
+    const reservedSeats = isOwner ? (bookings?.length ?? 0) : 0; // We don't have this info for travelers on this card
+    const totalSeats = trip.availableSeats + reservedSeats; // This might be slightly inaccurate for traveler view, but it's a good estimate
     const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
-    const isOwner = trip.offeredBy === currentUserId;
+    
     const isPastTrip = trip.departureTime.toDate() < new Date();
 
     return (
@@ -163,18 +165,20 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span>Places réservées</span>
+            {isOwner && (
+                <CardContent>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>Places réservées</span>
+                            </div>
+                            <span className="font-semibold">{reservedSeats} / {totalSeats}</span>
                         </div>
-                        <span className="font-semibold">{reservedSeats} / {totalSeats}</span>
+                        <Progress value={progressValue} aria-label={`${reservedSeats} sur ${totalSeats} places réservées`} />
                     </div>
-                    <Progress value={progressValue} aria-label={`${reservedSeats} sur ${totalSeats} places réservées`} />
-                </div>
-            </CardContent>
+                </CardContent>
+            )}
             {isOwner && bookings && bookings.length > 0 && (
                 <CardFooter className="flex-col items-start gap-2 pt-4 border-t">
                     <h4 className="font-semibold text-sm">Voyageurs</h4>
