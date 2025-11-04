@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Users, ArrowRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, ArrowRight, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -100,18 +100,42 @@ export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
           </div>
           
           <div className="relative md:col-span-1">
-            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input 
-              type="number" 
-              placeholder="1" 
-              className="pl-10 h-12 text-base" 
-              min="1" 
-              value={passengers}
-              onChange={(e) => setPassengers(parseInt(e.target.value, 10))}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full h-12 text-base justify-start">
+                   <Users className="mr-2 h-5 w-5 text-muted-foreground" />
+                   <span>{passengers}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48" align="center">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Passagers</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setPassengers(p => Math.max(1, p - 1))}
+                      disabled={passengers <= 1}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-10 text-center text-lg font-bold">{passengers}</span>
+                     <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setPassengers(p => p + 1)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
-          <Button type="submit" className="md:col-span-2 h-12 text-base" disabled={!date}>
+          <Button type="submit" className="md:col-span-2 h-12 text-base" disabled={!departure && !destination}>
             Rechercher
           </Button>
         </form>
