@@ -13,7 +13,7 @@ export type Address = {
   coords?: {
     lat: number;
     lng: number;
-  };
+  } | null; // Allow null
 };
 
 type AddressInputProps = {
@@ -73,13 +73,10 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect, onVa
 
     const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
-        setValue(newValue); // Update usePlacesAutocomplete
-        if (onValueChange) {
-            onValueChange(newValue); // For simple forms
-        } else {
-             // For react-hook-form, update the field value as a simple object
-            setFormValue(id, { description: newValue }, { shouldValidate: true, shouldDirty: true });
-        }
+        setValue(newValue);
+        // When user types manually, we can't guarantee coords.
+        // We pass the object with null coords.
+        onAddressSelect({ description: newValue, coords: null });
     };
 
     const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
@@ -90,11 +87,11 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect, onVa
             const results = await getGeocode({ address: suggestion.description });
             const { lat, lng } = await getLatLng(results[0]);
             const fullAddress: Address = { description: suggestion.description, coords: { lat, lng } };
-            onAddressSelect(fullAddress); // This is the main callback for react-hook-form
+            onAddressSelect(fullAddress);
         } catch (error) {
             console.error("Error geocoding: ", error);
-            // Even if geocoding fails, update with the description
-            onAddressSelect({ description: suggestion.description });
+            // Even if geocoding fails, update with the description and null coords
+            onAddressSelect({ description: suggestion.description, coords: null });
         }
     };
 

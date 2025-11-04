@@ -78,12 +78,12 @@ const vehicleSchema = z.object({
 
 const addressSchema = z.object({
     description: z.string({
-        required_error: "Veuillez sélectionner une adresse dans la liste."
-    }).min(1, "Veuillez sélectionner une adresse dans la liste."),
+        required_error: "Veuillez sélectionner une adresse valide dans la liste."
+    }).min(1, "Veuillez sélectionner une adresse valide dans la liste."),
     coords: z.object({
         lat: z.number(),
         lng: z.number(),
-    }).optional(),
+    }).nullable().optional(),
 });
 
 
@@ -248,11 +248,15 @@ export default function PostTripPage() {
             arrivalTimestamp = Timestamp.fromDate(arrivalDateTime);
         }
 
+        // Safety check for coordinates
+        const originCoords = submittedTripData.departure.coords || { lat: 0, lng: 0 };
+        const destinationCoords = submittedTripData.destination.coords || { lat: 0, lng: 0 };
+
         await addDoc(collection(firestore, 'trips'), {
             origin: submittedTripData.departure.description,
             destination: submittedTripData.destination.description,
-            originCoords: submittedTripData.departure.coords,
-            destinationCoords: submittedTripData.destination.coords,
+            originCoords: originCoords,
+            destinationCoords: destinationCoords,
             departureTime: Timestamp.fromDate(departureDateTime),
             arrivalTime: arrivalTimestamp,
             availableSeats: submittedTripData.seats,
