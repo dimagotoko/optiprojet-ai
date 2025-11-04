@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 function TripDetailsPageContent() {
     const firestore = useFirestore();
@@ -53,19 +54,22 @@ function TripDetailsPageContent() {
     }, [firestore, driverId]);
     const { data: driver, isLoading: isDriverLoading } = useDoc<UserProfile>(driverRef);
 
-    const bookingsRef = useMemoFirebase(() => {
-        if (!firestore || !tripId) return null;
+    const isOwner = user?.uid === driverId;
+
+    const bookingsQuery = useMemoFirebase(() => {
+        if (!firestore || !tripId || !isOwner) return null; // Only fetch if owner
         return collection(firestore, 'trips', tripId, 'bookings');
-    }, [firestore, tripId]);
-    const { data: bookings, isLoading: areBookingsLoading } = useCollection<Booking>(bookingsRef);
+    }, [firestore, tripId, isOwner]);
+    const { data: bookings, isLoading: areBookingsLoading } = useCollection<Booking>(bookingsQuery);
 
     const userBookingQuery = useMemoFirebase(() => {
         if (!firestore || !tripId || !user) return null;
-        return query(bookingsRef!, where('travelerId', '==', user.uid));
-    }, [firestore, tripId, user, bookingsRef]);
-    const { data: userBooking } = useCollection<Booking>(userBookingQuery);
+        const bookingsRef = collection(firestore, 'trips', tripId, 'bookings');
+        return query(bookingsRef, where('travelerId', '==', user.uid));
+    }, [firestore, tripId, user]);
+    const { data: userBookingResult, isLoading: isUserBookingLoading } = useCollection<Booking>(userBookingQuery);
 
-    const isLoading = isUserLoading || isTripLoading || isDriverLoading || areBookingsLoading;
+    const isLoading = isUserLoading || isTripLoading || isDriverLoading || isUserBookingLoading || (isOwner && areBookingsLoading);
 
     const toSeed = (s: string) => {
         if (!s) return 0;
@@ -92,7 +96,7 @@ function TripDetailsPageContent() {
             const bookingsCollection = collection(firestore, 'trips', trip.id, 'bookings');
             await addDoc(bookingsCollection, {
                 tripId: trip.id,
-                travelerId: user.uid, // This was missing!
+                travelerId: user.uid,
                 paymentIntentId: fakePaymentIntentId,
                 paymentStatus: 'succeeded', // Assume payment is successful for now
                 createdAt: serverTimestamp(),
@@ -138,8 +142,7 @@ function TripDetailsPageContent() {
     const reservedSeats = bookings?.length ?? 0;
     const totalSeats = trip.availableSeats + reservedSeats;
     const remainingSeats = totalSeats - reservedSeats;
-    const isOwner = user?.uid === driver.id;
-    const hasAlreadyBooked = userBooking ? userBooking.length > 0 : false;
+    const hasAlreadyBooked = userBookingResult ? userBookingResult.length > 0 : false;
     const isSoldOut = remainingSeats <= 0;
 
     return (
