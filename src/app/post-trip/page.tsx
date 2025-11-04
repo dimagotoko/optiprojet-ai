@@ -134,6 +134,7 @@ export default function PostTripPage() {
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showReturnTripDialog, setShowReturnTripDialog] = useState(false);
+  const [showFinalConfirmationDialog, setShowFinalConfirmationDialog] = useState(false);
   const [submittedTripData, setSubmittedTripData] = useState<TripFormValues | null>(null);
 
   // Fetch user's vehicles
@@ -158,6 +159,8 @@ export default function PostTripPage() {
   const tripForm = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
     defaultValues: {
+        departure: {description: ''},
+        destination: {description: ''},
         time: '',
         arrivalTime: '',
         seats: 1,
@@ -248,7 +251,6 @@ export default function PostTripPage() {
             arrivalTimestamp = Timestamp.fromDate(arrivalDateTime);
         }
 
-        // Safety check for coordinates
         const originCoords = submittedTripData.departure.coords || { lat: 0, lng: 0 };
         const destinationCoords = submittedTripData.destination.coords || { lat: 0, lng: 0 };
 
@@ -276,7 +278,13 @@ export default function PostTripPage() {
         });
         
         setShowConfirmationDialog(false);
-        setShowReturnTripDialog(true); // Show the next dialog
+
+        // Check if this was a return trip
+        if (searchParams.has('return')) {
+            setShowFinalConfirmationDialog(true);
+        } else {
+            setShowReturnTripDialog(true); // Show the next dialog to propose a return trip
+        }
 
     } catch (error) {
         console.error("Error publishing trip: ", error);
@@ -292,7 +300,6 @@ export default function PostTripPage() {
   
   const handleProposeReturnTrip = () => {
     if (!submittedTripData) return;
-    // Encode the necessary data for the return trip into a query parameter
     const returnTripData = {
         departure: submittedTripData.departure,
         destination: submittedTripData.destination,
@@ -304,7 +311,8 @@ export default function PostTripPage() {
         details: submittedTripData.details,
     };
     const query = new URLSearchParams({ return: JSON.stringify(returnTripData) });
-    router.push(`/post-trip?${query.toString()}`);
+    // We need to reload the page for the useEffect to catch the new params
+    window.location.href = `/post-trip?${query.toString()}`;
   };
 
 
@@ -718,7 +726,23 @@ export default function PostTripPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+    
+    <AlertDialog open={showFinalConfirmationDialog} onOpenChange={setShowFinalConfirmationDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Trajet aller-retour planifié !</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Votre trajet aller et votre trajet retour ont été publiés avec succès. Vous pouvez les consulter dans votre tableau de bord.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => router.push('/dashboard')}>Aller au tableau de bord</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 
     </div>
   );
 }
+
+    
