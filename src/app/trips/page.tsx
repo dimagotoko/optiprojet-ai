@@ -1,13 +1,21 @@
 
 'use client';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, DocumentData, Timestamp } from 'firebase/firestore';
+import { collection, DocumentData, Timestamp, query, where } from 'firebase/firestore';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { format, isSameDay } from 'date-fns';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dog, CigaretteOff, Luggage } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+
 
 type Trip = {
     id: string;
@@ -17,9 +25,15 @@ type Trip = {
     pricePerSeat: number;
     offeredBy: string;
     availableSeats: number;
+    options?: {
+        allowPets?: boolean;
+        isNonSmoking?: boolean;
+        allowLargeBags?: boolean;
+    }
 };
 
 type UserProfile = {
+    id: string;
     name: string;
     profilePictureUrl?: string;
     averageRating?: number;
@@ -29,23 +43,21 @@ type UserProfile = {
 const TripCardWrapper = ({ trip }: { trip: Trip }) => {
     const firestore = useFirestore();
 
-    const driverRef = useMemoFirebase(() => {
+    const driverQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return collection(firestore, 'users');
-    }, [firestore]);
+        return query(collection(firestore, 'users'), where('id', '==', trip.offeredBy));
+    }, [firestore, trip.offeredBy]);
 
-    const { data: driverData, isLoading } = useCollection<UserProfile>(driverRef);
+    const { data: driverData, isLoading } = useCollection<UserProfile>(driverQuery);
+    
+    const driver = driverData?.[0];
 
-    if (isLoading || !driverData) {
+    if (isLoading) {
         // You can render a skeleton card here
         return <div className="w-full h-96 rounded-lg bg-muted animate-pulse" />;
     }
-    
-    const driver = driverData.find(d => d.id === trip.offeredBy);
 
-    if(!driver) return null;
-
-    const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('');
+    if (!driver) return null;
 
     return (
         <TripCard
@@ -69,6 +81,14 @@ function TripsPageContent() {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
 
+  // Filter states
+  const [maxPrice, setMaxPrice] = useState<number | undefined>();
+  const [departureTime, setDepartureTime] = useState<string>('all');
+  const [showNonSmoking, setShowNonSmoking] = useState(false);
+  const [showPetsAllowed, setShowPetsAllowed] = useState(false);
+  const [showLargeBagsAllowed, setShowLargeBagsAllowed] = useState(false);
+
+
   // Get search params from URL
   const departure = searchParams.get('departure')?.toLowerCase();
   const destination = searchParams.get('destination')?.toLowerCase();
@@ -77,8 +97,8 @@ function TripsPageContent() {
   
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Fetch all future trips
-    return collection(firestore, 'trips');
+    // Fetch all future trips for now. We can optimize this later.
+    return query(collection(firestore, 'trips'), where('departureTime', '>=', new Date()));
   }, [firestore]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
@@ -86,25 +106,34 @@ function TripsPageContent() {
   const filteredTrips = useMemo(() => {
     if (!allTrips) return [];
     
-    const now = new Date();
-
     return allTrips.filter(trip => {
-      const departureTime = trip.departureTime.toDate();
-      // Basic filtering logic
+      const tripDepartureTime = trip.departureTime.toDate();
+      
       const matchesDeparture = departure ? trip.origin.toLowerCase().includes(departure) : true;
       const matchesDestination = destination ? trip.destination.toLowerCase().includes(destination) : true;
-      const matchesDate = searchDate ? isSameDay(departureTime, searchDate) : true;
+      const matchesDate = searchDate ? isSameDay(tripDepartureTime, searchDate) : true;
+      const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
       
-      // Ensure the trip is in the future
-      const isFutureTrip = departureTime > now;
+      const matchesNonSmoking = showNonSmoking ? trip.options?.isNonSmoking === true : true;
+      const matchesPetsAllowed = showPetsAllowed ? trip.options?.allowPets === true : true;
+      const matchesLargeBags = showLargeBagsAllowed ? trip.options?.allowLargeBags === true : true;
 
-      return matchesDeparture && matchesDestination && matchesDate && isFutureTrip;
+      const hour = tripDepartureTime.getHours();
+      const matchesTime = departureTime === 'all' ||
+        (departureTime === 'morning' && hour >= 6 && hour < 12) ||
+        (departureTime === 'afternoon' && hour >= 12 && hour < 18) ||
+        (departureTime === 'evening' && hour >= 18);
+
+      return matchesDeparture && matchesDestination && matchesDate && matchesPrice && matchesTime && matchesNonSmoking && matchesPetsAllowed && matchesLargeBags;
     });
-  }, [allTrips, departure, destination, searchDate]);
+  }, [allTrips, departure, destination, searchDate, maxPrice, departureTime, showNonSmoking, showPetsAllowed, showLargeBagsAllowed]);
 
-  // We need to get the initial search from the URL for the form
   const initialDate = searchDate instanceof Date && !isNaN(searchDate.getTime()) ? searchDate : undefined;
 
+  const maxPriceInResults = useMemo(() => {
+      if (!allTrips) return 100;
+      return allTrips.reduce((max, trip) => Math.max(max, trip.pricePerSeat), 0);
+  }, [allTrips]);
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -116,9 +145,63 @@ function TripsPageContent() {
           </p>
         </div>
       </div>
-      <div className="mb-12">
+      <div className="mb-8">
         <TripSearchForm initialSearch={{ departure: searchParams.get('departure') || '', destination: searchParams.get('destination') || '', date: initialDate }} />
       </div>
+
+       <Accordion type="single" collapsible className="w-full mb-8">
+        <AccordionItem value="item-1">
+          <AccordionTrigger>
+            <Button variant="outline">
+                Filtres avancés ({filteredTrips.length} résultats)
+            </Button>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+               {/* Heure de départ */}
+              <div className="space-y-2">
+                <Label>Heure de départ</Label>
+                <div className="flex gap-2">
+                    <Button variant={departureTime === 'all' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('all')}>Tous</Button>
+                    <Button variant={departureTime === 'morning' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('morning')}>Matin</Button>
+                    <Button variant={departureTime === 'afternoon' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('afternoon')}>Après-midi</Button>
+                    <Button variant={departureTime === 'evening' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('evening')}>Soir</Button>
+                </div>
+              </div>
+              {/* Prix */}
+              <div className="space-y-2">
+                <Label htmlFor="price">Prix maximum: {maxPrice ? `${maxPrice}$` : 'Aucun'}</Label>
+                <Slider
+                    id="price"
+                    max={maxPriceInResults || 100}
+                    step={5}
+                    value={[maxPrice || maxPriceInResults || 100]}
+                    onValueChange={(value) => setMaxPrice(value[0] === maxPriceInResults ? undefined : value[0])}
+                />
+              </div>
+              {/* Options */}
+              <div className="space-y-2">
+                 <Label>Options du trajet</Label>
+                 <div className="flex flex-wrap gap-4 pt-2">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="non-smoking" checked={showNonSmoking} onCheckedChange={(checked) => setShowNonSmoking(!!checked)} />
+                        <Label htmlFor="non-smoking" className="flex items-center gap-2 font-normal"><CigaretteOff className="h-4 w-4" /> Non-fumeur</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="pets" checked={showPetsAllowed} onCheckedChange={(checked) => setShowPetsAllowed(!!checked)} />
+                        <Label htmlFor="pets" className="flex items-center gap-2 font-normal"><Dog className="h-4 w-4" /> Animaux permis</Label>
+                    </div>
+                     <div className="flex items-center space-x-2">
+                        <Checkbox id="large-bags" checked={showLargeBagsAllowed} onCheckedChange={(checked) => setShowLargeBagsAllowed(!!checked)} />
+                        <Label htmlFor="large-bags" className="flex items-center gap-2 font-normal"><Luggage className="h-4 w-4" /> Grands bagages</Label>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
 
       {isLoading && (
         <div className="flex justify-center items-center py-10">
@@ -137,7 +220,7 @@ function TripsPageContent() {
       {!isLoading && filteredTrips.length === 0 && (
          <div className="text-center py-10">
             <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
-            <p className="text-sm text-muted-foreground mt-2">Essayez d'élargir votre recherche.</p>
+            <p className="text-sm text-muted-foreground mt-2">Essayez de modifier vos filtres.</p>
         </div>
       )}
     </div>
