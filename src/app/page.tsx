@@ -49,37 +49,25 @@ export default function Home() {
 
   const popularTrips = [
     {
+      id: 'trip-1',
       from: 'Montréal',
       to: 'Québec',
       date: '30 Juil',
       price: '35$',
-      driver: {
-        name: 'Amélie Tremblay',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-1')?.imageUrl || '',
-        rating: 4.9,
-      },
     },
     {
+      id: 'trip-2',
       from: 'Longueuil',
       to: 'Laval',
       date: '02 Août',
       price: '15$',
-      driver: {
-        name: 'Félix Bouchard',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-2')?.imageUrl || '',
-        rating: 4.8,
-      },
     },
     {
+      id: 'trip-3',
       from: 'Montréal',
       to: 'Sherbrooke',
       date: '05 Août',
       price: '25$',
-      driver: {
-        name: 'Florence Gagnon',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-3')?.imageUrl || '',
-        rating: 5.0,
-      },
     },
   ];
 
@@ -98,6 +86,7 @@ export default function Home() {
       }
     }
     setTripSearch(newSearch);
+    router.push(`/trips?departure=${newSearch.departure || ''}&destination=${newSearch.destination || ''}&date=${newSearch.date ? newSearch.date.toISOString() : ''}`);
   };
 
 
@@ -124,7 +113,11 @@ export default function Home() {
               Optimisé par l'IA pour des trajets plus intelligents, économiques et conviviaux.
             </p>
             <div className="mt-8 w-full max-w-3xl">
-              <TripSearchForm key={JSON.stringify(tripSearch)} initialSearch={tripSearch} />
+              <TripSearchForm 
+                key={JSON.stringify(tripSearch)} 
+                initialSearch={tripSearch} 
+                onSearch={(s) => router.push(`/trips?departure=${s.departure || ''}&destination=${s.destination || ''}&date=${s.date ? s.date.toISOString() : ''}`)}
+              />
             </div>
           </div>
         </div>
@@ -163,8 +156,8 @@ export default function Home() {
             </div>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
-            {popularTrips.map((trip, index) => (
-              <TripCard key={index} {...trip} />
+            {popularTrips.map((trip) => (
+              <TripCard key={trip.id} {...trip} />
             ))}
           </div>
           <div className="mt-12 text-center">

@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, DocumentData, Timestamp, query, where, doc, QueryConstraint } from 'firebase/firestore';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dog, CigaretteOff, Luggage } from 'lucide-react';
+import { Dog, CigaretteOff, Luggage, X } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -44,21 +44,22 @@ type UserProfile = {
 // A small component to fetch driver info for a TripCard
 const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClick: (type: 'departure' | 'destination', value: string) => void }) => {
     const firestore = useFirestore();
+    const { user, isUserLoading } = useUser();
+
+    // Only fetch driver if user is logged in
+    const shouldFetchDriver = !isUserLoading && !!user;
 
     const driverRef = useMemoFirebase(() => {
-        if (!firestore || !trip.offeredBy) return null;
+        if (!firestore || !trip.offeredBy || !shouldFetchDriver) return null;
         return doc(firestore, 'users', trip.offeredBy);
-    }, [firestore, trip.offeredBy]);
+    }, [firestore, trip.offeredBy, shouldFetchDriver]);
 
     const { data: driver, isLoading } = useDoc<UserProfile>(driverRef);
 
-    if (isLoading) {
-        // You can render a skeleton card here
+    if (isLoading && shouldFetchDriver) {
         return <div className="w-full h-96 rounded-lg bg-muted animate-pulse" />;
     }
-
-    if (!driver) return null;
-
+    
     return (
         <TripCard
             id={trip.id}
@@ -66,11 +67,11 @@ const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClic
             to={trip.destination}
             date={format(trip.departureTime.toDate(), 'd MMM')}
             price={`${trip.pricePerSeat}$`}
-            driver={{
+            driver={driver ? {
                 name: driver.name,
                 avatar: driver.profilePictureUrl || '',
                 rating: driver.averageRating || 0,
-            }}
+            } : undefined}
             onLocationClick={onLocationClick}
         />
     );
@@ -224,6 +225,15 @@ function TripsPageContent() {
           </div>
         </div>
       );
+    }
+
+    if(!allTrips || allTrips.length === 0) {
+        return (
+             <div className="text-center py-10 border border-dashed rounded-lg">
+                <p className="text-lg text-muted-foreground">Aucun trajet n'est actuellement programmé.</p>
+                <p className="text-sm text-muted-foreground mt-2">Revenez bientôt ou proposez un trajet si vous êtes conducteur.</p>
+            </div>
+        )
     }
 
     return (

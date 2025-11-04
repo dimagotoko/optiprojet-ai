@@ -16,7 +16,7 @@ type TripCardProps = {
   to: string;
   date: string;
   price: string;
-  driver: {
+  driver?: {
     name: string;
     avatar: string;
     rating: number;
@@ -79,19 +79,23 @@ export function TripCard({ id, from, to, date, price, driver, onLocationClick }:
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={driver.avatar} alt={driver.name} data-ai-hint="person portrait" />
-            <AvatarFallback>{driver.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-semibold">{driver.name}</p>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Star className="w-4 h-4 fill-primary text-primary" />
-              <span>{driver.rating.toFixed(1)}</span>
+        {driver ? (
+            <div className="flex items-center gap-3">
+            <Avatar>
+                <AvatarImage src={driver.avatar} alt={driver.name} data-ai-hint="person portrait" />
+                <AvatarFallback>{driver.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+                <p className="font-semibold">{driver.name}</p>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Star className="w-4 h-4 fill-primary text-primary" />
+                <span>{driver.rating.toFixed(1)}</span>
+                </div>
             </div>
-          </div>
-        </div>
+            </div>
+        ) : (
+            <div className="h-10" /> 
+        )}
          <Button asChild variant="ghost" size="sm">
             <Link href={`/trip-details/${id}`}>
               Voir détails <ArrowRight className="ml-2 h-4 w-4" />
