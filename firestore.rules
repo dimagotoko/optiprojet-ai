@@ -36,7 +36,7 @@ service cloud.firestore {
      * @description Enforces user-ownership for user profiles. Only the user can update, or delete their own profile. Any authenticated user can read a profile.
      * @path /users/{userId}
      * @allow (create) User with ID 'user123' can create their profile if `request.auth.uid` is 'user123'.
-     * @allow (get) Any authenticated user can read a user profile.
+     * @allow (get) Any user can read a user profile.
      * @allow (update, delete) User with ID 'user123' can read/update/delete their profile if `request.auth.uid` is 'user123'.
      * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
      * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete profile with ID 'user123' unless it is their own.
@@ -51,7 +51,7 @@ service cloud.firestore {
         return isOwner(userId) && resource != null;
       }
 
-      allow get: if request.auth != null;
+      allow get: if true; // Public read access to profiles
       allow list: if false; // User listing is disallowed for privacy.
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
