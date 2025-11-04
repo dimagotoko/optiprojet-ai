@@ -104,7 +104,7 @@ const tripSchema = z.object({
         interac: z.boolean(),
     }).refine(data => data.cash || data.interac, {
         message: 'Veuillez sélectionner au moins une option de paiement.',
-        path: ['cash'], // Attach error to a specific field within the group
+        path: ['cash'], 
     }),
     details: z.string().optional(),
 }).refine(data => {
@@ -579,12 +579,12 @@ export default function PostTripPage() {
                                             Comment souhaitez-vous être payé ?
                                         </p>
                                     </div>
-                                    <div className="flex flex-wrap gap-4">
+                                    <div className="flex flex-col sm:flex-row gap-4">
                                         <FormField
                                             control={tripForm.control}
                                             name="paymentOptions.cash"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                                     <FormControl>
                                                         <Checkbox
                                                             checked={field.value}
@@ -601,7 +601,7 @@ export default function PostTripPage() {
                                             control={tripForm.control}
                                             name="paymentOptions.interac"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                                     <FormControl>
                                                         <Checkbox
                                                             checked={field.value}
@@ -616,7 +616,7 @@ export default function PostTripPage() {
                                         />
                                     </div>
                                     <FormMessage>
-                                        {tripForm.formState.errors.paymentOptions?.cash?.message}
+                                        {tripForm.formState.errors.paymentOptions?.root?.message || tripForm.formState.errors.paymentOptions?.cash?.message}
                                     </FormMessage>
                                 </FormItem>
                             )}
