@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import React from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
 
@@ -52,8 +52,17 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const [showCreateAccountDialog, setShowCreateAccountDialog] = React.useState(false);
   const [emailForSignup, setEmailForSignup] = React.useState('');
+
+  React.useEffect(() => {
+    // Redirect to dashboard if user is already logged in
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
@@ -92,6 +101,15 @@ export default function LoginPage() {
       }
     }
   };
+  
+  if (isUserLoading || user) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <LoadingLogo className="h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+
 
   return (
     <>
