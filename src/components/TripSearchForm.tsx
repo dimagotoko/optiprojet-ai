@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Users, ArrowRight, Minus, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, ArrowRight, Minus, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -20,13 +20,14 @@ type TripSearchFormProps = {
     destination?: string;
     date?: Date;
   };
+  onSearch: (search: { departure?: string; destination?: string; date?: Date }) => void;
 };
 
 // Helper to check if a value is a valid Date object
 const isValidDate = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
 
 
-export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
+export function TripSearchForm({ initialSearch, onSearch }: TripSearchFormProps) {
   const router = useRouter();
   const [departure, setDeparture] = React.useState(initialSearch?.departure || '');
   const [destination, setDestination] = React.useState(initialSearch?.destination || '');
@@ -41,13 +42,18 @@ export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (departure) params.set('departure', departure);
-    if (destination) params.set('destination', destination);
-    if (date) params.set('date', date.toISOString());
-    if (passengers) params.set('passengers', passengers.toString());
-    router.push(`/trips?${params.toString()}`);
+    onSearch({ departure, destination, date });
   }
+
+  const handleReset = () => {
+    setDeparture('');
+    setDestination('');
+    setDate(undefined);
+    setPassengers(1);
+    onSearch({}); // Notify parent to clear search
+  };
+  
+  const canReset = departure || destination || date;
 
   return (
     <Card className="w-full shadow-2xl backdrop-blur-sm bg-card/80">
@@ -134,10 +140,17 @@ export function TripSearchForm({ initialSearch }: TripSearchFormProps) {
               </PopoverContent>
             </Popover>
           </div>
-
-          <Button type="submit" className="md:col-span-2 h-12 text-base" disabled={!departure && !destination}>
-            Rechercher
-          </Button>
+            <div className="md:col-span-2 flex items-center gap-2">
+                <Button type="submit" className="w-full h-12 text-base" disabled={!departure && !destination}>
+                    Rechercher
+                </Button>
+                {canReset && (
+                    <Button type="button" variant="ghost" size="icon" onClick={handleReset} className="h-12 w-12 shrink-0">
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">Réinitialiser</span>
+                    </Button>
+                )}
+            </div>
         </form>
       </CardContent>
     </Card>

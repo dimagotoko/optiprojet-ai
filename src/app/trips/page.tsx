@@ -93,7 +93,13 @@ function TripsPageContent() {
   const departure = searchParams.get('departure')?.toLowerCase();
   const destination = searchParams.get('destination')?.toLowerCase();
   const dateStr = searchParams.get('date');
-  const searchDate = dateStr ? new Date(dateStr) : null;
+  
+  // Correctly parse the date only if it's a valid string
+  const searchDate = useMemo(() => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return date instanceof Date && !isNaN(date.getTime()) ? date : null;
+  }, [dateStr]);
   
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -130,12 +136,17 @@ function TripsPageContent() {
   }, [allTrips, maxPrice, departureTime, showNonSmoking, showPetsAllowed, showLargeBagsAllowed]);
 
   const { exactMatches, suggestedMatches } = useMemo(() => {
-    const exactMatches: Trip[] = [];
-    const suggestedMatches: Trip[] = [];
-    if (!filteredTrips) return { exactMatches, suggestedMatches };
+    const exact: Trip[] = [];
+    const suggested: Trip[] = [];
+    if (!filteredTrips) return { exactMatches: exact, suggestedMatches: suggested };
 
     const hasDeparture = !!departure;
     const hasDestination = !!destination;
+    
+    // Don't run this logic if there's no specific search
+    if (!hasDeparture && !hasDestination) {
+        return { exactMatches: [], suggestedMatches: [] };
+    }
 
     for (const trip of filteredTrips) {
       const tripOrigin = trip.origin.toLowerCase();
@@ -144,20 +155,29 @@ function TripsPageContent() {
       const matchesDestination = hasDestination ? tripDestination.includes(destination) : true;
       
       if (matchesDeparture && matchesDestination) {
-        exactMatches.push(trip);
+        exact.push(trip);
       } else if (hasDeparture && hasDestination && (matchesDeparture || matchesDestination)) {
-        suggestedMatches.push(trip);
+        suggested.push(trip);
       }
     }
-    return { exactMatches, suggestedMatches };
+    return { exactMatches: exact, suggestedMatches: suggested };
   }, [filteredTrips, departure, destination]);
+
+  const handleSearch = (search: { departure?: string; destination?: string; date?: Date }) => {
+    const params = new URLSearchParams();
+    if (search.departure) params.set('departure', search.departure);
+    if (search.destination) params.set('destination', search.destination);
+    if (search.date) params.set('date', search.date.toISOString());
+    
+    router.push(`/trips?${params.toString()}`);
+  };
 
   const initialDate = searchDate instanceof Date && !isNaN(searchDate.getTime()) ? searchDate : undefined;
 
   const maxPriceInResults = useMemo(() => {
       if (!allTrips) return 100;
       const max = allTrips.reduce((max, trip) => Math.max(max, trip.pricePerSeat), 0);
-      return max > 0 ? max : 100; // Return at least 100
+      return max > 0 ? Math.ceil(max / 5) * 5 : 100; // Round up to nearest 5
   }, [allTrips]);
 
   const handleLocationClick = (type: 'departure' | 'destination', value: string) => {
@@ -176,11 +196,13 @@ function TripsPageContent() {
         </div>
       );
     }
-  
-    if (exactMatches.length > 0) {
+    
+    const resultsToShow = hasActiveSearch ? exactMatches : filteredTrips;
+
+    if (resultsToShow.length > 0) {
       return (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {exactMatches.map((trip) => (
+          {resultsToShow.map((trip) => (
             <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
           ))}
         </div>
@@ -203,18 +225,8 @@ function TripsPageContent() {
       );
     }
 
-    if (!hasActiveSearch && filteredTrips.length > 0) {
-        return (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTrips.map((trip) => (
-                    <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
-                ))}
-            </div>
-        );
-    }
-  
     return (
-      <div className="text-center py-10">
+      <div className="text-center py-10 border border-dashed rounded-lg">
         <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
         <p className="text-sm text-muted-foreground mt-2">Essayez de modifier votre recherche ou vos filtres.</p>
       </div>
@@ -233,13 +245,16 @@ function TripsPageContent() {
         </div>
       </div>
       <div className="mb-8">
-        <TripSearchForm initialSearch={{ departure: searchParams.get('departure') || '', destination: searchParams.get('destination') || '', date: initialDate }} />
+        <TripSearchForm 
+            initialSearch={{ departure: searchParams.get('departure') || '', destination: searchParams.get('destination') || '', date: initialDate }}
+            onSearch={handleSearch}
+        />
       </div>
 
        <Accordion type="single" collapsible className="w-full mb-8">
         <AccordionItem value="item-1">
           <AccordionTrigger className={cn(buttonVariants({ variant: "outline" }), "no-underline hover:no-underline")}>
-            <span>Filtres avancés ({isLoading ? '...' : exactMatches.length + suggestedMatches.length} résultats)</span>
+            <span>Filtres avancés ({isLoading ? '...' : (hasActiveSearch ? exactMatches.length + suggestedMatches.length : filteredTrips.length)} résultats)</span>
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
