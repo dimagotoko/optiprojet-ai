@@ -1,96 +1,110 @@
 
 'use client';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, DocumentData, Timestamp } from 'firebase/firestore';
+import { LoadingLogo } from '@/components/LoadingLogo';
+import { format, isSameDay } from 'date-fns';
+
+type Trip = {
+    id: string;
+    origin: string;
+    destination: string;
+    departureTime: Timestamp;
+    pricePerSeat: number;
+    offeredBy: string;
+    availableSeats: number;
+};
+
+type UserProfile = {
+    name: string;
+    profilePictureUrl?: string;
+    averageRating?: number;
+};
+
+// A small component to fetch driver info for a TripCard
+const TripCardWrapper = ({ trip }: { trip: Trip }) => {
+    const firestore = useFirestore();
+
+    const driverRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'users');
+    }, [firestore]);
+
+    const { data: driverData, isLoading } = useCollection<UserProfile>(driverRef);
+
+    if (isLoading || !driverData) {
+        // You can render a skeleton card here
+        return <div className="w-full h-96 rounded-lg bg-muted animate-pulse" />;
+    }
+    
+    const driver = driverData.find(d => d.id === trip.offeredBy);
+
+    if(!driver) return null;
+
+    const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('');
+
+    return (
+        <TripCard
+            key={trip.id}
+            id={trip.id}
+            from={trip.origin}
+            to={trip.destination}
+            date={format(trip.departureTime.toDate(), 'd MMM')}
+            price={`${trip.pricePerSeat}$`}
+            driver={{
+                name: driver.name,
+                avatar: driver.profilePictureUrl || '',
+                rating: driver.averageRating || 0,
+            }}
+        />
+    );
+};
+
 
 function TripsPageContent() {
+  const firestore = useFirestore();
   const searchParams = useSearchParams();
-  const departure = searchParams.get('departure') || undefined;
-  const destination = searchParams.get('destination') || undefined;
-  const dateStr = searchParams.get('date');
-  
-  let date: Date | undefined = undefined;
-  if (dateStr && !isNaN(new Date(dateStr).getTime())) {
-    date = new Date(dateStr);
-  }
 
-  const allTrips = [
-    {
-      id: 'trip-1',
-      from: 'Montréal',
-      to: 'Québec',
-      date: '30 Juil',
-      price: '35$',
-      driver: {
-        name: 'Amélie Tremblay',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-1')?.imageUrl || '',
-        rating: 4.9,
-      },
-    },
-    {
-      id: 'trip-2',
-      from: 'Longueuil',
-      to: 'Laval',
-      date: '02 Août',
-      price: '15$',
-      driver: {
-        name: 'Félix Bouchard',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-2')?.imageUrl || '',
-        rating: 4.8,
-      },
-    },
-    {
-      id: 'trip-3',
-      from: 'Montréal',
-      to: 'Sherbrooke',
-      date: '05 Août',
-      price: '25$',
-      driver: {
-        name: 'Florence Gagnon',
-        avatar: PlaceHolderImages.find((img) => img.id === 'avatar-3')?.imageUrl || '',
-        rating: 5.0,
-      },
-    },
-    {
-      id: 'trip-4',
-      from: 'Québec',
-      to: 'Trois-Rivières',
-      date: '08 Août',
-      price: '20$',
-      driver: {
-        name: 'Leo Roy',
-        avatar: 'https://picsum.photos/seed/avatar4/100/100',
-        rating: 4.7,
-      },
-    },
-    {
-      id: 'trip-5',
-      from: 'Ottawa',
-      to: 'Montréal',
-      date: '10 Août',
-      price: '30$',
-      driver: {
-        name: 'Mia Caron',
-        avatar: 'https://picsum.photos/seed/avatar5/100/100',
-        rating: 4.9,
-      },
-    },
-    {
-      id: 'trip-6',
-      from: 'Gatineau',
-      to: 'Montréal',
-      date: '11 Août',
-      price: '28$',
-      driver: {
-        name: 'Noah Dubois',
-        avatar: 'https://picsum.photos/seed/avatar6/100/100',
-        rating: 4.6,
-      },
-    },
-  ];
+  // Get search params from URL
+  const departure = searchParams.get('departure')?.toLowerCase();
+  const destination = searchParams.get('destination')?.toLowerCase();
+  const dateStr = searchParams.get('date');
+  const searchDate = dateStr ? new Date(dateStr) : null;
+  
+  const tripsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Fetch all future trips
+    return collection(firestore, 'trips');
+  }, [firestore]);
+
+  const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
+  
+  const filteredTrips = useMemo(() => {
+    if (!allTrips) return [];
+    
+    const now = new Date();
+
+    return allTrips.filter(trip => {
+      const departureTime = trip.departureTime.toDate();
+      // Basic filtering logic
+      const matchesDeparture = departure ? trip.origin.toLowerCase().includes(departure) : true;
+      const matchesDestination = destination ? trip.destination.toLowerCase().includes(destination) : true;
+      const matchesDate = searchDate ? isSameDay(departureTime, searchDate) : true;
+      
+      // Ensure the trip is in the future
+      const isFutureTrip = departureTime > now;
+
+      return matchesDeparture && matchesDestination && matchesDate && isFutureTrip;
+    });
+  }, [allTrips, departure, destination, searchDate]);
+
+  // We need to get the initial search from the URL for the form
+  const initialDate = searchDate instanceof Date && !isNaN(searchDate.getTime()) ? searchDate : undefined;
+
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -103,13 +117,29 @@ function TripsPageContent() {
         </div>
       </div>
       <div className="mb-12">
-        <TripSearchForm initialSearch={{ departure, destination, date }} />
+        <TripSearchForm initialSearch={{ departure: searchParams.get('departure') || '', destination: searchParams.get('destination') || '', date: initialDate }} />
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {allTrips.map((trip) => (
-          <TripCard key={trip.id} {...trip} />
-        ))}
-      </div>
+
+      {isLoading && (
+        <div className="flex justify-center items-center py-10">
+            <LoadingLogo className="h-10 w-10 text-primary" />
+        </div>
+      )}
+
+      {!isLoading && filteredTrips.length > 0 && (
+         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredTrips.map((trip) => (
+                <TripCardWrapper key={trip.id} trip={trip} />
+            ))}
+        </div>
+      )}
+
+      {!isLoading && filteredTrips.length === 0 && (
+         <div className="text-center py-10">
+            <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
+            <p className="text-sm text-muted-foreground mt-2">Essayez d'élargir votre recherche.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -117,7 +147,11 @@ function TripsPageContent() {
 
 export default function TripsPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+        <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+            <LoadingLogo className="h-12 w-12 text-primary" />
+        </div>
+    }>
       <TripsPageContent />
     </Suspense>
   )
