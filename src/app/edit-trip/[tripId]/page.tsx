@@ -67,16 +67,18 @@ const vehicleSchema = z.object({
 });
 
 const addressSchema = z.object({
-    description: z.string().min(3, 'Une adresse est requise.'),
+    description: z.string({
+        required_error: "Veuillez sélectionner une adresse dans la liste."
+    }).min(3, "Veuillez sélectionner une adresse dans la liste."),
     coords: z.object({
         lat: z.number(),
         lng: z.number(),
-    }),
+    }).optional(),
 });
 
 const tripSchema = z.object({
-    departure: addressSchema.refine(val => val.description, { message: "Veuillez sélectionner une adresse dans la liste." }),
-    destination: addressSchema.refine(val => val.description, { message: "Veuillez sélectionner une adresse dans la liste." }),
+    departure: addressSchema,
+    destination: addressSchema,
     date: z.date({ required_error: 'La date est requise.' }),
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
@@ -293,7 +295,7 @@ export default function EditTripPage() {
                                         <FormLabel>Départ</FormLabel>
                                         <FormControl>
                                             <AddressInput 
-                                                key={field.value?.description || 'departure-initial'}
+                                                id="departure"
                                                 placeholder="Adresse de départ" 
                                                 onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}
@@ -311,7 +313,7 @@ export default function EditTripPage() {
                                         <FormLabel>Destination</FormLabel>
                                         <FormControl>
                                             <AddressInput 
-                                                key={field.value?.description || 'destination-initial'}
+                                                id="destination"
                                                 placeholder="Adresse de destination" 
                                                 onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}

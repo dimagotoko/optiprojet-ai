@@ -6,26 +6,29 @@ import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
 import { useLoadScript } from '@react-google-maps/api';
+import { useFormContext } from 'react-hook-form';
 
 export type Address = {
   description: string;
-  coords: {
+  coords?: {
     lat: number;
     lng: number;
   };
 };
 
 type AddressInputProps = {
+  id: string;
   placeholder: string;
   defaultValue?: string;
-  onAddressSelect?: (address: Address) => void;
-  onValueChange?: (value: string) => void; // Kept for TripSearchForm
+  onAddressSelect: (address: Address) => void;
+  onValueChange?: (value: string) => void;
 };
 
 // Define libraries outside the component to prevent re-creation on every render.
 const libraries: "places"[] = ['places'];
 
-function AddressInputCore({ placeholder, defaultValue, onAddressSelect, onValueChange }: AddressInputProps) {
+function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect, onValueChange }: AddressInputProps) {
+    const { setValue: setFormValue } = useFormContext(); // Get setValue from react-hook-form
     const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
 
     React.useEffect(() => {
@@ -68,30 +71,30 @@ function AddressInputCore({ placeholder, defaultValue, onAddressSelect, onValueC
         }
     }, [defaultValue, setValue]);
 
-    React.useEffect(() => {
-        // This is primarily for the simple search form which doesn't need coords
-        if (onValueChange) {
-            onValueChange(value);
-        }
-    }, [value, onValueChange]);
-
     const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setValue(e.target.value);
+        const newValue = e.target.value;
+        setValue(newValue); // Update usePlacesAutocomplete
+        if (onValueChange) {
+            onValueChange(newValue); // For simple forms
+        } else {
+             // For react-hook-form, update the field value as a simple object
+            setFormValue(id, { description: newValue }, { shouldValidate: true, shouldDirty: true });
+        }
     };
 
     const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
         setValue(suggestion.description, false);
         clearSuggestions();
 
-        // If a handler for the full address object is provided, get geocode
-        if (onAddressSelect) {
-            try {
-                const results = await getGeocode({ address: suggestion.description });
-                const { lat, lng } = await getLatLng(results[0]);
-                onAddressSelect({ description: suggestion.description, coords: { lat, lng } });
-            } catch (error) {
-                console.error("Error geocoding: ", error);
-            }
+        try {
+            const results = await getGeocode({ address: suggestion.description });
+            const { lat, lng } = await getLatLng(results[0]);
+            const fullAddress: Address = { description: suggestion.description, coords: { lat, lng } };
+            onAddressSelect(fullAddress); // This is the main callback for react-hook-form
+        } catch (error) {
+            console.error("Error geocoding: ", error);
+            // Even if geocoding fails, update with the description
+            onAddressSelect({ description: suggestion.description });
         }
     };
 
@@ -135,8 +138,21 @@ function AddressInputCore({ placeholder, defaultValue, onAddressSelect, onValueC
 
 }
 
-export function AddressInput(props: AddressInputProps) {
+export function AddressInput(props: Omit<AddressInputProps, 'onAddressSelect'> & { onAddressSelect?: AddressInputProps['onAddressSelect']}) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const formMethods = useFormContext();
+
+  const handleAddressSelect = (address: Address) => {
+    // This function will be passed to the core component.
+    // It updates the react-hook-form state.
+    if(formMethods) {
+        formMethods.setValue(props.id, address, { shouldValidate: true, shouldDirty: true });
+    }
+    // Also call the original prop if it exists
+    if (props.onAddressSelect) {
+        props.onAddressSelect(address);
+    }
+  };
   
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: apiKey,
@@ -172,5 +188,5 @@ export function AddressInput(props: AddressInputProps) {
     )
   }
 
-  return <AddressInputCore {...props} />;
+  return <AddressInputCore {...props} onAddressSelect={handleAddressSelect} />;
 }
