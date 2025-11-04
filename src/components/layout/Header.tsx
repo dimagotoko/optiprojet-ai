@@ -33,16 +33,22 @@ export function Header() {
   const [userRole, setUserRole] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    let isMounted = true;
     if (user && firestore) {
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then(docSnap => {
-        if (docSnap.exists()) {
+        if (isMounted && docSnap.exists()) {
           setUserRole(docSnap.data().role);
         }
       });
     } else {
-      setUserRole(null);
+       if (isMounted) {
+         setUserRole(null);
+       }
     }
+    return () => {
+      isMounted = false;
+    };
   }, [user, firestore]);
 
   const handleLogout = async () => {
@@ -147,7 +153,7 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            {userRole === 'transporteur' && (
+            {user && userRole === 'transporteur' && (
                <Link
                 href="/post-trip"
                 className="transition-colors hover:text-foreground/80 text-foreground/60"
@@ -176,7 +182,7 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-               {userRole === 'transporteur' && (
+               {user && userRole === 'transporteur' && (
                  <Link href="/post-trip" className="text-sm font-medium">
                     Proposer un trajet
                 </Link>
