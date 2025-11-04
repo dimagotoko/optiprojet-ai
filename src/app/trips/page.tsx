@@ -5,9 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, DocumentData, Timestamp, query, where, doc } from 'firebase/firestore';
+import { collection, DocumentData, Timestamp, query, where, doc, QueryConstraint } from 'firebase/firestore';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -97,9 +97,23 @@ function TripsPageContent() {
   
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Fetch all future trips for now. We can optimize this later.
-    return query(collection(firestore, 'trips'), where('departureTime', '>=', new Date()));
-  }, [firestore]);
+
+    const baseQuery = query(collection(firestore, 'trips'), where('departureTime', '>=', new Date()));
+    const whereClauses: QueryConstraint[] = [];
+
+    if (searchDate) {
+        whereClauses.push(where('departureTime', '>=', startOfDay(searchDate)));
+        whereClauses.push(where('departureTime', '<=', endOfDay(searchDate)));
+    }
+
+    // Important: Only apply the query if there are clauses to apply.
+    // Calling query(base, ...[]) causes an internal Firestore SDK error.
+    if (whereClauses.length > 0) {
+        return query(baseQuery, ...whereClauses);
+    }
+    
+    return baseQuery;
+  }, [firestore, searchDate]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
   
@@ -109,9 +123,10 @@ function TripsPageContent() {
     return allTrips.filter(trip => {
       const tripDepartureTime = trip.departureTime.toDate();
       
+      // We filter by text client-side as Firestore doesn't support case-insensitive/partial text search well
       const matchesDeparture = departure ? trip.origin.toLowerCase().includes(departure) : true;
       const matchesDestination = destination ? trip.destination.toLowerCase().includes(destination) : true;
-      const matchesDate = searchDate ? isSameDay(tripDepartureTime, searchDate) : true;
+      
       const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
       
       const matchesNonSmoking = showNonSmoking ? trip.options?.isNonSmoking === true : true;
@@ -124,9 +139,9 @@ function TripsPageContent() {
         (departureTime === 'afternoon' && hour >= 12 && hour < 18) ||
         (departureTime === 'evening' && hour >= 18);
 
-      return matchesDeparture && matchesDestination && matchesDate && matchesPrice && matchesTime && matchesNonSmoking && matchesPetsAllowed && matchesLargeBags;
+      return matchesDeparture && matchesDestination && matchesPrice && matchesTime && matchesNonSmoking && matchesPetsAllowed && matchesLargeBags;
     });
-  }, [allTrips, departure, destination, searchDate, maxPrice, departureTime, showNonSmoking, showPetsAllowed, showLargeBagsAllowed]);
+  }, [allTrips, departure, destination, maxPrice, departureTime, showNonSmoking, showPetsAllowed, showLargeBagsAllowed]);
 
   const initialDate = searchDate instanceof Date && !isNaN(searchDate.getTime()) ? searchDate : undefined;
 
