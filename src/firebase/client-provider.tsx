@@ -5,6 +5,7 @@ import React, { useMemo, type ReactNode, useState, useEffect } from 'react';
 import { FirebaseProvider, useUser } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { useIdleLogout } from '@/hooks/use-idle-logout';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -22,6 +23,14 @@ function InitialLoadingScreen() {
             <LoadingLogo className="h-16 w-16 text-primary" />
         </div>
     )
+}
+
+function IdleLogoutManager() {
+    const { user } = useUser();
+    // Déconnexion après 1 heure (3600000 ms)
+    useIdleLogout(3600 * 1000); 
+
+    return null; // Ce composant ne rend rien
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
@@ -48,6 +57,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     >
       {children}
       <InitialLoadingScreen />
+      <IdleLogoutManager />
     </FirebaseProvider>
   );
 }
