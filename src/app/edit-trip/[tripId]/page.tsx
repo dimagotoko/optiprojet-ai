@@ -75,8 +75,8 @@ const addressSchema = z.object({
 });
 
 const tripSchema = z.object({
-    departure: addressSchema,
-    destination: addressSchema,
+    departure: addressSchema.refine(val => val.description, { message: "Veuillez sélectionner une adresse dans la liste." }),
+    destination: addressSchema.refine(val => val.description, { message: "Veuillez sélectionner une adresse dans la liste." }),
     date: z.date({ required_error: 'La date est requise.' }),
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
@@ -293,7 +293,7 @@ export default function EditTripPage() {
                                         <FormLabel>Départ</FormLabel>
                                         <FormControl>
                                             <AddressInput 
-                                                key={field.value?.description} // Force re-render on value change from reset
+                                                key={field.value?.description || 'departure-initial'}
                                                 placeholder="Adresse de départ" 
                                                 onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}
@@ -311,7 +311,7 @@ export default function EditTripPage() {
                                         <FormLabel>Destination</FormLabel>
                                         <FormControl>
                                             <AddressInput 
-                                                key={field.value?.description} // Force re-render on value change from reset
+                                                key={field.value?.description || 'destination-initial'}
                                                 placeholder="Adresse de destination" 
                                                 onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}

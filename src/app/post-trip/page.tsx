@@ -85,8 +85,8 @@ const addressSchema = z.object({
 });
 
 const tripSchema = z.object({
-    departure: addressSchema.optional().refine(val => val, { message: "Une adresse de départ est requise." }),
-    destination: addressSchema.optional().refine(val => val, { message: "Une adresse de destination est requise." }),
+    departure: addressSchema.refine(val => val.description, { message: "Veuillez sélectionner une adresse dans la liste." }),
+    destination: addressSchema.refine(val => val.description, { message: "Veuillez sélectionner une adresse dans la liste." }),
     date: z.date({ required_error: 'La date est requise.' }),
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
@@ -715,5 +715,3 @@ export default function PostTripPage() {
     </div>
   );
 }
-
-    
