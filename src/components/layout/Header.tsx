@@ -93,77 +93,81 @@ export function Header() {
     }
 
     if (user) {
+      const firstName = user.displayName?.split(' ')[0];
       return (
-        <AlertDialog>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Avatar'} />
-                  <AvatarFallback>
-                    {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle />}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard">Tableau de bord</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/profile">Gérer le profil</Link>
-              </DropdownMenuItem>
-               <DropdownMenuItem asChild>
-                 <Link href="/dashboard">Mes trajets</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                  onSelect={(e) => e.preventDefault()}
-                  className="text-red-500 focus:text-red-500"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Déconnexion</span>
+        <div className="flex items-center gap-2">
+            {firstName && <span className="hidden sm:inline text-sm font-medium text-muted-foreground">{firstName}</span>}
+            <AlertDialog>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Avatar'} />
+                    <AvatarFallback>
+                        {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle />}
+                    </AvatarFallback>
+                    </Avatar>
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                    </p>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/dashboard">Tableau de bord</Link>
                 </DropdownMenuItem>
-              </AlertDialogTrigger>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmer la déconnexion ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Me déconnecter
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <DropdownMenuItem asChild>
+                    <Link href="/profile">Gérer le profil</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/dashboard">Mes trajets</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="text-red-500 focus:text-red-500"
+                    >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Déconnexion</span>
+                    </DropdownMenuItem>
+                </AlertDialogTrigger>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la déconnexion ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Me déconnecter
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+            </AlertDialog>
+        </div>
       );
     }
 
     return (
-      <>
+      <div className="flex items-center gap-2">
         <Button asChild variant="ghost">
           <Link href="/login">Connexion</Link>
         </Button>
         <Button asChild>
           <Link href="/signup">Inscription</Link>
         </Button>
-      </>
+      </div>
     );
   };
 
