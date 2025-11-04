@@ -11,7 +11,7 @@ import { Button } from './ui/button';
 import Link from 'next/link';
 
 type TripCardProps = {
-  id?: string;
+  id: string;
   from: string;
   to: string;
   date: string;
