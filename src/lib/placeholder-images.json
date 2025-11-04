@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-background",
-      "description": "A scenic road winding through mountains at sunset.",
-      "imageUrl": "https://images.unsplash.com/photo-1595716911798-46ea8f1ba738?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzY2VuaWMlMjByb2FkfGVufDB8fHx8MTc2MTg5MTczNHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "scenic road"
+      "description": "A group of friends laughing and enjoying a road trip in a car.",
+      "imageUrl": "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmcmllbmRzJTIwcm9hZCUyMHRyaXB8ZW58MHx8fHwxNzYyMDYyODMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "friends roadtrip"
     },
     {
       "id": "avatar-1",
