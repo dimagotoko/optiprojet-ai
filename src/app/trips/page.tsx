@@ -1,4 +1,3 @@
-
 'use client';
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -99,7 +98,7 @@ function TripsPageContent() {
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
 
-    const constraints: QueryConstraint[] = [where('departureTime', '>=', new Date())];
+    const constraints: QueryConstraint[] = [where('departureTime', '>=', startOfDay(new Date()))];
 
     if (searchDate) {
         constraints.push(where('departureTime', '>=', startOfDay(searchDate)));
@@ -141,7 +140,8 @@ function TripsPageContent() {
 
   const maxPriceInResults = useMemo(() => {
       if (!allTrips) return 100;
-      return allTrips.reduce((max, trip) => Math.max(max, trip.pricePerSeat), 0);
+      const max = allTrips.reduce((max, trip) => Math.max(max, trip.pricePerSeat), 0);
+      return max > 0 ? max : 100; // Return at least 100
   }, [allTrips]);
 
   const handleLocationClick = (type: 'departure' | 'destination', value: string) => {
@@ -167,7 +167,7 @@ function TripsPageContent() {
        <Accordion type="single" collapsible className="w-full mb-8">
         <AccordionItem value="item-1">
           <AccordionTrigger className={cn(buttonVariants({ variant: "outline" }), "no-underline hover:no-underline")}>
-            <span>Filtres avancés ({filteredTrips.length} résultats)</span>
+            <span>Filtres avancés ({isLoading ? '...' : filteredTrips.length} résultats)</span>
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
@@ -186,9 +186,9 @@ function TripsPageContent() {
                 <Label htmlFor="price">Prix maximum: {maxPrice ? `${maxPrice}$` : 'Aucun'}</Label>
                 <Slider
                     id="price"
-                    max={maxPriceInResults || 100}
+                    max={maxPriceInResults}
                     step={5}
-                    value={[maxPrice || maxPriceInResults || 100]}
+                    value={[maxPrice || maxPriceInResults]}
                     onValueChange={(value) => setMaxPrice(value[0] === maxPriceInResults ? undefined : value[0])}
                 />
               </div>
@@ -233,7 +233,7 @@ function TripsPageContent() {
       {!isLoading && filteredTrips.length === 0 && (
          <div className="text-center py-10">
             <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
-            <p className="text-sm text-muted-foreground mt-2">Essayez de modifier vos filtres.</p>
+            <p className="text-sm text-muted-foreground mt-2">Essayez de modifier votre recherche ou vos filtres.</p>
         </div>
       )}
     </div>
@@ -252,3 +252,5 @@ export default function TripsPage() {
     </Suspense>
   )
 }
+
+    
