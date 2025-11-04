@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
   Calendar as CalendarIcon, Users, Clock, DollarSign, Plus,
-  Luggage, Briefcase, Dog, CigaretteOff, Landmark, CaseSensitive
+  Luggage, Briefcase, Dog, CigaretteOff, Landmark, Banknote
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -592,7 +592,7 @@ export default function PostTripPage() {
                                                         />
                                                     </FormControl>
                                                     <FormLabel className="font-normal flex items-center gap-2">
-                                                        <CaseSensitive className="h-5 w-5 text-primary" /> Argent comptant
+                                                        <Banknote className="h-5 w-5 text-primary" /> Argent comptant
                                                     </FormLabel>
                                                 </FormItem>
                                             )}

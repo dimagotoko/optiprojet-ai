@@ -9,7 +9,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, CaseSensitive } from 'lucide-react';
+import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, Banknote } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -282,7 +282,7 @@ function TripDetailsPageContent() {
                                     </div>
                                  </div>
                                  <div className="flex items-center gap-3">
-                                    <CaseSensitive className={cn("h-8 w-8", trip.paymentOptions?.cash ? "text-primary": "text-muted-foreground/50")} />
+                                    <Banknote className={cn("h-8 w-8", trip.paymentOptions?.cash ? "text-primary": "text-muted-foreground/50")} />
                                     <div>
                                         <p className="font-semibold">Argent comptant</p>
                                         <p className="text-muted-foreground">{trip.paymentOptions?.cash ? 'Accepté' : 'Non'}</p>
