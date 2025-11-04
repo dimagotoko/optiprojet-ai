@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dog, CigaretteOff, Luggage } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 
 type Trip = {
@@ -151,10 +153,8 @@ function TripsPageContent() {
 
        <Accordion type="single" collapsible className="w-full mb-8">
         <AccordionItem value="item-1">
-          <AccordionTrigger>
-            <Button variant="outline">
-                Filtres avancés ({filteredTrips.length} résultats)
-            </Button>
+          <AccordionTrigger className={cn(buttonVariants({ variant: "outline" }), "no-underline hover:no-underline")}>
+            <span>Filtres avancés ({filteredTrips.length} résultats)</span>
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
