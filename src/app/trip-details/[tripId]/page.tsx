@@ -28,6 +28,73 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const getInitials = (name: string | undefined) => {
+    if (!name) return '';
+    return name.split(' ').map(n => n[0]).join('');
+};
+
+const Passenger = ({ travelerId }: { travelerId: string }) => {
+    const firestore = useFirestore();
+    const travelerRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'users', travelerId);
+    }, [firestore, travelerId]);
+
+    const { data: traveler, isLoading } = useDoc<UserProfile>(travelerRef);
+
+    if (isLoading) {
+        return <Skeleton className="h-12 w-full rounded-md" />;
+    }
+
+    if (!traveler) {
+        return <div className="p-3 text-sm text-muted-foreground">Voyageur inconnu</div>;
+    }
+
+    return (
+        <div className="flex items-center justify-between p-2 rounded-lg">
+            <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                    <AvatarImage src={traveler.profilePictureUrl} alt={traveler.name} />
+                    <AvatarFallback>{getInitials(traveler.name)}</AvatarFallback>
+                </Avatar>
+                <span className="font-medium">{traveler.name}</span>
+            </div>
+        </div>
+    );
+};
+
+const PassengersList = ({ tripId }: { tripId: string }) => {
+    const firestore = useFirestore();
+    const bookingsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'trips', tripId, 'bookings');
+    }, [firestore, tripId]);
+    const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
+
+    if (isLoading) {
+        return (
+            <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+        );
+    }
+    
+    if (!bookings || bookings.length === 0) {
+        return <p className="text-sm text-muted-foreground p-2">Aucune réservation pour le moment.</p>;
+    }
+
+    return (
+        <div className="space-y-2">
+            {bookings.map(booking => (
+                <Passenger key={booking.id} travelerId={booking.travelerId} />
+            ))}
+        </div>
+    );
+};
+
 
 function TripDetailsPageContent() {
     const firestore = useFirestore();
@@ -39,7 +106,6 @@ function TripDetailsPageContent() {
     const tripId = params.tripId as string;
     const [showBookingConfirm, setShowBookingConfirm] = React.useState(false);
     const [isBooking, setIsBooking] = React.useState(false);
-
 
     const tripRef = useMemoFirebase(() => {
         if (!firestore || !tripId) return null;
@@ -56,20 +122,15 @@ function TripDetailsPageContent() {
 
     const isOwner = user?.uid === driverId;
 
-    const bookingsQuery = useMemoFirebase(() => {
-        if (!firestore || !tripId || !isOwner) return null; // Only fetch if owner
-        return collection(firestore, 'trips', tripId, 'bookings');
-    }, [firestore, tripId, isOwner]);
-    const { data: bookings, isLoading: areBookingsLoading } = useCollection<Booking>(bookingsQuery);
-
     const userBookingQuery = useMemoFirebase(() => {
-        if (!firestore || !tripId || !user) return null;
+        if (!firestore || !tripId || !user || isOwner) return null;
         const bookingsRef = collection(firestore, 'trips', tripId, 'bookings');
         return query(bookingsRef, where('travelerId', '==', user.uid));
-    }, [firestore, tripId, user]);
+    }, [firestore, tripId, user, isOwner]);
+
     const { data: userBookingResult, isLoading: isUserBookingLoading } = useCollection<Booking>(userBookingQuery);
 
-    const isLoading = isUserLoading || isTripLoading || isDriverLoading || isUserBookingLoading || (isOwner && areBookingsLoading);
+    const isLoading = isUserLoading || isTripLoading || isDriverLoading || isUserBookingLoading;
 
     const toSeed = (s: string) => {
         if (!s) return 0;
@@ -79,18 +140,11 @@ function TripDetailsPageContent() {
         }, 0);
     };
 
-    const getInitials = (name: string | undefined) => {
-        if (!name) return '';
-        return name.split(' ').map(n => n[0]).join('');
-    }
-
     const handleBookTrip = async () => {
         if (!firestore || !user || !trip) return;
 
         setIsBooking(true);
         try {
-            // This is a placeholder for payment logic
-            // In a real app, you would integrate Stripe here and get a paymentIntentId
             const fakePaymentIntentId = `pi_${Date.now()}`;
 
             const bookingsCollection = collection(firestore, 'trips', trip.id, 'bookings');
@@ -98,7 +152,7 @@ function TripDetailsPageContent() {
                 tripId: trip.id,
                 travelerId: user.uid,
                 paymentIntentId: fakePaymentIntentId,
-                paymentStatus: 'succeeded', // Assume payment is successful for now
+                paymentStatus: 'succeeded',
                 createdAt: serverTimestamp(),
             });
 
@@ -121,7 +175,6 @@ function TripDetailsPageContent() {
         }
     }
 
-
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -139,8 +192,8 @@ function TripDetailsPageContent() {
     }
     
     const departureDate = trip.departureTime.toDate();
-    const reservedSeats = bookings?.length ?? 0;
-    const totalSeats = trip.availableSeats + reservedSeats;
+    const reservedSeats = trip.totalBookings || 0;
+    const totalSeats = trip.availableSeats;
     const remainingSeats = totalSeats - reservedSeats;
     const hasAlreadyBooked = userBookingResult ? userBookingResult.length > 0 : false;
     const isSoldOut = remainingSeats <= 0;
@@ -149,9 +202,7 @@ function TripDetailsPageContent() {
         <>
             <div className="container py-12 px-4 md:px-6">
                 <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                {/* Main Content */}
                 <div className="md:col-span-2 space-y-8">
-                    {/* Header */}
                     <div>
                         <div className="relative h-64 md:h-96 w-full rounded-lg overflow-hidden mb-4">
                             <Image
@@ -177,7 +228,6 @@ function TripDetailsPageContent() {
 
                     <Separator />
 
-                    {/* Driver Info */}
                     <div className="flex items-center justify-between">
                          <h2 className="text-2xl font-bold">Votre conducteur</h2>
                          <div className="flex items-center gap-4">
@@ -198,7 +248,6 @@ function TripDetailsPageContent() {
 
                     <Separator />
 
-                    {/* Trip Options & Details */}
                      <div>
                         <h2 className="text-2xl font-bold mb-4">Détails et options</h2>
                         <Card>
@@ -243,9 +292,18 @@ function TripDetailsPageContent() {
                         </Card>
                     </div>
 
+                    {isOwner && (
+                        <div>
+                            <h2 className="text-2xl font-bold mb-4">Passagers</h2>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <PassengersList tripId={trip.id} />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </div>
 
-                {/* Sidebar/Booking */}
                 <div className="md:col-span-1">
                     <Card className="sticky top-24">
                         <CardContent className="p-6">
@@ -293,7 +351,6 @@ function TripDetailsPageContent() {
     );
 }
 
-
 export default function TripDetailsPage() {
     return (
         <React.Suspense fallback={
@@ -305,5 +362,3 @@ export default function TripDetailsPage() {
         </React.Suspense>
     )
 }
-
-    
