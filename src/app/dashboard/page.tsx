@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -153,11 +152,7 @@ export default function DashboardPage() {
   };
 
   const handleEditClick = (tripId: string) => {
-    // TODO: Implement edit functionality
-    toast({
-        title: "Fonctionnalité à venir",
-        description: "La modification des trajets sera bientôt disponible.",
-    });
+    router.push(`/edit-trip/${tripId}`);
   };
 
   const handleToggleCloseTrip = async (tripId: string, currentState: boolean) => {
