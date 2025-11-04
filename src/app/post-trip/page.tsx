@@ -85,8 +85,8 @@ const addressSchema = z.object({
 });
 
 const tripSchema = z.object({
-    departure: addressSchema,
-    destination: addressSchema,
+    departure: addressSchema.optional().refine(val => val, { message: "Une adresse de départ est requise." }),
+    destination: addressSchema.optional().refine(val => val, { message: "Une adresse de destination est requise." }),
     date: z.date({ required_error: 'La date est requise.' }),
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
@@ -225,7 +225,7 @@ export default function PostTripPage() {
   };
   
   const handleConfirmAndPublish = async () => {
-    if (!submittedTripData || !firestore || !user) return;
+    if (!submittedTripData || !firestore || !user || !submittedTripData.departure || !submittedTripData.destination) return;
 
     try {
         const { date, time, arrivalTime } = submittedTripData;
@@ -656,11 +656,11 @@ export default function PostTripPage() {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="text-sm space-y-4 py-4">
-                    <div className="font-semibold">{submittedTripData.departure.description} &rarr; {submittedTripData.destination.description}</div>
+                    <div className="font-semibold">{submittedTripData.departure?.description} &rarr; {submittedTripData.destination?.description}</div>
                     <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                         <div>
                             <p className="font-medium text-foreground">Date & Heure</p>
-                            <p>{format(submittedTripData.date, 'd MMMM yyyy', { locale: fr })} à {submittedTripData.time} {submittedTripData.arrivalTime ? `(arrivée ~${submittedTripData.arrivalTime})`: ''}</p>
+                            <p>{submittedTripData.date ? format(submittedTripData.date, 'd MMMM yyyy', { locale: fr }) : ''} à {submittedTripData.time} {submittedTripData.arrivalTime ? `(arrivée ~${submittedTripData.arrivalTime})`: ''}</p>
                         </div>
                          <div>
                             <p className="font-medium text-foreground">Prix & Places</p>
