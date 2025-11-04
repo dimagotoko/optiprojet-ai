@@ -78,8 +78,8 @@ const vehicleSchema = z.object({
 
 const addressSchema = z.object({
     description: z.string({
-        required_error: "Une adresse de départ est requise."
-    }).min(3, "L'adresse doit contenir au moins 3 caractères."),
+        required_error: "Veuillez sélectionner une adresse dans la liste."
+    }).min(1, "Veuillez sélectionner une adresse dans la liste."),
     coords: z.object({
         lat: z.number(),
         lng: z.number(),
@@ -260,7 +260,7 @@ export default function PostTripPage() {
             vehicleId: submittedTripData.vehicleId,
             options: submittedTripData.options,
             paymentOptions: submittedTripData.paymentOptions,
-            details: submittedTripData.details,
+            details: submittedTripData.details || '',
             offeredBy: user.uid,
             isClosed: false,
             createdAt: serverTimestamp(),
