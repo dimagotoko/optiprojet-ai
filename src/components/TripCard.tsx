@@ -64,17 +64,15 @@ export function TripCard({ id, from, to, date, price, driver, onLocationClick }:
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-4 pt-0 space-y-4">
-        <Link href={`/trip-details/${id}`} className="block">
-          <div className="relative h-48 w-full rounded-lg overflow-hidden group">
-            <Image
-              src={`https://picsum.photos/seed/${toSeed(to)}/600/400`}
-              alt={`Paysage représentant la destination: ${to}`}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint="landscape"
-            />
-          </div>
-        </Link>
+        <div className="relative h-48 w-full rounded-lg overflow-hidden group">
+          <Image
+            src={`https://picsum.photos/seed/${toSeed(to)}/600/400`}
+            alt={`Paysage représentant la destination: ${to}`}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            data-ai-hint="landscape"
+          />
+        </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="mr-2 h-4 w-4" />
           <span>{date}</span>
