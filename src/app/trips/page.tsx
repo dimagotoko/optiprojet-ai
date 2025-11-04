@@ -4,8 +4,8 @@ import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, DocumentData, Timestamp, query, where } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, DocumentData, Timestamp, query, where, doc } from 'firebase/firestore';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { format, isSameDay } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -45,14 +45,12 @@ type UserProfile = {
 const TripCardWrapper = ({ trip }: { trip: Trip }) => {
     const firestore = useFirestore();
 
-    const driverQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, 'users'), where('id', '==', trip.offeredBy));
+    const driverRef = useMemoFirebase(() => {
+        if (!firestore || !trip.offeredBy) return null;
+        return doc(firestore, 'users', trip.offeredBy);
     }, [firestore, trip.offeredBy]);
 
-    const { data: driverData, isLoading } = useCollection<UserProfile>(driverQuery);
-    
-    const driver = driverData?.[0];
+    const { data: driver, isLoading } = useDoc<UserProfile>(driverRef);
 
     if (isLoading) {
         // You can render a skeleton card here
