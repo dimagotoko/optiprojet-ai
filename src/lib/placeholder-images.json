@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-background",
-      "description": "Vue depuis le siège passager d'une voiture roulant sur une autoroute la nuit, avec des traînées de lumière floues évoquant la vitesse, la technologie et l'aspect convivial du covoiturage.",
-      "imageUrl": "https://images.unsplash.com/photo-1490644321124-d7e35a06c871?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjYXIlMjBuaWdodCUyMHJvYWR8ZW58MHx8fHwxNzIyNDMyMDIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "carpool technology"
+      "description": "Un groupe d'amis souriants dans une voiture, représentant un road trip convivial.",
+      "imageUrl": "https://images.unsplash.com/photo-1517734014902-6c5f74415842?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyb2FkJTIwdHJpcCUyMGZyaWVuZHN8ZW58MHx8fHwxNzIyNDI5OTM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "road trip friends"
     },
     {
       "id": "avatar-1",
