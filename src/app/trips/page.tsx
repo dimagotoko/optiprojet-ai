@@ -15,6 +15,7 @@ import { Dog, CigaretteOff, Luggage } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 
 type Trip = {
@@ -59,7 +60,6 @@ const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClic
 
     return (
         <TripCard
-            key={trip.id}
             id={trip.id}
             from={trip.origin}
             to={trip.destination}
@@ -110,30 +110,43 @@ function TripsPageContent() {
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
   
-  const filteredTrips = useMemo(() => {
-    if (!allTrips) return [];
+  const {exactMatches, suggestedMatches} = useMemo(() => {
+    if (!allTrips) return { exactMatches: [], suggestedMatches: [] };
     
-    return allTrips.filter(trip => {
-      const tripDepartureTime = trip.departureTime.toDate();
-      
-      // We filter by text client-side as Firestore doesn't support case-insensitive/partial text search well
-      const matchesDeparture = departure ? trip.origin.toLowerCase().includes(departure) : true;
-      const matchesDestination = destination ? trip.destination.toLowerCase().includes(destination) : true;
-      
-      const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
-      
-      const matchesNonSmoking = showNonSmoking ? trip.options?.isNonSmoking === true : true;
-      const matchesPetsAllowed = showPetsAllowed ? trip.options?.allowPets === true : true;
-      const matchesLargeBags = showLargeBagsAllowed ? trip.options?.allowLargeBags === true : true;
+    const applyFilters = (trip: Trip) => {
+        const tripDepartureTime = trip.departureTime.toDate();
+        const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
+        const matchesNonSmoking = showNonSmoking ? trip.options?.isNonSmoking === true : true;
+        const matchesPetsAllowed = showPetsAllowed ? trip.options?.allowPets === true : true;
+        const matchesLargeBags = showLargeBagsAllowed ? trip.options?.allowLargeBags === true : true;
+        const hour = tripDepartureTime.getHours();
+        const matchesTime = departureTime === 'all' ||
+            (departureTime === 'morning' && hour >= 6 && hour < 12) ||
+            (departureTime === 'afternoon' && hour >= 12 && hour < 18) ||
+            (departureTime === 'evening' && hour >= 18);
+        return matchesPrice && matchesTime && matchesNonSmoking && matchesPetsAllowed && matchesLargeBags;
+    };
+    
+    const exactMatches: Trip[] = [];
+    const suggestedMatches: Trip[] = [];
 
-      const hour = tripDepartureTime.getHours();
-      const matchesTime = departureTime === 'all' ||
-        (departureTime === 'morning' && hour >= 6 && hour < 12) ||
-        (departureTime === 'afternoon' && hour >= 12 && hour < 18) ||
-        (departureTime === 'evening' && hour >= 18);
+    for (const trip of allTrips) {
+        if (!applyFilters(trip)) continue;
 
-      return matchesDeparture && matchesDestination && matchesPrice && matchesTime && matchesNonSmoking && matchesPetsAllowed && matchesLargeBags;
-    });
+        const tripOrigin = trip.origin.toLowerCase();
+        const tripDestination = trip.destination.toLowerCase();
+        const matchesDeparture = departure ? tripOrigin.includes(departure) : true;
+        const matchesDestination = destination ? tripDestination.includes(destination) : true;
+
+        if (matchesDeparture && matchesDestination) {
+            exactMatches.push(trip);
+        } else if (matchesDeparture || matchesDestination) {
+            suggestedMatches.push(trip);
+        }
+    }
+
+    return { exactMatches, suggestedMatches };
+    
   }, [allTrips, departure, destination, maxPrice, departureTime, showNonSmoking, showPetsAllowed, showLargeBagsAllowed]);
 
   const initialDate = searchDate instanceof Date && !isNaN(searchDate.getTime()) ? searchDate : undefined;
@@ -149,6 +162,8 @@ function TripsPageContent() {
     params.set(type, value);
     router.push(`/trips?${params.toString()}`);
   };
+
+  const hasActiveSearch = departure || destination;
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -167,7 +182,7 @@ function TripsPageContent() {
        <Accordion type="single" collapsible className="w-full mb-8">
         <AccordionItem value="item-1">
           <AccordionTrigger className={cn(buttonVariants({ variant: "outline" }), "no-underline hover:no-underline")}>
-            <span>Filtres avancés ({isLoading ? '...' : filteredTrips.length} résultats)</span>
+            <span>Filtres avancés ({isLoading ? '...' : exactMatches.length} résultats)</span>
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
@@ -222,19 +237,35 @@ function TripsPageContent() {
         </div>
       )}
 
-      {!isLoading && filteredTrips.length > 0 && (
+      {!isLoading && exactMatches.length > 0 && (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredTrips.map((trip) => (
+            {exactMatches.map((trip) => (
                 <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
             ))}
         </div>
       )}
 
-      {!isLoading && filteredTrips.length === 0 && (
-         <div className="text-center py-10">
-            <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
-            <p className="text-sm text-muted-foreground mt-2">Essayez de modifier votre recherche ou vos filtres.</p>
-        </div>
+      {!isLoading && exactMatches.length === 0 && (
+        <>
+            {suggestedMatches.length > 0 && hasActiveSearch ? (
+                <div className="space-y-8">
+                    <div className="text-center py-6 bg-secondary/30 rounded-lg">
+                        <h3 className="text-lg font-semibold">Aucun trajet direct trouvé pour vos critères.</h3>
+                        <p className="text-muted-foreground mt-1">Voici des suggestions de trajets pour la date sélectionnée :</p>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {suggestedMatches.map((trip) => (
+                             <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center py-10">
+                    <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
+                    <p className="text-sm text-muted-foreground mt-2">Essayez de modifier votre recherche ou vos filtres.</p>
+                </div>
+            )}
+        </>
       )}
     </div>
   );
@@ -252,5 +283,3 @@ export default function TripsPage() {
     </Suspense>
   )
 }
-
-    
