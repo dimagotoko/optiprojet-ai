@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -11,6 +12,7 @@ import {
   Luggage, Briefcase, Dog, CigaretteOff
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { getGeocode, getLatLng } from 'use-places-autocomplete';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -45,24 +47,14 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Toggle } from '@/components/ui/toggle';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { AddressInput } from '@/components/AddressInput';
+import { AddressInput, type Address } from '@/components/AddressInput';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { collection, addDoc, serverTimestamp, doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 
@@ -74,9 +66,17 @@ const vehicleSchema = z.object({
     licensePlate: z.string().min(1, 'La plaque est requise'),
 });
 
+const addressSchema = z.object({
+    description: z.string().min(3, 'Une adresse est requise.'),
+    coords: z.object({
+        lat: z.number(),
+        lng: z.number(),
+    }),
+});
+
 const tripSchema = z.object({
-    departure: z.string().min(3, 'Le lieu de départ est requis.'),
-    destination: z.string().min(3, 'Le lieu de destination est requis.'),
+    departure: addressSchema,
+    destination: addressSchema,
     date: z.date({ required_error: 'La date est requise.' }),
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
@@ -152,8 +152,6 @@ export default function EditTripPage() {
   const tripForm = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
     defaultValues: {
-        departure: '',
-        destination: '',
         time: '',
         arrivalTime: '',
         seats: 1,
@@ -177,8 +175,8 @@ export default function EditTripPage() {
         const arrivalTime = tripData.arrivalTime ? tripData.arrivalTime.toDate() : null;
 
         tripForm.reset({
-            departure: tripData.origin,
-            destination: tripData.destination,
+            departure: { description: tripData.origin, coords: tripData.originCoords },
+            destination: { description: tripData.destination, coords: tripData.destinationCoords },
             date: departureTime,
             time: format(departureTime, 'HH:mm'),
             arrivalTime: arrivalTime ? format(arrivalTime, 'HH:mm') : '',
@@ -227,13 +225,17 @@ export default function EditTripPage() {
         }
 
         await updateDoc(tripRef, {
-            ...rest,
-            origin: data.departure,
-            destination: data.destination,
+            origin: data.departure.description,
+            destination: data.destination.description,
+            originCoords: data.departure.coords,
+            destinationCoords: data.destination.coords,
             departureTime: Timestamp.fromDate(departureDateTime),
             arrivalTime: arrivalTimestamp,
             availableSeats: data.seats,
             pricePerSeat: data.price,
+            vehicleId: data.vehicleId,
+            options: data.options,
+            details: data.details,
             offeredBy: user.uid, // Ensure owner isn't changed
         });
 
@@ -291,10 +293,10 @@ export default function EditTripPage() {
                                         <FormLabel>Départ</FormLabel>
                                         <FormControl>
                                             <AddressInput 
-                                                key={field.value} // Force re-render on value change from reset
+                                                key={field.value?.description} // Force re-render on value change from reset
                                                 placeholder="Adresse de départ" 
-                                                onValueChange={field.onChange} 
-                                                defaultValue={field.value}
+                                                onAddressSelect={field.onChange} 
+                                                defaultValue={field.value?.description}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -309,10 +311,10 @@ export default function EditTripPage() {
                                         <FormLabel>Destination</FormLabel>
                                         <FormControl>
                                             <AddressInput 
-                                                key={field.value} // Force re-render on value change from reset
+                                                key={field.value?.description} // Force re-render on value change from reset
                                                 placeholder="Adresse de destination" 
-                                                onValueChange={field.onChange} 
-                                                defaultValue={field.value}
+                                                onAddressSelect={field.onChange} 
+                                                defaultValue={field.value?.description}
                                             />
                                         </FormControl>
                                         <FormMessage />

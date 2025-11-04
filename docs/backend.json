@@ -101,6 +101,22 @@
           "type": "string",
           "description": "Destination address of the trip."
         },
+        "originCoords": {
+          "type": "object",
+          "description": "GPS coordinates for the origin.",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "destinationCoords": {
+            "type": "object",
+            "description": "GPS coordinates for the destination.",
+            "properties": {
+                "lat": { "type": "number" },
+                "lng": { "type": "number" }
+            }
+        },
         "departureTime": {
           "type": "string",
           "description": "Departure time of the trip.",
@@ -149,6 +165,8 @@
         "id",
         "origin",
         "destination",
+        "originCoords",
+        "destinationCoords",
         "departureTime",
         "offeredBy",
         "vehicleId",

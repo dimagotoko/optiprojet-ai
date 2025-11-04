@@ -7,16 +7,25 @@ import { Input } from '@/components/ui/input';
 import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
 import { useLoadScript } from '@react-google-maps/api';
 
+export type Address = {
+  description: string;
+  coords: {
+    lat: number;
+    lng: number;
+  };
+};
+
 type AddressInputProps = {
   placeholder: string;
   defaultValue?: string;
-  onValueChange?: (value: string) => void;
+  onAddressSelect?: (address: Address) => void;
+  onValueChange?: (value: string) => void; // Kept for TripSearchForm
 };
 
 // Define libraries outside the component to prevent re-creation on every render.
 const libraries: "places"[] = ['places'];
 
-function AddressInputCore({ placeholder, defaultValue, onValueChange }: AddressInputProps) {
+function AddressInputCore({ placeholder, defaultValue, onAddressSelect, onValueChange }: AddressInputProps) {
     const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
 
     React.useEffect(() => {
@@ -60,8 +69,9 @@ function AddressInputCore({ placeholder, defaultValue, onValueChange }: AddressI
     }, [defaultValue, setValue]);
 
     React.useEffect(() => {
+        // This is primarily for the simple search form which doesn't need coords
         if (onValueChange) {
-        onValueChange(value);
+            onValueChange(value);
         }
     }, [value, onValueChange]);
 
@@ -69,9 +79,20 @@ function AddressInputCore({ placeholder, defaultValue, onValueChange }: AddressI
         setValue(e.target.value);
     };
 
-    const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => () => {
+    const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
         setValue(suggestion.description, false);
         clearSuggestions();
+
+        // If a handler for the full address object is provided, get geocode
+        if (onAddressSelect) {
+            try {
+                const results = await getGeocode({ address: suggestion.description });
+                const { lat, lng } = await getLatLng(results[0]);
+                onAddressSelect({ description: suggestion.description, coords: { lat, lng } });
+            } catch (error) {
+                console.error("Error geocoding: ", error);
+            }
+        }
     };
 
     const renderSuggestions = () =>

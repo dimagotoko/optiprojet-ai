@@ -11,6 +11,7 @@ import {
   Calendar as CalendarIcon, Users, Clock, DollarSign, Plus,
   Luggage, Briefcase, Dog, CigaretteOff
 } from 'lucide-react';
+import { getGeocode, getLatLng } from 'use-places-autocomplete';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -58,7 +59,7 @@ import {
 import { Toggle } from '@/components/ui/toggle';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { AddressInput } from '@/components/AddressInput';
+import { AddressInput, type Address } from '@/components/AddressInput';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -75,9 +76,17 @@ const vehicleSchema = z.object({
     licensePlate: z.string().min(1, 'La plaque est requise'),
 });
 
+const addressSchema = z.object({
+    description: z.string().min(3, 'Une adresse est requise.'),
+    coords: z.object({
+        lat: z.number(),
+        lng: z.number(),
+    }),
+});
+
 const tripSchema = z.object({
-    departure: z.string().min(3, 'Le lieu de départ est requis.'),
-    destination: z.string().min(3, 'Le lieu de destination est requis.'),
+    departure: addressSchema,
+    destination: addressSchema,
     date: z.date({ required_error: 'La date est requise.' }),
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
@@ -137,8 +146,6 @@ export default function PostTripPage() {
   const tripForm = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
     defaultValues: {
-        departure: '',
-        destination: '',
         time: '',
         arrivalTime: '',
         seats: 1,
@@ -197,13 +204,17 @@ export default function PostTripPage() {
         }
 
         await addDoc(collection(firestore, 'trips'), {
-            ...rest,
-            origin: submittedTripData.departure,
-            destination: submittedTripData.destination,
+            origin: submittedTripData.departure.description,
+            destination: submittedTripData.destination.description,
+            originCoords: submittedTripData.departure.coords,
+            destinationCoords: submittedTripData.destination.coords,
             departureTime: Timestamp.fromDate(departureDateTime),
             arrivalTime: arrivalTimestamp,
             availableSeats: submittedTripData.seats,
             pricePerSeat: submittedTripData.price,
+            vehicleId: submittedTripData.vehicleId,
+            options: submittedTripData.options,
+            details: submittedTripData.details,
             offeredBy: user.uid,
             isClosed: false,
             createdAt: serverTimestamp(),
@@ -269,8 +280,8 @@ export default function PostTripPage() {
                                         <FormControl>
                                             <AddressInput 
                                                 placeholder="Adresse de départ" 
-                                                onValueChange={field.onChange} 
-                                                defaultValue={field.value}
+                                                onAddressSelect={field.onChange} 
+                                                defaultValue={field.value?.description}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -286,8 +297,8 @@ export default function PostTripPage() {
                                         <FormControl>
                                             <AddressInput 
                                                 placeholder="Adresse de destination" 
-                                                onValueChange={field.onChange} 
-                                                defaultValue={field.value}
+                                                onAddressSelect={field.onChange} 
+                                                defaultValue={field.value?.description}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -530,7 +541,7 @@ export default function PostTripPage() {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="text-sm space-y-4 py-4">
-                    <div className="font-semibold">{submittedTripData.departure} &rarr; {submittedTripData.destination}</div>
+                    <div className="font-semibold">{submittedTripData.departure.description} &rarr; {submittedTripData.destination.description}</div>
                     <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                         <div>
                             <p className="font-medium text-foreground">Date & Heure</p>
