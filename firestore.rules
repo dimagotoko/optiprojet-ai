@@ -139,7 +139,7 @@ service cloud.firestore {
 
       allow get: if isAuthorized(tripId, resource.data.travelerId);
       allow list: if isTripOwner(tripId);
-      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid && isTripOpen(tripId);
+      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
       allow update: if isExistingAuthorized(tripId, resource.data.travelerId);
       allow delete: if isExistingAuthorized(tripId, resource.data.travelerId);
     }
