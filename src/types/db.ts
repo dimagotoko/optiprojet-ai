@@ -18,6 +18,10 @@ export type Trip = {
     allowLargeBags?: boolean;
     allowSmallBags?: boolean;
   };
+  paymentOptions?: {
+    cash?: boolean;
+    interac?: boolean;
+  };
   details?: string;
 };
 
@@ -34,7 +38,7 @@ export type Booking = {
   id: string;
   tripId: string;
   travelerId: string;
-  paymentIntentId: string;
-  paymentStatus: string;
+  paymentIntentId?: string; // Made optional
+  paymentStatus?: string; // Made optional
   createdAt: Timestamp;
 };

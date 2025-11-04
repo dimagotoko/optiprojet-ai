@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
   Calendar as CalendarIcon, Users, Clock, DollarSign, Plus,
-  Luggage, Briefcase, Dog, CigaretteOff
+  Luggage, Briefcase, Dog, CigaretteOff, Landmark, CaseSensitive
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,7 @@ import { LoadingLogo } from '@/components/LoadingLogo';
 import { collection, addDoc, serverTimestamp, doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const vehicleSchema = z.object({
     make: z.string().min(1, 'La marque est requise'),
@@ -97,6 +98,13 @@ const tripSchema = z.object({
         allowSmallBags: z.boolean(),
         allowPets: z.boolean(),
         isNonSmoking: z.boolean(),
+    }),
+    paymentOptions: z.object({
+        cash: z.boolean(),
+        interac: z.boolean(),
+    }).refine(data => data.cash || data.interac, {
+        message: 'Veuillez sélectionner au moins une option de paiement.',
+        path: ['cash'], // Attach error to a specific field if needed
     }),
     details: z.string().optional(),
 }).refine(data => {
@@ -158,6 +166,10 @@ export default function PostTripPage() {
             allowPets: false,
             isNonSmoking: true,
         },
+        paymentOptions: {
+            cash: true,
+            interac: false,
+        },
         details: '',
     },
     mode: 'onChange',
@@ -180,6 +192,7 @@ export default function PostTripPage() {
             price: returnData.price,
             vehicleId: returnData.vehicleId,
             options: returnData.options,
+            paymentOptions: returnData.paymentOptions,
             details: returnData.details,
             // Clear date and time
             date: undefined,
@@ -243,6 +256,7 @@ export default function PostTripPage() {
             pricePerSeat: submittedTripData.price,
             vehicleId: submittedTripData.vehicleId,
             options: submittedTripData.options,
+            paymentOptions: submittedTripData.paymentOptions,
             details: submittedTripData.details,
             offeredBy: user.uid,
             isClosed: false,
@@ -279,6 +293,7 @@ export default function PostTripPage() {
         price: submittedTripData.price,
         vehicleId: submittedTripData.vehicleId,
         options: submittedTripData.options,
+        paymentOptions: submittedTripData.paymentOptions,
         details: submittedTripData.details,
     };
     const query = new URLSearchParams({ return: JSON.stringify(returnTripData) });
@@ -465,7 +480,7 @@ export default function PostTripPage() {
                 {/* Vehicle & Options */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-xl">Véhicule et Options</CardTitle>
+                        <CardTitle className="text-xl">Véhicule, Options & Paiement</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-6">
                         <FormField
@@ -555,6 +570,57 @@ export default function PostTripPage() {
                         />
                         <FormField
                             control={tripForm.control}
+                            name="paymentOptions"
+                            render={() => (
+                                <FormItem>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">Options de paiement</FormLabel>
+                                        <p className="text-sm text-muted-foreground">
+                                            Comment souhaitez-vous être payé ?
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-4">
+                                        <FormField
+                                            control={tripForm.control}
+                                            name="paymentOptions.cash"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal flex items-center gap-2">
+                                                        <CaseSensitive className="h-5 w-5 text-primary" /> Argent comptant
+                                                    </FormLabel>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={tripForm.control}
+                                            name="paymentOptions.interac"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal flex items-center gap-2">
+                                                        <Landmark className="h-5 w-5 text-primary" /> Virement Interac
+                                                    </FormLabel>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={tripForm.control}
                             name="details"
                             render={({ field }) => (
                                 <FormItem className="grid gap-2">
@@ -602,14 +668,11 @@ export default function PostTripPage() {
                             <p className="font-medium text-foreground">Véhicule</p>
                             <p>{selectedVehicle?.make} {selectedVehicle?.model}</p>
                         </div>
-                        <div>
-                            <p className="font-medium text-foreground">Options</p>
-                             <div className="flex flex-wrap gap-x-2">
-                                {submittedTripData.options.allowLargeBags && <span>Grands bagages</span>}
-                                {submittedTripData.options.allowSmallBags && <span>Sac à dos</span>}
-                                {submittedTripData.options.allowPets && <span>Animaux</span>}
-                                {submittedTripData.options.isNonSmoking && <span>Non-fumeur</span>}
-                                {!Object.values(submittedTripData.options).some(Boolean) && <span>Aucune</span>}
+                         <div>
+                            <p className="font-medium text-foreground">Paiement</p>
+                            <div className="flex flex-wrap gap-x-2">
+                                {submittedTripData.paymentOptions.cash && <span>Argent comptant</span>}
+                                {submittedTripData.paymentOptions.interac && <span>Interac</span>}
                             </div>
                         </div>
                     </div>

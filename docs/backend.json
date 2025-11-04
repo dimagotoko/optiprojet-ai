@@ -156,6 +156,14 @@
             "allowSmallBags": { "type": "boolean" }
           }
         },
+        "paymentOptions": {
+          "type": "object",
+          "description": "Payment methods accepted by the driver.",
+          "properties": {
+            "cash": { "type": "boolean" },
+            "interac": { "type": "boolean" }
+          }
+        },
         "details": {
           "type": "string",
           "description": "Additional details about the trip."
@@ -194,19 +202,17 @@
         },
         "paymentIntentId": {
           "type": "string",
-          "description": "Stripe Payment Intent ID associated with the booking."
+          "description": "Stripe Payment Intent ID or provisional booking ID."
         },
         "paymentStatus": {
           "type": "string",
-          "description": "Payment status of the booking (e.g., pending, succeeded)."
+          "description": "Payment status of the booking (e.g., pending_driver_confirmation, confirmed, cancelled)."
         }
       },
       "required": [
         "id",
         "tripId",
-        "travelerId",
-        "paymentIntentId",
-        "paymentStatus"
+        "travelerId"
       ]
     },
     "ChatMessage": {

@@ -9,7 +9,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage } from 'lucide-react';
+import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, CaseSensitive } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -145,20 +145,21 @@ function TripDetailsPageContent() {
 
         setIsBooking(true);
         try {
-            const fakePaymentIntentId = `pi_${Date.now()}`;
+            // This is now a provisional booking, not a real payment
+            const provisionalBookingId = `prov_${Date.now()}`;
 
             const bookingsCollection = collection(firestore, 'trips', trip.id, 'bookings');
             await addDoc(bookingsCollection, {
                 tripId: trip.id,
                 travelerId: user.uid,
-                paymentIntentId: fakePaymentIntentId,
-                paymentStatus: 'succeeded',
+                paymentIntentId: provisionalBookingId,
+                paymentStatus: 'pending_driver_confirmation', // New status
                 createdAt: serverTimestamp(),
             });
 
             toast({
-                title: "Réservation confirmée !",
-                description: "Votre place est réservée. Bon voyage !",
+                title: "Demande de réservation envoyée !",
+                description: "Le conducteur a été notifié. Vous serez prévenu de la confirmation.",
             });
             router.push('/dashboard');
 
@@ -249,9 +250,9 @@ function TripDetailsPageContent() {
                     <Separator />
 
                      <div>
-                        <h2 className="text-2xl font-bold mb-4">Détails et options</h2>
+                        <h2 className="text-2xl font-bold mb-4">Détails, options et paiement</h2>
                         <Card>
-                            <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+                            <CardContent className="p-6 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div className="flex items-center gap-3">
                                     <Users className="h-8 w-8 text-primary" />
                                     <div>
@@ -278,6 +279,20 @@ function TripDetailsPageContent() {
                                     <div>
                                         <p className="font-semibold">Grands bagages</p>
                                         <p className="text-muted-foreground">{trip.options?.allowLargeBags ? 'Permis' : 'Non permis'}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center gap-3">
+                                    <CaseSensitive className={cn("h-8 w-8", trip.paymentOptions?.cash ? "text-primary": "text-muted-foreground/50")} />
+                                    <div>
+                                        <p className="font-semibold">Argent comptant</p>
+                                        <p className="text-muted-foreground">{trip.paymentOptions?.cash ? 'Accepté' : 'Non'}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center gap-3">
+                                    <Landmark className={cn("h-8 w-8", trip.paymentOptions?.interac ? "text-primary": "text-muted-foreground/50")} />
+                                    <div>
+                                        <p className="font-semibold">Virement Interac</p>
+                                        <p className="text-muted-foreground">{trip.paymentOptions?.interac ? 'Accepté' : 'Non'}</p>
                                     </div>
                                  </div>
                             </CardContent>
@@ -323,7 +338,9 @@ function TripDetailsPageContent() {
                                  <Button className="w-full" size="lg" onClick={() => user ? setShowBookingConfirm(true) : router.push('/login')}>Réserver ce trajet</Button>
                             )}
 
-                            <p className="text-xs text-muted-foreground text-center mt-4">Le paiement est sécurisé. Vous ne serez pas débité avant la confirmation du conducteur.</p>
+                            <p className="text-xs text-muted-foreground text-center mt-4">
+                                Une fois la réservation confirmée, vous pourrez vous arranger avec le conducteur pour le paiement.
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
@@ -333,16 +350,20 @@ function TripDetailsPageContent() {
             <AlertDialog open={showBookingConfirm} onOpenChange={setShowBookingConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmer la réservation ?</AlertDialogTitle>
+                        <AlertDialogTitle>Confirmer la demande de réservation ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Vous êtes sur le point de réserver une place pour le trajet de <strong>{trip.origin}</strong> à <strong>{trip.destination}</strong> pour <strong>{trip.pricePerSeat}$</strong>.
+                            Vous êtes sur le point de demander une place pour le trajet de <strong>{trip.origin}</strong> à <strong>{trip.destination}</strong> pour <strong>{trip.pricePerSeat}$</strong>.
+                             Le conducteur accepte les paiements par : 
+                             <span className="font-semibold">{trip.paymentOptions?.cash && "Argent comptant"}{trip.paymentOptions?.cash && trip.paymentOptions?.interac && ' et '}{trip.paymentOptions?.interac && "Virement Interac"}</span>.
+                             <br/><br/>
+                             Une fois la demande acceptée, vous pourrez discuter des détails avec le conducteur.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isBooking}>Annuler</AlertDialogCancel>
                         <AlertDialogAction onClick={handleBookTrip} disabled={isBooking}>
                              {isBooking && <LoadingLogo className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirmer et Payer
+                            Confirmer la demande
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
