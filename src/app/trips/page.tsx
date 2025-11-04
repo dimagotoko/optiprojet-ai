@@ -105,14 +105,8 @@ function TripsPageContent() {
         whereClauses.push(where('departureTime', '>=', startOfDay(searchDate)));
         whereClauses.push(where('departureTime', '<=', endOfDay(searchDate)));
     }
-
-    // Important: Only apply the query if there are clauses to apply.
-    // Calling query(base, ...[]) causes an internal Firestore SDK error.
-    if (whereClauses.length > 0) {
-        return query(baseQuery, ...whereClauses);
-    }
     
-    return baseQuery;
+    return query(baseQuery, ...whereClauses);
   }, [firestore, searchDate]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
