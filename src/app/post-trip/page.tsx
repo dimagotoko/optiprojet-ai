@@ -104,11 +104,11 @@ const tripSchema = z.object({
         interac: z.boolean(),
     }).refine(data => data.cash || data.interac, {
         message: 'Veuillez sélectionner au moins une option de paiement.',
-        path: ['cash'], 
+        path: ['cash'],
     }),
     details: z.string().optional(),
 }).refine(data => {
-    if (!data.arrivalTime) return true; // Pas de validation si l'heure d'arrivée n'est pas définie
+    if (!data.arrivalTime) return true;
     const departureDateTime = new Date(`${format(data.date, 'yyyy-MM-dd')}T${data.time}`);
     const arrivalDateTime = new Date(`${format(data.date, 'yyyy-MM-dd')}T${data.arrivalTime}`);
     return arrivalDateTime >= departureDateTime;
@@ -584,7 +584,7 @@ export default function PostTripPage() {
                                             control={tripForm.control}
                                             name="paymentOptions.cash"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                                     <FormControl>
                                                         <Checkbox
                                                             checked={field.value}
@@ -601,7 +601,7 @@ export default function PostTripPage() {
                                             control={tripForm.control}
                                             name="paymentOptions.interac"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                                     <FormControl>
                                                         <Checkbox
                                                             checked={field.value}
@@ -637,7 +637,7 @@ export default function PostTripPage() {
                     </CardContent>
                 </Card>
 
-                <Button type="submit" size="lg" className="w-full" disabled={!tripForm.formState.isValid || tripForm.formState.isSubmitting}>
+                <Button type="submit" size="lg" className="w-full" disabled={tripForm.formState.isSubmitting}>
                   {tripForm.formState.isSubmitting ? 'Publication...' : 'Publier mon trajet'}
                 </Button>
             
@@ -715,3 +715,5 @@ export default function PostTripPage() {
     </div>
   );
 }
+
+    
