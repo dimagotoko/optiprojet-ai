@@ -1,18 +1,14 @@
+
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, Calendar, Star, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { ArrowRight, Calendar, Star } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
+import Link from 'next/link';
 
 type TripCardProps = {
   id?: string;
@@ -25,12 +21,10 @@ type TripCardProps = {
     avatar: string;
     rating: number;
   };
-  showTripActions?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  onLocationClick?: (type: 'departure' | 'destination', value: string) => void;
 };
 
-export function TripCard({ id, from, to, date, price, driver, showTripActions = false, onEdit, onDelete }: TripCardProps) {
+export function TripCard({ id, from, to, date, price, driver, onLocationClick }: TripCardProps) {
   // Simple hash function to get a numeric seed from a string for picsum.photos
   const toSeed = (s: string) => {
     if(!s) return 0;
@@ -40,47 +34,47 @@ export function TripCard({ id, from, to, date, price, driver, showTripActions = 
     }, 0);
   };
   
+  const handleLocationClick = (type: 'departure' | 'destination', value: string) => {
+    if (onLocationClick) {
+      onLocationClick(type, value);
+    }
+  };
+
+  const LocationButton = ({ value, type }: { value: string, type: 'departure' | 'destination' }) => (
+    <Button 
+      variant="link" 
+      className="p-0 h-auto text-lg font-semibold text-card-foreground hover:text-primary transition-colors"
+      onClick={() => handleLocationClick(type, value)}
+      disabled={!onLocationClick}
+    >
+      {value}
+    </Button>
+  );
+
   return (
-    <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1">
+    <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1 overflow-hidden">
       <CardHeader className="p-4 relative">
-        {showTripActions && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                <span>Modifier</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDelete} className="text-red-500 focus:text-red-500">
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Annuler le trajet</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <span>{from}</span>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            <span>{to}</span>
+          <div className="flex items-center gap-2 text-lg font-semibold flex-wrap">
+            <LocationButton value={from} type="departure" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <LocationButton value={to} type="destination" />
           </div>
-          <Badge variant="secondary" className="text-base font-bold">{price}</Badge>
+          <Badge variant="secondary" className="text-base font-bold shrink-0">{price}</Badge>
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-4 pt-0 space-y-4">
-        <div className="relative h-48 w-full rounded-lg overflow-hidden">
-          <Image
-            src={`https://picsum.photos/seed/${toSeed(to)}/600/400`}
-            alt={`Paysage représentant la destination: ${to}`}
-            fill
-            className="object-cover"
-            data-ai-hint="landscape"
-          />
-        </div>
+        <Link href={`/trip-details/${id}`} className="block">
+          <div className="relative h-48 w-full rounded-lg overflow-hidden group">
+            <Image
+              src={`https://picsum.photos/seed/${toSeed(to)}/600/400`}
+              alt={`Paysage représentant la destination: ${to}`}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              data-ai-hint="landscape"
+            />
+          </div>
+        </Link>
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="mr-2 h-4 w-4" />
           <span>{date}</span>
@@ -100,9 +94,12 @@ export function TripCard({ id, from, to, date, price, driver, showTripActions = 
             </div>
           </div>
         </div>
+         <Button asChild variant="ghost" size="sm">
+            <Link href={`/trip-details/${id}`}>
+              Voir détails <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+        </Button>
       </CardFooter>
     </Card>
   );
 }
-
-    

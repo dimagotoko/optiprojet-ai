@@ -1,17 +1,16 @@
 
 'use client';
 import { Suspense, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, DocumentData, Timestamp, query, where, doc, QueryConstraint } from 'firebase/firestore';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { format, isSameDay, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dog, CigaretteOff, Luggage } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -42,7 +41,7 @@ type UserProfile = {
 };
 
 // A small component to fetch driver info for a TripCard
-const TripCardWrapper = ({ trip }: { trip: Trip }) => {
+const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClick: (type: 'departure' | 'destination', value: string) => void }) => {
     const firestore = useFirestore();
 
     const driverRef = useMemoFirebase(() => {
@@ -72,6 +71,7 @@ const TripCardWrapper = ({ trip }: { trip: Trip }) => {
                 avatar: driver.profilePictureUrl || '',
                 rating: driver.averageRating || 0,
             }}
+            onLocationClick={onLocationClick}
         />
     );
 };
@@ -79,6 +79,7 @@ const TripCardWrapper = ({ trip }: { trip: Trip }) => {
 
 function TripsPageContent() {
   const firestore = useFirestore();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Filter states
@@ -98,15 +99,14 @@ function TripsPageContent() {
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
 
-    const baseQuery = query(collection(firestore, 'trips'), where('departureTime', '>=', new Date()));
-    const whereClauses: QueryConstraint[] = [];
+    const constraints: QueryConstraint[] = [where('departureTime', '>=', new Date())];
 
     if (searchDate) {
-        whereClauses.push(where('departureTime', '>=', startOfDay(searchDate)));
-        whereClauses.push(where('departureTime', '<=', endOfDay(searchDate)));
+        constraints.push(where('departureTime', '>=', startOfDay(searchDate)));
+        constraints.push(where('departureTime', '<=', endOfDay(searchDate)));
     }
     
-    return query(baseQuery, ...whereClauses);
+    return query(collection(firestore, 'trips'), ...constraints);
   }, [firestore, searchDate]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
@@ -143,6 +143,12 @@ function TripsPageContent() {
       if (!allTrips) return 100;
       return allTrips.reduce((max, trip) => Math.max(max, trip.pricePerSeat), 0);
   }, [allTrips]);
+
+  const handleLocationClick = (type: 'departure' | 'destination', value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(type, value);
+    router.push(`/trips?${params.toString()}`);
+  };
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -219,7 +225,7 @@ function TripsPageContent() {
       {!isLoading && filteredTrips.length > 0 && (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredTrips.map((trip) => (
-                <TripCardWrapper key={trip.id} trip={trip} />
+                <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
             ))}
         </div>
       )}
