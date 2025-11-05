@@ -82,7 +82,6 @@ function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClic
                 <TripDetailsCard 
                     key={trip.id}
                     trip={trip}
-                    driverProfile={userProfile}
                     currentUserId={currentUserId}
                     onDeleteClick={onDeleteClick}
                     onEditClick={onEditClick}
@@ -195,7 +194,8 @@ export default function DashboardPage() {
   };
 
 
-  const isLoading = isUserLoading || isUserDocLoading || (!!tripsQuery && isTripsLoading);
+  // Simplified loading state. Show loading until both auth and user profile are checked.
+  const isLoading = isUserLoading || isUserDocLoading;
 
   if (isLoading) {
     return (
@@ -205,7 +205,9 @@ export default function DashboardPage() {
     );
   }
   
-  if (!user || !userData) {
+  // After loading, if there's no user data, then show the error.
+  // This check now happens *after* the loading is confirmed to be complete.
+  if (!userData) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <p>Utilisateur non trouvé.</p>
@@ -213,6 +215,7 @@ export default function DashboardPage() {
     );
   }
 
+  // At this point, we are sure we have a user and their data.
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   }
@@ -226,12 +229,12 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="flex flex-col items-center text-center">
                 <Avatar className="h-24 w-24 mb-4">
-                    <AvatarImage src={userData?.profilePictureUrl || user.photoURL || undefined} alt={userData?.name || 'Avatar'} />
+                    <AvatarImage src={userData?.profilePictureUrl || user?.photoURL || undefined} alt={userData?.name || 'Avatar'} />
                     <AvatarFallback className="text-3xl">
-                        {userData?.name ? getInitials(userData.name) : (user.displayName ? getInitials(user.displayName) : '')}
+                        {userData?.name ? getInitials(userData.name) : (user?.displayName ? getInitials(user.displayName) : '')}
                     </AvatarFallback>
                   </Avatar>
-                <CardTitle className="text-2xl">{userData?.name || user.displayName}</CardTitle>
+                <CardTitle className="text-2xl">{userData?.name || user?.displayName}</CardTitle>
                 <CardDescription className="capitalize">{userData?.role || 'Voyageur'}</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
@@ -248,8 +251,13 @@ export default function DashboardPage() {
           </div>
           <div className="md:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight mb-8">
-              Bonjour, {userData?.name?.split(' ')[0] || user.displayName?.split(' ')[0]} !
+              Bonjour, {userData?.name?.split(' ')[0] || user?.displayName?.split(' ')[0]} !
             </h1>
+            {isTripsLoading ? (
+              <div className="flex items-center justify-center pt-10">
+                  <LoadingLogo className="h-10 w-10 text-primary" />
+              </div>
+            ) : (
             <Tabs defaultValue="upcoming">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="upcoming">{userData?.role === 'transporteur' ? "Trajets publiés" : "Trajets à venir"}</TabsTrigger>
@@ -259,7 +267,7 @@ export default function DashboardPage() {
                 <TripList 
                     trips={upcomingTrips} 
                     userProfile={userData} 
-                    currentUserId={user.uid} 
+                    currentUserId={user!.uid} 
                     onDeleteClick={handleDeleteClick}
                     onEditClick={handleEditClick}
                     onToggleCloseTrip={handleToggleCloseTrip}
@@ -270,7 +278,7 @@ export default function DashboardPage() {
                       <TripList 
                           trips={pastTrips} 
                           userProfile={userData} 
-                          currentUserId={user.uid} 
+                          currentUserId={user!.uid} 
                           onDeleteClick={handleDeleteClick}
                           onEditClick={handleEditClick}
                           onToggleCloseTrip={handleToggleCloseTrip}
@@ -284,6 +292,7 @@ export default function DashboardPage() {
                   )}
               </TabsContent>
             </Tabs>
+            )}
           </div>
         </div>
       </div>
@@ -307,3 +316,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
