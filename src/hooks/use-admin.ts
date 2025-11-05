@@ -19,19 +19,22 @@ export function useAdmin() {
     const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleRef);
 
     useEffect(() => {
-        if (isUserLoading || isAdminDocLoading) {
-            setIsCheckingAdmin(true);
-            return;
+        // We are checking as long as the user is loading OR the admin doc is loading
+        const stillChecking = isUserLoading || isAdminDocLoading;
+        setIsCheckingAdmin(stillChecking);
+
+        if (stillChecking) {
+            return; // Exit early if we are not done loading everything
         }
 
+        // Once all loading is done, we can determine the admin status
         if (!user) {
             setIsAdmin(false);
-            setIsCheckingAdmin(false);
             return;
         }
 
+        // If adminDoc exists, the user is an admin
         setIsAdmin(!!adminDoc);
-        setIsCheckingAdmin(false);
 
     }, [user, isUserLoading, adminDoc, isAdminDocLoading]);
 
