@@ -4,35 +4,20 @@ import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, DocumentData, Timestamp, query, where, doc, QueryConstraint } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, Timestamp, query, where, QueryConstraint } from 'firebase/firestore';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dog, CigaretteOff, Luggage, X } from 'lucide-react';
+import { Dog, CigaretteOff, Luggage } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import type { Trip } from '@/types/db';
 
-
-type Trip = {
-    id: string;
-    origin: string;
-    destination: string;
-    departureTime: Timestamp;
-    pricePerSeat: number;
-    offeredBy: string;
-    availableSeats: number;
-    options?: {
-        allowPets?: boolean;
-        isNonSmoking?: boolean;
-        allowLargeBags?: boolean;
-    }
-};
 
 // Simplified Wrapper: It no longer fetches driver data.
 const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClick: (type: 'departure' | 'destination', value: string) => void }) => {
@@ -116,21 +101,26 @@ function TripsPageContent() {
     const hasDeparture = !!departure;
     const hasDestination = !!destination;
     
-    // Don't run this logic if there's no specific search
-    if (!hasDeparture && !hasDestination) {
-        return { exactMatches: [], suggestedMatches: [] };
-    }
-
     for (const trip of filteredTrips) {
       const tripOrigin = trip.origin.toLowerCase();
       const tripDestination = trip.destination.toLowerCase();
-      const matchesDeparture = hasDeparture ? tripOrigin.includes(departure) : true;
-      const matchesDestination = hasDestination ? tripDestination.includes(destination) : true;
+      const matchesDeparture = hasDeparture ? tripOrigin.includes(departure) : false;
+      const matchesDestination = hasDestination ? tripDestination.includes(destination) : false;
       
-      if (matchesDeparture && matchesDestination) {
-        exact.push(trip);
-      } else if (hasDeparture && hasDestination && (matchesDeparture || matchesDestination)) {
-        suggested.push(trip);
+      if (hasDeparture && hasDestination) {
+        if (matchesDeparture && matchesDestination) {
+          exact.push(trip);
+        } else if (matchesDeparture || matchesDestination) {
+          suggested.push(trip);
+        }
+      } else if (hasDeparture) {
+        if (matchesDeparture) {
+            exact.push(trip);
+        }
+      } else if (hasDestination) {
+        if (matchesDestination) {
+            exact.push(trip);
+        }
       }
     }
     return { exactMatches: exact, suggestedMatches: suggested };
@@ -160,7 +150,8 @@ function TripsPageContent() {
   };
 
   const hasActiveSearch = departure || destination;
-
+  const resultsToShow = hasActiveSearch ? exactMatches : filteredTrips || [];
+  
   const renderResults = () => {
     if (isLoading) {
       return (
@@ -170,8 +161,6 @@ function TripsPageContent() {
       );
     }
     
-    const resultsToShow = hasActiveSearch ? exactMatches : filteredTrips;
-
     if (resultsToShow.length > 0) {
       return (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -301,3 +290,5 @@ export default function TripsPage() {
     </Suspense>
   )
 }
+
+    

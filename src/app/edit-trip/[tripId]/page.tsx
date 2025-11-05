@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
@@ -12,12 +12,10 @@ import {
   Luggage, Briefcase, Dog, CigaretteOff
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { getGeocode, getLatLng } from 'use-places-autocomplete';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Popover,
   PopoverContent,
@@ -57,6 +55,7 @@ import { LoadingLogo } from '@/components/LoadingLogo';
 import { collection, addDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const vehicleSchema = z.object({
     make: z.string().min(1, 'La marque est requise'),
@@ -189,7 +188,7 @@ export default function EditTripPage() {
             details: tripData.details || '',
         });
     }
-  }, [tripData, tripForm]);
+  }, [tripData, tripForm.reset]);
 
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
@@ -205,8 +204,8 @@ export default function EditTripPage() {
     }
   }
   
-  const onSubmitTrip = async (data: TripFormValues) => {
-    if (!tripRef || !firestore || !user) return;
+  const onSubmitTrip = (data: TripFormValues) => {
+    if (!tripRef || !user) return;
 
     try {
         const { date, time, arrivalTime, ...rest } = data;
@@ -225,8 +224,8 @@ export default function EditTripPage() {
             }
             arrivalTimestamp = Timestamp.fromDate(arrivalDateTime);
         }
-
-        await updateDoc(tripRef, {
+        
+        const payload = {
             origin: data.departure.description,
             destination: data.destination.description,
             originCoords: data.departure.coords,
@@ -239,7 +238,9 @@ export default function EditTripPage() {
             options: data.options,
             details: data.details,
             offeredBy: user.uid, // Ensure owner isn't changed
-        });
+        };
+
+        updateDocumentNonBlocking(tripRef, payload);
 
         toast({
             title: "Trajet mis à jour !",
@@ -269,7 +270,7 @@ export default function EditTripPage() {
 
   return (
     <div className="container py-12 px-4 md:px-6">
-    <Form {...tripForm}>
+    <FormProvider {...tripForm}>
       <form onSubmit={tripForm.handleSubmit(onSubmitTrip)} className="space-y-8">
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
@@ -297,7 +298,6 @@ export default function EditTripPage() {
                                             <AddressInput 
                                                 id="departure"
                                                 placeholder="Adresse de départ" 
-                                                onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}
                                             />
                                         </FormControl>
@@ -315,7 +315,6 @@ export default function EditTripPage() {
                                             <AddressInput 
                                                 id="destination"
                                                 placeholder="Adresse de destination" 
-                                                onAddressSelect={field.onChange} 
                                                 defaultValue={field.value?.description}
                                             />
                                         </FormControl>
@@ -473,19 +472,19 @@ export default function EditTripPage() {
                                                         Les informations de votre véhicule seront visibles par les passagers.
                                                     </DialogDescription>
                                                 </DialogHeader>
-                                                <Form {...vehicleForm}>
+                                                <FormProvider {...vehicleForm}>
                                                     <form id="add-vehicle-form" onSubmit={vehicleForm.handleSubmit(handleAddVehicle)} className="grid gap-4 py-4">
                                                         <div className="grid grid-cols-2 gap-4">
-                                                            <FormField control={vehicleForm.control} name="make" render={({ field }) => ( <FormItem><Label>Marque</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                                            <FormField control={vehicleForm.control} name="model" render={({ field }) => ( <FormItem><Label>Modèle</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                            <FormField control={vehicleForm.control} name="make" render={({ field }) => ( <FormItem><FormLabel>Marque</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                            <FormField control={vehicleForm.control} name="model" render={({ field }) => ( <FormItem><FormLabel>Modèle</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-4">
-                                                            <FormField control={vehicleForm.control} name="year" render={({ field }) => ( <FormItem><Label>Année</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                                            <FormField control={vehicleForm.control} name="color" render={({ field }) => ( <FormItem><Label>Couleur</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                            <FormField control={vehicleForm.control} name="year" render={({ field }) => ( <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                            <FormField control={vehicleForm.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Couleur</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                                         </div>
-                                                        <FormField control={vehicleForm.control} name="licensePlate" render={({ field }) => ( <FormItem><Label>Plaque d'immatriculation</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                        <FormField control={vehicleForm.control} name="licensePlate" render={({ field }) => ( <FormItem><FormLabel>Plaque d'immatriculation</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                                     </form>
-                                                </Form>
+                                                </FormProvider>
                                                 <DialogFooter>
                                                     <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
                                                     <Button type="submit" form="add-vehicle-form" disabled={vehicleForm.formState.isSubmitting}>
@@ -545,6 +544,7 @@ export default function EditTripPage() {
                         Annuler
                     </Button>
                     <Button type="submit" size="lg" className="w-full md:w-auto" disabled={!tripForm.formState.isDirty || tripForm.formState.isSubmitting}>
+                        {tripForm.formState.isSubmitting && <LoadingLogo className="mr-2 h-4 w-4" />}
                         {tripForm.formState.isSubmitting ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
                     </Button>
                 </div>
@@ -552,7 +552,9 @@ export default function EditTripPage() {
             </CardContent>
         </Card>
       </form>
-    </Form>
+    </FormProvider>
     </div>
   );
 }
+
+    

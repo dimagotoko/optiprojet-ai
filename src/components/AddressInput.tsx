@@ -5,7 +5,6 @@ import * as React from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
-import { useLoadScript } from '@react-google-maps/api';
 import { useFormContext } from 'react-hook-form';
 
 export type Address = {
@@ -20,15 +19,11 @@ type AddressInputProps = {
   id: string;
   placeholder: string;
   defaultValue?: string;
-  onAddressSelect?: (address: Address) => void;
 };
 
-const libraries: "places"[] = ['places'];
-
-function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: AddressInputProps) {
+function AddressInputCore({ id, placeholder, defaultValue }: AddressInputProps) {
+  const { setValue: setFormValue } = useFormContext();
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
-  const [inputValue, setInputValue] = React.useState(defaultValue || '');
-
 
   React.useEffect(() => {
     if (navigator.geolocation) {
@@ -48,6 +43,7 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
 
   const {
     ready,
+    value,
     suggestions: { status, data },
     setValue,
     clearSuggestions,
@@ -60,35 +56,31 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
       }),
     },
     debounce: 300,
-    defaultValue: defaultValue || '',
+    defaultValue: defaultValue,
   });
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
     setValue(e.target.value);
   };
   
   React.useEffect(() => {
-    setInputValue(defaultValue || '');
     setValue(defaultValue || '', false);
   }, [defaultValue, setValue]);
 
-
   const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
     setValue(suggestion.description, false);
-    setInputValue(suggestion.description);
     clearSuggestions();
 
     try {
       const results = await getGeocode({ address: suggestion.description });
       const { lat, lng } = await getLatLng(results[0]);
       const fullAddress: Address = { description: suggestion.description, coords: { lat, lng } };
-      if (onAddressSelect) onAddressSelect(fullAddress);
+      setFormValue(id, fullAddress, { shouldValidate: true, shouldDirty: true });
 
     } catch (error) {
       console.error("Error geocoding: ", error);
       const addressWithoutCoords: Address = { description: suggestion.description, coords: null };
-      if (onAddressSelect) onAddressSelect(addressWithoutCoords);
+      setFormValue(id, addressWithoutCoords, { shouldValidate: true, shouldDirty: true });
     }
   };
 
@@ -119,7 +111,7 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
         type="text"
         placeholder={placeholder}
         className="pl-10 h-12 text-base"
-        value={inputValue}
+        value={value}
         onChange={handleInput}
         disabled={!ready}
         autoComplete="off"
@@ -134,16 +126,7 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
 }
 
 export function AddressInput(props: AddressInputProps) {
-  const formMethods = useFormContext(); // Can be null
-
-  const handleAddressSelect = (address: Address) => {
-    if (formMethods && props.id) {
-      formMethods.setValue(props.id, address, { shouldValidate: true, shouldDirty: true });
-    }
-    if (props.onAddressSelect) {
-      props.onAddressSelect(address);
-    }
-  };
-
-  return <AddressInputCore {...props} onAddressSelect={handleAddressSelect} />;
+  return <AddressInputCore {...props} />;
 }
+
+    

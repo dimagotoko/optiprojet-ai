@@ -40,7 +40,7 @@ export function useIdleLogout(timeout: number) {
     const events = ['mousemove', 'keydown', 'touchstart', 'scroll'];
 
     const resetTimer = () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       timer = setTimeout(handleLogout, timeout);
     };
 
@@ -61,3 +61,5 @@ export function useIdleLogout(timeout: number) {
     };
   }, [handleLogout, timeout, pathname, auth?.currentUser]);
 }
+
+    
