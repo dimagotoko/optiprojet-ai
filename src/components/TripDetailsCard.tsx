@@ -190,3 +190,5 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
         </Card>
     );
 };
+
+    
