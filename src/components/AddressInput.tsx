@@ -21,13 +21,11 @@ type AddressInputProps = {
   placeholder: string;
   defaultValue?: string;
   onAddressSelect?: (address: Address) => void;
-  onValueChange?: (value: string) => void;
 };
 
 const libraries: "places"[] = ['places'];
 
-function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect, onValueChange }: AddressInputProps) {
-  const form = useFormContext();
+function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: AddressInputProps) {
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
 
   React.useEffect(() => {
@@ -64,30 +62,13 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect, onVa
     defaultValue: defaultValue || '',
   });
 
-  React.useEffect(() => {
-    if (defaultValue !== undefined) {
-      setValue(defaultValue, false);
-    }
-  }, [defaultValue, setValue]);
-
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setValue(newValue);
-    if (onValueChange) {
-        onValueChange(newValue);
-    }
-    // For non-form usage, we might still want to propagate this
-    if (onAddressSelect) {
-        onAddressSelect({ description: newValue, coords: null });
-    }
+    setValue(e.target.value);
   };
 
   const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
     setValue(suggestion.description, false);
     clearSuggestions();
-     if (onValueChange) {
-        onValueChange(suggestion.description);
-    }
 
     try {
       const results = await getGeocode({ address: suggestion.description });
@@ -148,7 +129,7 @@ export function AddressInput(props: AddressInputProps) {
   const formMethods = useFormContext(); // Can be null
 
   const handleAddressSelect = (address: Address) => {
-    if (formMethods) {
+    if (formMethods && props.id) {
       formMethods.setValue(props.id, address, { shouldValidate: true, shouldDirty: true });
     }
     if (props.onAddressSelect) {
