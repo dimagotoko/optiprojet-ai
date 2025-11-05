@@ -107,7 +107,7 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
 
     // Only fetch bookings if the current user is the owner of the trip
     const bookingsQuery = useMemoFirebase(() => {
-        if (!firestore || !isOwner) return null; // THIS IS THE FIX: only create query if user is owner
+        if (!firestore || !isOwner) return null;
         return collection(firestore, 'trips', trip.id, 'bookings');
     }, [firestore, trip.id, isOwner]);
 
@@ -190,5 +190,3 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
         </Card>
     );
 };
-
-    
