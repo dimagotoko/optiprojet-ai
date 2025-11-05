@@ -27,6 +27,8 @@ const libraries: "places"[] = ['places'];
 
 function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: AddressInputProps) {
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [inputValue, setInputValue] = React.useState(defaultValue || '');
+
 
   React.useEffect(() => {
     if (navigator.geolocation) {
@@ -46,7 +48,6 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
 
   const {
     ready,
-    value,
     suggestions: { status, data },
     setValue,
     clearSuggestions,
@@ -63,11 +64,19 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
   });
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
     setValue(e.target.value);
   };
+  
+  React.useEffect(() => {
+    setInputValue(defaultValue || '');
+    setValue(defaultValue || '', false);
+  }, [defaultValue, setValue]);
+
 
   const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
     setValue(suggestion.description, false);
+    setInputValue(suggestion.description);
     clearSuggestions();
 
     try {
@@ -110,7 +119,7 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
         type="text"
         placeholder={placeholder}
         className="pl-10 h-12 text-base"
-        value={value}
+        value={inputValue}
         onChange={handleInput}
         disabled={!ready}
         autoComplete="off"
@@ -125,7 +134,6 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
 }
 
 export function AddressInput(props: AddressInputProps) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const formMethods = useFormContext(); // Can be null
 
   const handleAddressSelect = (address: Address) => {
@@ -136,40 +144,6 @@ export function AddressInput(props: AddressInputProps) {
       props.onAddressSelect(address);
     }
   };
-
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey,
-    libraries,
-  });
-
-  if (loadError) {
-    return (
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-destructive" />
-        <Input
-          type="text"
-          placeholder="Erreur de carte"
-          className="pl-10 h-12 text-base border-destructive text-destructive"
-          disabled={true}
-          defaultValue="Erreur lors du chargement de Google Maps"
-        />
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Chargement..."
-          className="pl-10 h-12 text-base"
-          disabled={true}
-        />
-      </div>
-    );
-  }
 
   return <AddressInputCore {...props} onAddressSelect={handleAddressSelect} />;
 }
