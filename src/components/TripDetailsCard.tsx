@@ -113,10 +113,14 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
 
     const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
 
-    const reservedSeats = isOwner ? (bookings?.length ?? 0) : 0;
-    // For a traveler, we don't know the exact number of total seats, so we show what's available.
-    // For an owner, we calculate the total from what they originally posted.
-    const totalSeats = isOwner ? trip.availableSeats + reservedSeats : trip.availableSeats;
+    // If the user is the owner, reserved seats are the count of bookings.
+    // If not the owner, we can't know, so we assume 0 for this card's context.
+    const reservedSeats = bookings?.length ?? 0;
+    
+    // Total seats is always based on the trip data.
+    const totalSeats = trip.availableSeats;
+    
+    // Progress calculation is only meaningful for the owner.
     const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
     
     const isPastTrip = trip.departureTime.toDate() < new Date();
