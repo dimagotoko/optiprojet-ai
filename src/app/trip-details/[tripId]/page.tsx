@@ -145,21 +145,17 @@ function TripDetailsPageContent() {
 
         setIsBooking(true);
         try {
-            // This is now a provisional booking, not a real payment
-            const provisionalBookingId = `prov_${Date.now()}`;
-
             const bookingsCollection = collection(firestore, 'trips', trip.id, 'bookings');
             await addDoc(bookingsCollection, {
                 tripId: trip.id,
                 travelerId: user.uid,
-                paymentIntentId: provisionalBookingId,
-                paymentStatus: 'pending_driver_confirmation', // New status
+                paymentStatus: 'pending',
                 createdAt: serverTimestamp(),
             });
 
             toast({
-                title: "Demande de réservation envoyée !",
-                description: "Le conducteur a été notifié. Vous serez prévenu de la confirmation.",
+                title: "Réservation confirmée !",
+                description: "Votre place est réservée. Bon voyage !",
             });
             router.push('/dashboard');
 
@@ -350,20 +346,20 @@ function TripDetailsPageContent() {
             <AlertDialog open={showBookingConfirm} onOpenChange={setShowBookingConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmer la demande de réservation ?</AlertDialogTitle>
+                        <AlertDialogTitle>Confirmer la réservation ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Vous êtes sur le point de demander une place pour le trajet de <strong>{trip.origin}</strong> à <strong>{trip.destination}</strong> pour <strong>{trip.pricePerSeat}$</strong>.
+                            Vous êtes sur le point de réserver une place pour le trajet de <strong>{trip.origin}</strong> à <strong>{trip.destination}</strong> pour <strong>{trip.pricePerSeat}$</strong>.
                              Le conducteur accepte les paiements par : 
                              <span className="font-semibold">{trip.paymentOptions?.cash && "Argent comptant"}{trip.paymentOptions?.cash && trip.paymentOptions?.interac && ' et '}{trip.paymentOptions?.interac && "Virement Interac"}</span>.
                              <br/><br/>
-                             Une fois la demande acceptée, vous pourrez discuter des détails avec le conducteur.
+                             Une fois la réservation confirmée, vous pourrez discuter des détails avec le conducteur.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isBooking}>Annuler</AlertDialogCancel>
                         <AlertDialogAction onClick={handleBookTrip} disabled={isBooking}>
                              {isBooking && <LoadingLogo className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirmer la demande
+                            Confirmer la réservation
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

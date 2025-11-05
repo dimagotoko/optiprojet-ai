@@ -1,3 +1,4 @@
+
 /**
  * @file Firestore Security Rules
  * @description This ruleset enforces a strict user-ownership model for user profiles and reviews.
@@ -124,10 +125,6 @@ service cloud.firestore {
       function isTripOwner(tripId) {
         return getTripData(tripId).offeredBy == request.auth.uid;
       }
-      
-      function isTripOpen(tripId) {
-        return getTripData(tripId).isClosed == false;
-      }
 
       function isAuthorized(tripId, travelerId) {
         return request.auth != null && (isTraveler(travelerId) || isTripOwner(tripId));
@@ -245,5 +242,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
