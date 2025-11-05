@@ -66,13 +66,19 @@ export function Header() {
   const handleLogout = async () => {
     if (!auth) return;
     try {
+      // First, delete the session cookie on the server
+      await fetch('/api/auth/session', { method: 'DELETE' });
+      // Then, sign out the user from the client
       await signOut(auth);
+      
       toast({
         title: 'Déconnexion réussie',
-        description: 'Vous avez été déconnecté et redirigé vers la page d\'accueil.',
+        description: 'Vous avez été déconnecté.',
       });
-      router.push('/');
-      router.refresh();
+
+      // Redirect to home and refresh the page to clear all states
+      window.location.href = '/';
+
     } catch (error) {
        toast({
         variant: 'destructive',
