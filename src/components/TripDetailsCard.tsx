@@ -101,36 +101,80 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
     );
 };
 
-export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteClick, onEditClick, onToggleCloseTrip }: { trip: Trip, driverProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void, onToggleCloseTrip: (tripId: string, currentState: boolean) => void }) => {
+const OwnerView = ({ tripId }: { tripId: string }) => {
     const firestore = useFirestore();
-    const isOwner = trip.offeredBy === currentUserId;
 
     const bookingsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
+        return query(collection(firestore, 'trips', tripId, 'bookings'));
+    }, [firestore, tripId]);
+    
+    const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
+
+    const tripRef = useMemoFirebase(() => doc(firestore!, 'trips', tripId), [firestore, tripId]);
+    const { data: trip } = useDoc<Trip>(tripRef);
+
+    if (isLoading || !trip) {
+        return (
+            <CardContent>
+                <Skeleton className="h-6 w-1/2 mb-2" />
+                <Skeleton className="h-2 w-full" />
+            </CardContent>
+        );
+    }
+    
+    const reservedSeats = bookings?.length ?? 0;
+    const totalSeats = trip.availableSeats;
+    const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
+
+    return (
+        <>
+            <CardContent>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span>Places réservées</span>
+                        </div>
+                        <span className="font-semibold">{reservedSeats} / {totalSeats}</span>
+                    </div>
+                    <Progress value={progressValue} aria-label={`${reservedSeats} sur ${totalSeats} places réservées`} />
+                </div>
+            </CardContent>
+            {bookings && bookings.length > 0 && (
+                <CardFooter className="flex-col items-start gap-2 pt-4 border-t">
+                    <h4 className="font-semibold text-sm">Voyageurs</h4>
+                    <div className="w-full space-y-1">
+                        {bookings.map(booking => <BookingCard key={booking.id} booking={booking} />)}
+                    </div>
+                </CardFooter>
+            )}
+        </>
+    );
+};
+
+export const TripDetailsCard = ({ trip, currentUserId, onDeleteClick, onEditClick, onToggleCloseTrip }: { trip: Trip, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void, onToggleCloseTrip: (tripId: string, currentState: boolean) => void }) => {
+    const isOwner = trip.offeredBy === currentUserId;
+    const isPastTrip = trip.departureTime.toDate() < new Date();
+    
+    // We need to know the number of bookings to disable delete, so we query even for travelers
+    // but a more restricted query.
+    const firestore = useFirestore();
+    const bookingsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
         const bookingsRef = collection(firestore, 'trips', trip.id, 'bookings');
-        if (isOwner) {
-            // The owner can list all bookings
+        if(isOwner) {
             return query(bookingsRef);
         }
-        // A traveler should only query for their own booking, not list all.
-        // This component doesn't show booking details to a traveler, so we don't need a query.
-        return null;
+        // Traveler doesn't need to list all, just know if *any* exist for the delete button logic.
+        // A performant way is to just know their own booking. If they booked, they can't delete anyway.
+        // A better approach would be a count on the trip doc. For now, let's just query for *their* booking.
+        return query(bookingsRef, where('travelerId', '==', currentUserId));
+
     }, [firestore, trip.id, isOwner, currentUserId]);
-
-
-    const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
-
-    // If the user is the owner, reserved seats are the count of bookings.
-    // If not the owner, we can't know, so we assume 0 for this card's context.
+    
+    const { data: bookings } = useCollection(bookingsQuery);
     const reservedSeats = bookings?.length ?? 0;
-    
-    // Total seats is always based on the trip data.
-    const totalSeats = trip.availableSeats;
-    
-    // Progress calculation is only meaningful for the owner.
-    const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
-    
-    const isPastTrip = trip.departureTime.toDate() < new Date();
 
     return (
         <Card className="w-full">
@@ -178,28 +222,9 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
                     </div>
                 </div>
             </CardHeader>
-            {isOwner && (
-                <CardContent>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <Users className="h-4 w-4" />
-                                <span>Places réservées</span>
-                            </div>
-                            <span className="font-semibold">{reservedSeats} / {totalSeats}</span>
-                        </div>
-                        <Progress value={progressValue} aria-label={`${reservedSeats} sur ${totalSeats} places réservées`} />
-                    </div>
-                </CardContent>
-            )}
-            {isOwner && bookings && bookings.length > 0 && (
-                <CardFooter className="flex-col items-start gap-2 pt-4 border-t">
-                    <h4 className="font-semibold text-sm">Voyageurs</h4>
-                     <div className="w-full space-y-1">
-                        {bookings.map(booking => <BookingCard key={booking.id} booking={booking} />)}
-                     </div>
-                </CardFooter>
-            )}
+            {isOwner && <OwnerView tripId={trip.id} />}
         </Card>
     );
 };
+
+    
