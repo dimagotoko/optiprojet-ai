@@ -8,8 +8,10 @@ import { doc } from 'firebase/firestore';
 export function useAdmin() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
-    const [isAdmin, setIsAdmin] = useState(false);
+    
+    // Simplification : un seul état de vérification
     const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     const adminRoleRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -19,24 +21,17 @@ export function useAdmin() {
     const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleRef);
 
     useEffect(() => {
-        // We are checking as long as the user is loading OR the admin doc is loading
+        // La vérification est en cours tant que l'utilisateur ou le document admin est en chargement.
         const stillChecking = isUserLoading || isAdminDocLoading;
         setIsCheckingAdmin(stillChecking);
-
-        if (stillChecking) {
-            return; // Exit early if we are not done loading everything
+        
+        // Si la vérification est terminée, on met à jour le statut admin.
+        if (!stillChecking) {
+            // L'utilisateur est admin si l'utilisateur est connecté ET que le document admin existe.
+            setIsAdmin(!!user && !!adminDoc);
         }
-
-        // Once all loading is done, we can determine the admin status
-        if (!user) {
-            setIsAdmin(false);
-            return;
-        }
-
-        // If adminDoc exists, the user is an admin
-        setIsAdmin(!!adminDoc);
-
-    }, [user, isUserLoading, adminDoc, isAdminDocLoading]);
-
+    }, [isUserLoading, isAdminDocLoading, user, adminDoc]);
+    
+    // On retourne un état clair : le statut et si on est encore en train de vérifier.
     return { isAdmin, isCheckingAdmin };
 }

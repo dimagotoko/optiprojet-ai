@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -114,16 +115,25 @@ export default function AdminPage() {
     const router = useRouter();
 
     React.useEffect(() => {
-        // Only redirect if we are done checking and the user is NOT an admin.
+        // On ne redirige que si la vérification est terminée ET que l'utilisateur n'est pas admin.
         if (!isCheckingAdmin && !isAdmin) {
             router.push('/dashboard');
         }
     }, [isAdmin, isCheckingAdmin, router]);
 
-    // Show a loading state while we are verifying admin status.
-    // Also, if the check is done and the user is not an admin, we show loading
-    // to prevent the admin page from flashing before the redirect happens.
-    if (isCheckingAdmin || !isAdmin) {
+    // Tant que la vérification est en cours, on affiche un écran de chargement.
+    // Cela empêche tout affichage prématuré ou redirection incorrecte.
+    if (isCheckingAdmin) {
+        return (
+            <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+                <LoadingLogo className="h-12 w-12 text-primary" />
+            </div>
+        );
+    }
+    
+    // Si la vérification est terminée et que l'utilisateur n'est pas admin,
+    // on continue d'afficher le chargement pour masquer la page pendant que la redirection s'effectue.
+    if (!isAdmin) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
                 <LoadingLogo className="h-12 w-12 text-primary" />
@@ -131,6 +141,7 @@ export default function AdminPage() {
         );
     }
 
+    // Si on arrive ici, c'est que la vérification est terminée et que l'utilisateur EST admin.
     return (
         <div className="container py-12 px-4 md:px-6 space-y-8">
             <header>
