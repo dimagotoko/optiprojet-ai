@@ -33,6 +33,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import { doc, getDoc } from 'firebase/firestore';
+import { useAdmin } from '@/hooks/use-admin';
 
 
 export function Header() {
@@ -43,6 +44,7 @@ export function Header() {
   const pathname = usePathname();
   const { toast } = useToast();
   const [userRole, setUserRole] = React.useState<string | null>(null);
+  const { isAdmin } = useAdmin();
 
   React.useEffect(() => {
     let isMounted = true;
@@ -128,6 +130,11 @@ export function Header() {
                 <DropdownMenuItem asChild>
                     <Link href="/dashboard">Tableau de bord</Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Admin</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                     <Link href="/profile">Gérer le profil</Link>
                 </DropdownMenuItem>
@@ -204,6 +211,14 @@ export function Header() {
                 Proposer un trajet
               </Link>
             )}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
 
@@ -228,6 +243,11 @@ export function Header() {
                {user && userRole === 'transporteur' && (
                  <Link href="/post-trip" className="text-sm font-medium">
                     Proposer un trajet
+                </Link>
+              )}
+              {isAdmin && (
+                 <Link href="/admin" className="text-sm font-medium">
+                    Admin
                 </Link>
               )}
             </div>

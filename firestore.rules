@@ -17,7 +17,7 @@
  *   - `/roles_admin/{userId}`: Presence indicates admin role, granting elevated privileges.
  *
  * @keySecurityDecisions
- *   - User listing is disallowed to protect user privacy.
+ *   - User listing is disallowed to protect user privacy, except for admins.
  *   - Trips are publicly readable to facilitate discovery but only the owner can modify them.
  *   - Data shape validation is relaxed for rapid prototyping, focusing on authorization.
  *   - All write operations (create, update, delete) MUST be protected by an authorization check.
@@ -33,11 +33,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
     /**
-     * @description Enforces user-ownership for user profiles. Only the user can update, or delete their own profile. Any authenticated user can read a profile.
+     * @description Enforces user-ownership for user profiles. Only the user can update, or delete their own profile. Any authenticated user can read a profile. Admins can list all users.
      * @path /users/{userId}
      * @allow (create) User with ID 'user123' can create their profile if `request.auth.uid` is 'user123'.
      * @allow (get) Any user can read a user profile.
+     * @allow (list) Admins can list all users.
      * @allow (update, delete) User with ID 'user123' can read/update/delete their profile if `request.auth.uid` is 'user123'.
      * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
      * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete profile with ID 'user123' unless it is their own.
@@ -53,7 +58,7 @@ service cloud.firestore {
       }
 
       allow get: if true; // Public read access to profiles
-      allow list: if false; // User listing is disallowed for privacy.
+      allow list: if isAdmin(); // Admin-only user listing.
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
@@ -79,14 +84,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows public read access to trip information, but restricts write access to the trip creator.
+     * @description Allows public read access to trip information, but restricts write access to the trip creator. Admins can perform any action.
      * @path /trips/{tripId}
      * @allow (get, list) Any user can read or list trips.
      * @allow (create) Authenticated user 'user123' can create a trip with `offeredBy` set to 'user123'.
      * @allow (update, delete) User with ID 'user123' can update/delete a trip where `resource.data.offeredBy` is 'user123'.
      * @deny (create) Unauthenticated users cannot create a trip. User 'user456' cannot create a trip with `offeredBy` set to 'user123'.
      * @deny (update, delete) User with ID 'user456' cannot update/delete a trip where `resource.data.offeredBy` is 'user123'.
-     * @principle Enforces public read with owner-only writes.
+     * @principle Enforces public read with owner-only writes, with admin override.
      */
     match /trips/{tripId} {
         function isOwner(offeredBy) {
@@ -99,8 +104,8 @@ service cloud.firestore {
 
         allow get, list: if true;
         allow create: if request.auth != null && request.resource.data.offeredBy == request.auth.uid;
-        allow update: if isExistingOwner(resource.data.offeredBy);
-        allow delete: if isExistingOwner(resource.data.offeredBy);
+        allow update: if isExistingOwner(resource.data.offeredBy) || isAdmin();
+        allow delete: if isExistingOwner(resource.data.offeredBy) || isAdmin();
     }
 
     /**
@@ -135,11 +140,11 @@ service cloud.firestore {
         return isAuthorized(tripId, travelerId) && resource != null;
       }
 
-      allow get: if isAuthorized(tripId, resource.data.travelerId);
-      allow list: if isTripOwner(tripId);
+      allow get: if isAuthorized(tripId, resource.data.travelerId) || isAdmin();
+      allow list: if isTripOwner(tripId) || isAdmin();
       allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
-      allow update: if isExistingAuthorized(tripId, resource.data.travelerId);
-      allow delete: if isExistingAuthorized(tripId, resource.data.travelerId);
+      allow update: if isExistingAuthorized(tripId, resource.data.travelerId) || isAdmin();
+      allow delete: if isExistingAuthorized(tripId, resource.data.travelerId) || isAdmin();
     }
 
     /**
@@ -161,10 +166,10 @@ service cloud.firestore {
         return isParticipant(participant1Id, participant2Id) && resource != null;
       }
 
-      allow get, list: if request.auth != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id);
+      allow get, list: if (request.auth != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id)) || isAdmin();
       allow create: if request.auth != null && (request.resource.data.participant1Id == request.auth.uid || request.resource.data.participant2Id == request.auth.uid);
-      allow update: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id);
-      allow delete: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id);
+      allow update: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id) || isAdmin();
+      allow delete: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id) || isAdmin();
     }
 
     /**
@@ -196,10 +201,7 @@ service cloud.firestore {
         return request.auth != null && isParticipant(chatChannelId) && resource != null;
       }
 
-      allow get, list: if request.auth != null && isParticipant(chatChannelId);
-      allow create: if request.auth != null && isParticipant(chatChannelId);
-      allow update: if isExistingParticipant(chatChannelId);
-      allow delete: if isExistingParticipant(chatChannelId);
+      allow read, write: if (request.auth != null && isParticipant(chatChannelId)) || isAdmin();
     }
 
     /**
@@ -220,11 +222,11 @@ service cloud.firestore {
         return isOwner(userId) && resource != null;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if request.auth != null;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
     /**
@@ -237,9 +239,7 @@ service cloud.firestore {
      */
     match /roles_admin/{userId} {
       allow get: if true; // Allow anyone to check for admin status.
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow read, write: if isAdmin();
     }
   }
 }
