@@ -107,7 +107,8 @@ service cloud.firestore {
      * @description Controls access to bookings associated with a trip. Allows the traveler and the trip owner to read, update, or delete bookings.
      * @path /trips/{tripId}/bookings/{bookingId}
      * @allow (create) User 'traveler123' can create a booking for trip 'trip456' if `request.auth.uid` is 'traveler123'.
-     * @allow (get, list) User 'traveler123' can read/list bookings for trip 'trip456' if `request.auth.uid` is 'traveler123'. The trip owner can also read/list the booking.
+     * @allow (get) User 'traveler123' can read a booking if they are the traveler. The trip owner can also read the booking.
+     * @allow (list) The trip owner can list all bookings for their trip.
      * @allow (update, delete) User 'traveler123' can update/delete a booking if `request.auth.uid` is 'traveler123'. The trip owner can also update/delete the booking.
      * @deny (create) User 'otherUser' cannot create a booking for trip 'trip456' with `travelerId` set to 'traveler123'.
      * @deny (get, list, update, delete) User 'otherUser' cannot access bookings for trip 'trip456' if they are not the traveler or trip owner.
