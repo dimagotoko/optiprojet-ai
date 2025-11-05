@@ -114,11 +114,15 @@ export default function AdminPage() {
     const router = useRouter();
 
     React.useEffect(() => {
+        // Only redirect if we are done checking and the user is NOT an admin.
         if (!isCheckingAdmin && !isAdmin) {
             router.push('/dashboard');
         }
     }, [isAdmin, isCheckingAdmin, router]);
 
+    // Show a loading state while we are verifying admin status.
+    // Also, if the check is done and the user is not an admin, we show loading
+    // to prevent the admin page from flashing before the redirect happens.
     if (isCheckingAdmin || !isAdmin) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
