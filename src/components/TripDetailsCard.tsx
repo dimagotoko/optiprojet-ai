@@ -2,7 +2,7 @@
 'use client';
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, DocumentData, Timestamp } from 'firebase/firestore';
+import { collection, doc, DocumentData, Timestamp, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,11 +105,18 @@ export const TripDetailsCard = ({ trip, driverProfile, currentUserId, onDeleteCl
     const firestore = useFirestore();
     const isOwner = trip.offeredBy === currentUserId;
 
-    // Only fetch bookings if the current user is the owner of the trip
     const bookingsQuery = useMemoFirebase(() => {
-        if (!firestore || !isOwner) return null;
-        return collection(firestore, 'trips', trip.id, 'bookings');
-    }, [firestore, trip.id, isOwner]);
+        if (!firestore) return null;
+        const bookingsRef = collection(firestore, 'trips', trip.id, 'bookings');
+        if (isOwner) {
+            // The owner can list all bookings
+            return query(bookingsRef);
+        }
+        // A traveler should only query for their own booking, not list all.
+        // This component doesn't show booking details to a traveler, so we don't need a query.
+        return null;
+    }, [firestore, trip.id, isOwner, currentUserId]);
+
 
     const { data: bookings, isLoading: bookingsLoading } = useCollection<Booking>(bookingsQuery);
 
