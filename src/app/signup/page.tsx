@@ -115,7 +115,8 @@ function SignupPageInternal() {
         role: values.userType,
         phoneNumber: values.phoneNumber,
         profilePictureUrl: values.profilePictureUrl || '',
-        driverLicense: '',
+        // Initialize other required fields from the backend schema
+        driverLicense: '', 
         stripeCustomerId: '',
         averageRating: 0,
         totalRatings: 0,
@@ -349,5 +350,3 @@ export default function SignupPage() {
     </React.Suspense>
   );
 }
-
-    
