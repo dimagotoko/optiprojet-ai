@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -67,10 +66,12 @@ const Passenger = ({ travelerId }: { travelerId: string }) => {
 
 const PassengersList = ({ tripId }: { tripId: string }) => {
     const firestore = useFirestore();
+    
     const bookingsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return collection(firestore, 'trips', tripId, 'bookings');
     }, [firestore, tripId]);
+    
     const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
     if (isLoading) {
@@ -149,7 +150,7 @@ function TripDetailsPageContent() {
             await addDoc(bookingsCollection, {
                 tripId: trip.id,
                 travelerId: user.uid,
-                paymentStatus: 'pending',
+                status: 'pending',
                 createdAt: serverTimestamp(),
             });
 
