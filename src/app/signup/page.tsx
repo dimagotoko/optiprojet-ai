@@ -32,6 +32,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/Logo';
 import React from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const formSchema = z
   .object({
@@ -69,7 +70,7 @@ function SignupPageInternal() {
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
-    mode: 'onChange', // Validate on change
+    mode: 'onChange',
     defaultValues: {
       fullName: '',
       email: emailFromQuery,
@@ -104,9 +105,9 @@ function SignupPageInternal() {
         photoURL: values.profilePictureUrl || null,
       });
 
-      // 3. Create user document in Firestore
+      // 3. Create user document in Firestore (Non-blocking)
       const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, {
+      const profileData = {
         id: user.uid,
         name: values.fullName,
         email: values.email,
@@ -115,26 +116,27 @@ function SignupPageInternal() {
         role: values.userType,
         phoneNumber: values.phoneNumber,
         profilePictureUrl: values.profilePictureUrl || '',
-        // Initialize other required fields from the backend schema
         driverLicense: '', 
         stripeCustomerId: '',
         averageRating: 0,
         totalRatings: 0,
-      });
+      };
+      
+      setDocumentNonBlocking(userDocRef, profileData);
 
       toast({
         title: 'Compte créé avec succès!',
         description: "Vous allez être redirigé vers votre tableau de bord.",
       });
-       // Use window.location.href for a full page reload to ensure all states (like Header) are reset
+
+      // Final redirection with a full page reload to ensure session sync
       window.location.href = '/dashboard';
+
     } catch (error: any) {
-      console.error('Signup error:', error.code, error.message);
-      let description =
-        "Une erreur est survenue lors de l'inscription. Veuillez réessayer.";
+      // Auth errors need manual handling here.
+      let description = "Une erreur est survenue lors de l'inscription. Veuillez réessayer.";
       if (error.code === 'auth/email-already-in-use') {
-        description =
-          'Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.';
+        description = 'Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.';
       }
       toast({
         variant: 'destructive',
@@ -345,7 +347,7 @@ function SignupPageInternal() {
 
 export default function SignupPage() {
   return (
-    <React.Suspense fallback={<div>Loading...</div>}>
+    <React.Suspense fallback={<div>Chargement...</div>}>
       <SignupPageInternal />
     </React.Suspense>
   );
