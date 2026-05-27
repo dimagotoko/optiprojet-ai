@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -217,7 +218,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input {...field} disabled />
+                        <Input {...field} placeholder="votre@email.com" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
