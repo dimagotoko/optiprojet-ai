@@ -127,7 +127,7 @@ function SignupPageInternal() {
         description: "Bienvenue sur OptiTrajet AI.",
       });
 
-      // Force a full refresh to ensure all providers are synced with the new user data
+      // Force a full refresh to ensure all providers are synced with the new user data and project ID
       window.location.href = '/dashboard';
 
     } catch (error: any) {

@@ -49,7 +49,7 @@ export default function ProfilePage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [isDataLoading, setIsDataLoading] = React.useState(true);
+  const [isDataLoading, setIsDataLoading] = React.useState(false);
   const [initialData, setInitialData] = React.useState<ProfileFormValues | null>(null);
 
   const form = useForm<ProfileFormValues>({
@@ -65,15 +65,10 @@ export default function ProfilePage() {
     },
   });
   
-  const { formState: { isSubmitting, isDirty } } = form;
+  const { formState: { isSubmitting } } = form;
 
   React.useEffect(() => {
-    if (isUserLoading) return;
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    if (!firestore) return;
+    if (isUserLoading || !user || !firestore) return;
 
     const fetchUserData = async () => {
       try {
@@ -114,7 +109,7 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [user, isUserLoading, firestore, router, form]);
+  }, [user, isUserLoading, firestore, form]);
 
 
   const onSubmit = async (values: ProfileFormValues) => {
@@ -144,9 +139,9 @@ export default function ProfilePage() {
         title: 'Profil mis à jour',
         description: 'Vos informations ont été sauvegardées avec succès.',
       });
-      form.reset(values);
-      router.refresh();
-      router.push('/dashboard');
+      
+      // Force reload to ensure all state is fresh
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
@@ -165,7 +160,10 @@ export default function ProfilePage() {
     );
   }
   
-  if (!user) return null;
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -176,7 +174,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={form.watch('profilePictureUrl') || user.photoURL || undefined} alt={user.displayName || 'Avatar'} />
-                  <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
                   <CardTitle className="text-3xl font-bold">{form.watch('fullName') || user.displayName || 'Mon Profil'}</CardTitle>
