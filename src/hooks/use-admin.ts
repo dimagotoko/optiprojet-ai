@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,7 +8,6 @@ export function useAdmin() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     
-    // Simplification : un seul état de vérification
     const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
 
@@ -21,17 +19,12 @@ export function useAdmin() {
     const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleRef);
 
     useEffect(() => {
-        // La vérification est en cours tant que l'utilisateur ou le document admin est en chargement.
-        const stillChecking = isUserLoading || isAdminDocLoading;
-        setIsCheckingAdmin(stillChecking);
-        
-        // Si la vérification est terminée, on met à jour le statut admin.
-        if (!stillChecking) {
-            // L'utilisateur est admin si l'utilisateur est connecté ET que le document admin existe.
+        // Only resolve when both auth and firestore doc loading are finished
+        if (!isUserLoading && !isAdminDocLoading) {
             setIsAdmin(!!user && !!adminDoc);
+            setIsCheckingAdmin(false);
         }
     }, [isUserLoading, isAdminDocLoading, user, adminDoc]);
     
-    // On retourne un état clair : le statut et si on est encore en train de vérifier.
     return { isAdmin, isCheckingAdmin };
 }

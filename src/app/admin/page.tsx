@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -109,21 +108,17 @@ function TripsTable() {
     );
 }
 
-
 export default function AdminPage() {
     const { isAdmin, isCheckingAdmin } = useAdmin();
     const router = useRouter();
 
     React.useEffect(() => {
-        // Redirect only when we are certain the user is not an admin.
         if (!isCheckingAdmin && !isAdmin) {
             router.push('/dashboard');
         }
     }, [isAdmin, isCheckingAdmin, router]);
 
-    // While checking, or if the user is not an admin (and the redirect is in progress),
-    // show a loading screen. This prevents any content from flashing.
-    if (isCheckingAdmin || !isAdmin) {
+    if (isCheckingAdmin) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
                 <LoadingLogo className="h-12 w-12 text-primary" />
@@ -131,7 +126,8 @@ export default function AdminPage() {
         );
     }
 
-    // If we've finished checking and the user is an admin, render the page.
+    if (!isAdmin) return null;
+
     return (
         <div className="container py-12 px-4 md:px-6 space-y-8">
             <header>

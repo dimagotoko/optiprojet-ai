@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -34,27 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TripDetailsCard } from '@/components/TripDetailsCard';
-
-
-type Trip = {
-    id: string;
-    origin: string;
-    destination: string;
-    departureTime: Timestamp;
-    pricePerSeat: number;
-    offeredBy: string;
-    availableSeats: number;
-    isClosed?: boolean;
-};
-
-type UserProfile = {
-    id: string;
-    name: string;
-    profilePictureUrl?: string;
-    averageRating?: number;
-    role?: string;
-    totalRatings?: number;
-}
+import type { Trip, UserProfile } from '@/types/db';
 
 function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClick, onToggleCloseTrip }: { trips: Trip[] | null, userProfile: UserProfile | null, currentUserId: string, onDeleteClick: (tripId: string) => void, onEditClick: (tripId: string) => void, onToggleCloseTrip: (tripId: string, currentState: boolean) => void }) {
     if (!trips || trips.length === 0) {
@@ -92,7 +71,6 @@ function TripList({ trips, userProfile, currentUserId, onDeleteClick, onEditClic
         </div>
     );
 }
-
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -139,23 +117,38 @@ export default function DashboardPage() {
     return { upcomingTrips: upcoming, pastTrips: past };
   }, [allTrips]);
   
-
   React.useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // AUTO-FIX: If user is logged in but profile is missing, redirect to profile page
-  React.useEffect(() => {
-    if (!isUserLoading && user && !isUserDocLoading && !userData) {
-        toast({
-            title: "Profil incomplet",
-            description: "Veuillez compléter votre profil pour accéder au tableau de bord.",
-        });
-        router.push('/profile');
-    }
-  }, [user, isUserLoading, userData, isUserDocLoading, router, toast]);
+  const isLoading = isUserLoading || (!!user && isUserDocLoading);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <LoadingLogo className="h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+  
+  if (!user) return null;
+
+  if (!userData && !isUserDocLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+        <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-bold">Profil non trouvé</h2>
+        <p className="text-muted-foreground max-w-md mt-2">
+            Nous n'avons pas pu charger votre profil. Veuillez compléter vos informations pour continuer.
+        </p>
+        <Button asChild className="mt-6">
+            <Link href="/profile">Compléter mon profil</Link>
+        </Button>
+      </div>
+    );
+  }
 
   const handleDeleteClick = (tripId: string) => {
     setTripToDelete(tripId);
@@ -204,36 +197,9 @@ export default function DashboardPage() {
     }
   };
 
-
-  const isLoading = isUserLoading || isUserDocLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    );
-  }
-  
-  if (!userData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
-        <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-bold">Profil non trouvé</h2>
-        <p className="text-muted-foreground max-w-md mt-2">
-            Nous n'avons pas pu trouver vos informations de profil. Vous allez être redirigé pour les compléter.
-        </p>
-        <Button asChild className="mt-6">
-            <Link href="/profile">Aller au profil</Link>
-        </Button>
-      </div>
-    );
-  }
-
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   }
-
 
   return (
     <>
