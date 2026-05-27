@@ -32,7 +32,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/Logo';
 import React from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const formSchema = z
   .object({
@@ -105,7 +104,7 @@ function SignupPageInternal() {
         photoURL: values.profilePictureUrl || null,
       });
 
-      // 3. Create user document in Firestore (Non-blocking)
+      // 3. Create user document in Firestore (Blocking wait to ensure it exists before redirect)
       const userDocRef = doc(firestore, 'users', user.uid);
       const profileData = {
         id: user.uid,
@@ -122,7 +121,7 @@ function SignupPageInternal() {
         totalRatings: 0,
       };
       
-      setDocumentNonBlocking(userDocRef, profileData);
+      await setDoc(userDocRef, profileData);
 
       toast({
         title: 'Compte créé avec succès!',
@@ -133,7 +132,6 @@ function SignupPageInternal() {
       window.location.href = '/dashboard';
 
     } catch (error: any) {
-      // Auth errors need manual handling here.
       let description = "Une erreur est survenue lors de l'inscription. Veuillez réessayer.";
       if (error.code === 'auth/email-already-in-use') {
         description = 'Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.';

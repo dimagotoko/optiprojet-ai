@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp, DocumentData, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -17,7 +18,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Star } from 'lucide-react';
+import { Star, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
 import { LoadingLogo } from '@/components/LoadingLogo';
@@ -104,6 +105,7 @@ export default function DashboardPage() {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
+  
   const { data: userData, isLoading: isUserDocLoading } = useDoc<UserProfile>(userDocRef);
   
   const tripsQuery = useMemoFirebase(() => {
@@ -111,7 +113,6 @@ export default function DashboardPage() {
     if (userData.role === 'transporteur') {
         return query(collection(firestore, 'trips'), where('offeredBy', '==', user.uid));
     }
-    // TODO: Implement logic for travelers (e.g., query bookings subcollection)
     return null; 
   }, [firestore, user, userData]);
 
@@ -145,8 +146,18 @@ export default function DashboardPage() {
     }
   }, [user, isUserLoading, router]);
 
+  // AUTO-FIX: If user is logged in but profile is missing, redirect to profile page
+  React.useEffect(() => {
+    if (!isUserLoading && user && !isUserDocLoading && !userData) {
+        toast({
+            title: "Profil incomplet",
+            description: "Veuillez compléter votre profil pour accéder au tableau de bord.",
+        });
+        router.push('/profile');
+    }
+  }, [user, isUserLoading, userData, isUserDocLoading, router, toast]);
+
   const handleDeleteClick = (tripId: string) => {
-    // TODO: Check for bookings before allowing deletion
     setTripToDelete(tripId);
   };
 
@@ -194,7 +205,6 @@ export default function DashboardPage() {
   };
 
 
-  // Simplified loading state. Show loading until both auth and user profile are checked.
   const isLoading = isUserLoading || isUserDocLoading;
 
   if (isLoading) {
@@ -205,17 +215,21 @@ export default function DashboardPage() {
     );
   }
   
-  // After loading, if there's no user data, then show the error.
-  // This check now happens *after* the loading is confirmed to be complete.
   if (!userData) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <p>Utilisateur non trouvé.</p>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+        <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-bold">Profil non trouvé</h2>
+        <p className="text-muted-foreground max-w-md mt-2">
+            Nous n'avons pas pu trouver vos informations de profil. Vous allez être redirigé pour les compléter.
+        </p>
+        <Button asChild className="mt-6">
+            <Link href="/profile">Aller au profil</Link>
+        </Button>
       </div>
     );
   }
 
-  // At this point, we are sure we have a user and their data.
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   }
@@ -316,5 +330,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
