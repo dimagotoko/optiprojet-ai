@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -104,7 +103,7 @@ function SignupPageInternal() {
         photoURL: values.profilePictureUrl || null,
       });
 
-      // 3. Create user document in Firestore (Blocking wait to ensure it exists before redirect)
+      // 3. Create user document in Firestore (WAIT for it to be sure it exists)
       const userDocRef = doc(firestore, 'users', user.uid);
       const profileData = {
         id: user.uid,
@@ -125,16 +124,17 @@ function SignupPageInternal() {
 
       toast({
         title: 'Compte créé avec succès!',
-        description: "Vous allez être redirigé vers votre tableau de bord.",
+        description: "Bienvenue sur OptiTrajet AI.",
       });
 
-      // Final redirection with a full page reload to ensure session sync
+      // Force a full refresh to ensure all providers are synced with the new user data
       window.location.href = '/dashboard';
 
     } catch (error: any) {
-      let description = "Une erreur est survenue lors de l'inscription. Veuillez réessayer.";
+      console.error("Signup error:", error);
+      let description = "Une erreur est survenue lors de l'inscription.";
       if (error.code === 'auth/email-already-in-use') {
-        description = 'Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.';
+        description = 'Cette adresse e-mail est déjà utilisée.';
       }
       toast({
         variant: 'destructive',
@@ -327,14 +327,6 @@ function SignupPageInternal() {
                     'Créer mon compte'
                     )}
                 </Button>
-                <Button 
-                    type="button" 
-                    variant="ghost" 
-                    className="w-full mt-2" 
-                    onClick={() => router.push('/')}
-                >
-                    Annuler
-                </Button>
             </CardFooter>
           </form>
         </Form>
@@ -345,7 +337,7 @@ function SignupPageInternal() {
 
 export default function SignupPage() {
   return (
-    <React.Suspense fallback={<div>Chargement...</div>}>
+    <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingLogo className="h-12 w-12" /></div>}>
       <SignupPageInternal />
     </React.Suspense>
   );

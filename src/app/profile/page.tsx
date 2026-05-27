@@ -68,48 +68,49 @@ export default function ProfilePage() {
   const { formState: { isSubmitting, isDirty } } = form;
 
   React.useEffect(() => {
-    if (isUserLoading) return; // Wait until user auth state is resolved
+    if (isUserLoading) return;
     if (!user) {
       router.push('/login');
       return;
     }
-    if (!firestore) {
-      setIsDataLoading(false);
-      return;
-    };
+    if (!firestore) return;
 
     const fetchUserData = async () => {
-      setIsDataLoading(true);
-      const userRef = doc(firestore, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
+      try {
+          setIsDataLoading(true);
+          const userRef = doc(firestore, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
 
-      let dataToSet;
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        dataToSet = {
-          fullName: userData.name || '',
-          email: userData.email || user.email || '',
-          phoneNumber: userData.phoneNumber || '',
-          city: userData.city || '',
-          postalCode: userData.postalCode || '',
-          profilePictureUrl: userData.profilePictureUrl || '',
-          userType: userData.role || 'voyageur',
-        };
-      } else {
-        // Pre-fill with what we know from auth if no DB entry
-        dataToSet = {
-            fullName: user.displayName || '',
-            email: user.email || '',
-            phoneNumber: user.phoneNumber || '',
-            city: '',
-            postalCode: '',
-            profilePictureUrl: user.photoURL || '',
-            userType: 'voyageur',
-        };
+          let dataToSet;
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            dataToSet = {
+              fullName: userData.name || '',
+              email: userData.email || user.email || '',
+              phoneNumber: userData.phoneNumber || '',
+              city: userData.city || '',
+              postalCode: userData.postalCode || '',
+              profilePictureUrl: userData.profilePictureUrl || '',
+              userType: (userData.role as 'voyageur' | 'transporteur') || 'voyageur',
+            };
+          } else {
+            dataToSet = {
+                fullName: user.displayName || '',
+                email: user.email || '',
+                phoneNumber: '',
+                city: '',
+                postalCode: '',
+                profilePictureUrl: user.photoURL || '',
+                userType: 'voyageur' as const,
+            };
+          }
+          form.reset(dataToSet);
+          setInitialData(dataToSet);
+      } catch (error) {
+          console.error("Error fetching profile:", error);
+      } finally {
+          setIsDataLoading(false);
       }
-      form.reset(dataToSet);
-      setInitialData(dataToSet);
-      setIsDataLoading(false);
     };
 
     fetchUserData();
@@ -120,9 +121,9 @@ export default function ProfilePage() {
     if (!user || !firestore) return;
 
     try {
-      // Update Firestore document
       const userDocRef = doc(firestore, 'users', user.uid);
       await setDoc(userDocRef, {
+        id: user.uid,
         name: values.fullName,
         email: values.email,
         phoneNumber: values.phoneNumber,
@@ -132,7 +133,6 @@ export default function ProfilePage() {
         role: values.userType,
       }, { merge: true });
 
-      // Update Firebase Auth profile
       if (user.displayName !== values.fullName || user.photoURL !== values.profilePictureUrl) {
         await updateProfile(user, {
           displayName: values.fullName,
@@ -144,8 +144,9 @@ export default function ProfilePage() {
         title: 'Profil mis à jour',
         description: 'Vos informations ont été sauvegardées avec succès.',
       });
-      form.reset(values); // Resets form to new values, making it "not dirty"
+      form.reset(values);
       router.refresh();
+      router.push('/dashboard');
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
@@ -155,13 +156,6 @@ export default function ProfilePage() {
       });
     }
   };
-  
-  const handleCancel = () => {
-    if (initialData) {
-      form.reset(initialData);
-    }
-  }
-
 
   if (isUserLoading || isDataLoading) {
     return (
@@ -171,11 +165,7 @@ export default function ProfilePage() {
     );
   }
   
-  if (!user) {
-    // This will be briefly visible before the redirect kicks in
-    return null;
-  }
-
+  if (!user) return null;
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -189,7 +179,7 @@ export default function ProfilePage() {
                   <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-3xl font-bold">{form.watch('fullName') || user.displayName}</CardTitle>
+                  <CardTitle className="text-3xl font-bold">{form.watch('fullName') || user.displayName || 'Mon Profil'}</CardTitle>
                   <CardDescription>{user.email}</CardDescription>
                 </div>
               </div>
@@ -312,12 +302,9 @@ export default function ProfilePage() {
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
                 <div className="flex justify-end gap-3 w-full">
-                    <Button type="button" variant="outline" onClick={handleCancel} disabled={!isDirty || isSubmitting}>
-                        Annuler
-                    </Button>
-                    <Button type="submit" disabled={!isDirty || isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting && <LoadingLogo className="mr-2 h-4 w-4" />}
-                        Mettre à jour le profil
+                        {initialData ? 'Mettre à jour le profil' : 'Créer mon profil'}
                     </Button>
                 </div>
             </CardFooter>
