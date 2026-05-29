@@ -295,10 +295,11 @@ export default function EditTripPage() {
                                     <FormItem className="grid gap-2">
                                         <FormLabel>Départ</FormLabel>
                                         <FormControl>
-                                            <AddressInput 
+                                            <AddressInput
                                                 id="departure"
-                                                placeholder="Adresse de départ" 
+                                                placeholder="Adresse de départ"
                                                 defaultValue={field.value?.description}
+                                                onAddressSelect={field.onChange}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -312,10 +313,11 @@ export default function EditTripPage() {
                                     <FormItem className="grid gap-2">
                                         <FormLabel>Destination</FormLabel>
                                         <FormControl>
-                                            <AddressInput 
+                                            <AddressInput
                                                 id="destination"
-                                                placeholder="Adresse de destination" 
+                                                placeholder="Adresse de destination"
                                                 defaultValue={field.value?.description}
+                                                onAddressSelect={field.onChange}
                                             />
                                         </FormControl>
                                         <FormMessage />

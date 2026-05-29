@@ -5,7 +5,6 @@ import * as React from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
-import { useFormContext } from 'react-hook-form';
 
 export type Address = {
   description: string;
@@ -19,10 +18,10 @@ type AddressInputProps = {
   id: string;
   placeholder: string;
   defaultValue?: string;
+  onAddressSelect: (address: Address) => void;
 };
 
-function AddressInputCore({ id, placeholder, defaultValue }: AddressInputProps) {
-  const { setValue: setFormValue } = useFormContext();
+function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: AddressInputProps) {
   const [location, setLocation] = React.useState<{ lat: number; lng: number } | null>(null);
 
   React.useEffect(() => {
@@ -56,15 +55,15 @@ function AddressInputCore({ id, placeholder, defaultValue }: AddressInputProps) 
       }),
     },
     debounce: 300,
-    defaultValue: defaultValue,
+    defaultValue: typeof defaultValue === 'string' ? defaultValue : '',
   });
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
   };
-  
+
   React.useEffect(() => {
-    setValue(defaultValue || '', false);
+    setValue(typeof defaultValue === 'string' ? defaultValue : '', false);
   }, [defaultValue, setValue]);
 
   const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => async () => {
@@ -74,13 +73,10 @@ function AddressInputCore({ id, placeholder, defaultValue }: AddressInputProps) 
     try {
       const results = await getGeocode({ address: suggestion.description });
       const { lat, lng } = await getLatLng(results[0]);
-      const fullAddress: Address = { description: suggestion.description, coords: { lat, lng } };
-      setFormValue(id, fullAddress, { shouldValidate: true, shouldDirty: true });
-
+      onAddressSelect({ description: suggestion.description, coords: { lat, lng } });
     } catch (error) {
       console.error("Error geocoding: ", error);
-      const addressWithoutCoords: Address = { description: suggestion.description, coords: null };
-      setFormValue(id, addressWithoutCoords, { shouldValidate: true, shouldDirty: true });
+      onAddressSelect({ description: suggestion.description, coords: null });
     }
   };
 
@@ -128,5 +124,3 @@ function AddressInputCore({ id, placeholder, defaultValue }: AddressInputProps) 
 export function AddressInput(props: AddressInputProps) {
   return <AddressInputCore {...props} />;
 }
-
-    
