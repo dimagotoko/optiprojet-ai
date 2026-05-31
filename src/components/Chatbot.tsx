@@ -61,15 +61,26 @@ export function Chatbot({ onSearch }: ChatbotProps) {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
+    if (!user) {
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'user', text: inputValue },
+        { sender: 'bot', text: 'Veuillez vous connecter pour utiliser la recherche par IA.' },
+      ]);
+      setInputValue('');
+      return;
+    }
+
     const userMessage: Message = { sender: 'user', text: inputValue };
     const fullQuery = `${Object.values(currentSearch).join(' ')} ${inputValue}`.trim();
-    
+
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsThinking(true);
 
     try {
-      const result = await planTrip(fullQuery);
+      const idToken = await user.getIdToken();
+      const result = await planTrip(fullQuery, idToken);
       
       const newSearch = { ...currentSearch, ...result };
       setCurrentSearch(newSearch);
