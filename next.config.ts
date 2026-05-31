@@ -2,7 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['genkit', '@genkit-ai/google-genai', '@genkit-ai/next'],
+  serverExternalPackages: ['genkit', '@genkit-ai/google-genai', '@genkit-ai/next', 'firebase-admin'],
   typescript: {
     ignoreBuildErrors: false,
   },

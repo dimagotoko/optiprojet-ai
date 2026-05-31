@@ -63,7 +63,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { collection, addDoc, serverTimestamp, doc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -257,8 +257,8 @@ export default function PostTripPage() {
         await addDoc(collection(firestore, 'trips'), {
             origin: submittedTripData.departure.description,
             destination: submittedTripData.destination.description,
-            originCoords: originCoords,
-            destinationCoords: destinationCoords,
+            originCoords,
+            destinationCoords,
             departureTime: Timestamp.fromDate(departureDateTime),
             arrivalTime: arrivalTimestamp,
             availableSeats: submittedTripData.seats,

@@ -102,8 +102,19 @@ service cloud.firestore {
           return isOwner(offeredBy) && resource != null;
         }
 
+        function isValidTrip() {
+          let d = request.resource.data;
+          return d.offeredBy == request.auth.uid
+            && d.pricePerSeat is number && d.pricePerSeat >= 0 && d.pricePerSeat <= 9999
+            && d.availableSeats is int && d.availableSeats >= 1 && d.availableSeats <= 8
+            && d.origin is string && d.origin.size() > 0 && d.origin.size() <= 300
+            && d.destination is string && d.destination.size() > 0 && d.destination.size() <= 300
+            && (d.details == '' || (d.details is string && d.details.size() <= 500))
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid)/vehicles/$(d.vehicleId));
+        }
+
         allow get, list: if true;
-        allow create: if request.auth != null && request.resource.data.offeredBy == request.auth.uid;
+        allow create: if request.auth != null && isValidTrip();
         allow update: if isExistingOwner(resource.data.offeredBy) || isAdmin();
         allow delete: if isExistingOwner(resource.data.offeredBy) || isAdmin();
     }

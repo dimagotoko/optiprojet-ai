@@ -1,31 +1,23 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeAdminApp } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 
-/**
- * Gets the current user from the session cookie.
- * This function should be called at the beginning of any protected server-side operation.
- * 
- * @returns {Promise<{user: import('firebase-admin/auth').UserRecord | null}>}
- */
 export async function getCurrentUser() {
-  await initializeAdminApp();
-  const sessionCookie = cookies().get('__session')?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('__session')?.value;
 
   if (!sessionCookie) {
     return { user: null };
   }
 
   try {
-    const decodedIdToken = await getAuth().verifySessionCookie(sessionCookie, true);
-    const user = await getAuth().getUser(decodedIdToken.uid);
+    const decodedIdToken = await getAdminAuth().verifySessionCookie(sessionCookie, true);
+    const user = await getAdminAuth().getUser(decodedIdToken.uid);
     return { user };
   } catch (error) {
     console.error('Error verifying session cookie:', error);
-    // Clear the invalid cookie
-    cookies().set('__session', '', { maxAge: 0 });
+    cookieStore.set('__session', '', { maxAge: 0 });
     return { user: null };
   }
 }

@@ -1,19 +1,19 @@
-import admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
-// This is a singleton to ensure we only initialize the admin app once.
-let app: admin.app.App | null = null;
+function getAdminApp() {
+  if (getApps().length > 0) return getApps()[0];
+  // On Firebase App Hosting, Application Default Credentials are injected automatically.
+  // For local dev: run `gcloud auth application-default login` or set GOOGLE_APPLICATION_CREDENTIALS.
+  return initializeApp();
+}
 
-export async function initializeAdminApp() {
-  if (app) {
-    return app;
-  }
+// Lazy getters — nothing runs at module load time, only when first called
+export function getAdminDb() {
+  return getFirestore(getAdminApp());
+}
 
-  // These environment variables are automatically set by Firebase App Hosting.
-  const credential = admin.credential.applicationDefault();
-
-  app = admin.initializeApp({
-    credential,
-  });
-
-  return app;
+export function getAdminAuth() {
+  return getAuth(getAdminApp());
 }
