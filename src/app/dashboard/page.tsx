@@ -78,6 +78,14 @@ export default function DashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [tripToDelete, setTripToDelete] = React.useState<string | null>(null);
+  const [greeting, setGreeting] = React.useState('Bonjour');
+
+  React.useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Bonjour');
+    else if (hour < 18) setGreeting('Bon après-midi');
+    else setGreeting('Bonsoir');
+  }, []);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -200,14 +208,6 @@ export default function DashboardPage() {
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   }
-
-  const [greeting, setGreeting] = React.useState('Bonjour');
-  React.useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Bonjour');
-    else if (hour < 18) setGreeting('Bon après-midi');
-    else setGreeting('Bonsoir');
-  }, []);
 
   return (
     <>
