@@ -7,10 +7,11 @@ import { fr } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
+import {
   Calendar as CalendarIcon, Users, Clock, DollarSign, Plus,
   Luggage, Briefcase, Dog, CigaretteOff, Landmark, Banknote
 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -399,6 +400,20 @@ export default function PostTripPage() {
     return null;
   })();
   const suggestedMaxPrice = distanceKm ? Math.min(200, Math.max(3, Math.round(distanceKm * 0.20))) : null;
+  const hardCap = suggestedMaxPrice !== null ? Math.min(200, suggestedMaxPrice + 25) : 200;
+  const currentPrice = Number(tripForm.watch('price')) || 0;
+
+  useEffect(() => {
+    if (currentPrice > hardCap) {
+      tripForm.setError('price', {
+        type: 'manual',
+        message: `Prix trop élevé. Maximum autorisé : ${hardCap} $ (recommandé ${suggestedMaxPrice} $ + marge 25 $).`,
+      });
+    } else {
+      tripForm.clearErrors('price');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPrice, hardCap]);
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -551,16 +566,32 @@ export default function PostTripPage() {
                                 name="price"
                                 render={({ field }) => (
                                 <FormItem className="grid gap-2">
-                                    <FormLabel>Prix par place</FormLabel>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <FormControl>
-                                            <Input type="number" placeholder="ex: 25" className="pl-10 h-11" min="0" max="200" {...field} />
-                                        </FormControl>
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel>Prix par place</FormLabel>
+                                        <span className="flex items-center gap-1 text-2xl font-bold text-primary tabular-nums">
+                                            <DollarSign className="h-5 w-5" />{Math.min(currentPrice, hardCap)}
+                                        </span>
                                     </div>
-                                    {suggestedMaxPrice && (
+                                    <FormControl>
+                                        <Slider
+                                            min={0}
+                                            max={hardCap}
+                                            step={1}
+                                            value={[Math.min(currentPrice, hardCap)]}
+                                            onValueChange={(vals) => field.onChange(vals[0])}
+                                            className="my-1"
+                                        />
+                                    </FormControl>
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>0 $</span>
+                                        {suggestedMaxPrice && (
+                                            <span className="font-medium text-primary">Recommandé : {suggestedMaxPrice} $</span>
+                                        )}
+                                        <span>Max : {hardCap} $</span>
+                                    </div>
+                                    {distanceKm && (
                                         <p className="text-xs text-muted-foreground">
-                                            Trajet ~{distanceKm} km — prix maximum recommandé : <span className="font-medium text-foreground">{suggestedMaxPrice} $</span>
+                                            Trajet ~{distanceKm} km — maximum autorisé : <span className="font-medium text-foreground">{hardCap} $</span>
                                         </p>
                                     )}
                                     <FormMessage />
