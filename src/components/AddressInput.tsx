@@ -91,9 +91,10 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
         <div
           key={place_id}
           onClick={handleSelect(suggestion)}
-          className="p-2 hover:bg-accent cursor-pointer rounded-md"
+          className="p-2 hover:bg-accent cursor-pointer rounded-md overflow-hidden"
         >
-          <strong>{main_text}</strong> <small>{secondary_text}</small>
+          <p className="truncate text-sm font-medium">{main_text}</p>
+          <p className="truncate text-xs text-muted-foreground">{secondary_text}</p>
         </div>
       );
     });
@@ -106,14 +107,14 @@ function AddressInputCore({ id, placeholder, defaultValue, onAddressSelect }: Ad
         name={id}
         type="text"
         placeholder={placeholder}
-        className="pl-10 h-12 text-base"
+        className="pl-10 h-12 text-base truncate"
         value={value}
         onChange={handleInput}
         disabled={!ready}
         autoComplete="off"
       />
       {status === 'OK' && (
-        <div className="absolute z-10 w-full mt-1 p-1 bg-card border rounded-md shadow-lg">
+        <div className="absolute z-10 w-full mt-1 p-1 bg-card border rounded-md shadow-lg max-h-52 overflow-y-auto">
           {renderSuggestions()}
         </div>
       )}

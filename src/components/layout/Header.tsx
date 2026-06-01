@@ -120,8 +120,8 @@ export function Header() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-sm font-medium leading-none truncate max-w-[200px]">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate max-w-[200px]">
                         {user.email}
                     </p>
                     </div>
@@ -188,6 +188,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
+        {/* Logo always visible on mobile, full nav on desktop */}
+        <Link href="/" className="mr-4 flex items-center space-x-2 md:hidden">
+          <Logo className="h-6 w-6 text-primary" />
+        </Link>
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-6 w-6 text-primary" />
@@ -198,7 +202,7 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                className="transition-colors hover:text-foreground text-foreground/80 whitespace-nowrap"
               >
                 {link.label}
               </Link>
@@ -206,7 +210,7 @@ export function Header() {
             {user && userRole === 'transporteur' && (
                <Link
                 href="/post-trip"
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                className="transition-colors hover:text-foreground text-foreground/80 whitespace-nowrap"
               >
                 Proposer un trajet
               </Link>
@@ -214,7 +218,7 @@ export function Header() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                className="transition-colors hover:text-foreground text-foreground/80 whitespace-nowrap"
               >
                 Admin
               </Link>

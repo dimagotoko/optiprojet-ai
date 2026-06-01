@@ -36,26 +36,27 @@ export function TripCard({ id, from, to, date, price, onLocationClick }: TripCar
   };
 
   const LocationButton = ({ value, type }: { value: string, type: 'departure' | 'destination' }) => (
-    <Button 
-      variant="link" 
-      className="p-0 h-auto text-lg font-semibold text-card-foreground hover:text-primary transition-colors"
+    <Button
+      variant="link"
+      className="p-0 h-auto text-sm font-semibold text-card-foreground hover:text-primary transition-colors min-w-0 max-w-[42%]"
       onClick={() => handleLocationClick(type, value)}
       disabled={!onLocationClick}
+      title={value}
     >
-      {value}
+      <span className="truncate block">{value}</span>
     </Button>
   );
 
   return (
-    <Card className="flex flex-col h-full transition-all hover:shadow-lg hover:-translate-y-1 overflow-hidden">
+    <Card className="flex flex-col h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 overflow-hidden">
       <CardHeader className="p-4 relative">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-lg font-semibold flex-wrap">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-1 font-semibold min-w-0 flex-1">
             <LocationButton value={from} type="departure" />
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             <LocationButton value={to} type="destination" />
           </div>
-          <Badge variant="secondary" className="text-base font-bold shrink-0">{price}</Badge>
+          <Badge variant="secondary" className="text-sm font-bold shrink-0">{price}</Badge>
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-4 pt-0 space-y-4">
