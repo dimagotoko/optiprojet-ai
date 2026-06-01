@@ -134,14 +134,36 @@ export default function Home() {
             </div>
           </div>
           <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-4 lg:max-w-none mt-12">
-            {howItWorks.map((step) => (
+            {howItWorks.map((step, index) => (
               <div key={step.title} className="grid gap-4 text-center">
-                <div className="flex justify-center items-center">{step.icon}</div>
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                    Étape {index + 1}
+                  </span>
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+                    {step.icon}
+                  </div>
+                </div>
                 <h3 className="text-lg font-bold">{step.title}</h3>
                 <p className="text-sm text-muted-foreground">{step.description}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* CTA for drivers */}
+      <section className="w-full py-12 md:py-20 bg-primary text-primary-foreground">
+        <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Vous conduisez ? Rentabilisez vos trajets.</h2>
+            <p className="mt-2 text-primary-foreground/80 max-w-xl">
+              Proposez vos trajets, partagez les frais et voyagez accompagné. Inscription gratuite.
+            </p>
+          </div>
+          <Button asChild size="lg" variant="secondary" className="shrink-0">
+            <Link href="/signup">Devenir conducteur <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          </Button>
         </div>
       </section>
 

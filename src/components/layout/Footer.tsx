@@ -3,25 +3,20 @@ import { Logo } from '@/components/Logo';
 
 export function Footer() {
   return (
-    <footer className="w-full border-t">
-      <div className="container grid items-center gap-8 pb-8 pt-6 md:py-8">
+    <footer className="w-full border-t bg-background">
+      <div className="container px-4 md:px-6 py-6 md:py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Logo className="h-6 w-6 text-primary" />
-            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-              © {new Date().getFullYear()} OptiTrajet AI. Tous droits réservés.
-            </p>
-          </div>
-          <nav className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/terms" className="hover:text-foreground">
-              Conditions
-            </Link>
-            <Link href="/privacy" className="hover:text-foreground">
-              Confidentialité
-            </Link>
-            <Link href="/contact" className="hover:text-foreground">
-              Contact
-            </Link>
+            <span className="text-sm font-semibold">OptiTrajet AI</span>
+          </Link>
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} OptiTrajet AI. Tous droits réservés.
+          </p>
+          <nav className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link href="/trips" className="hover:text-foreground transition-colors">Trajets</Link>
+            <Link href="/signup" className="hover:text-foreground transition-colors">S'inscrire</Link>
+            <Link href="/#comment-ca-marche" className="hover:text-foreground transition-colors">À propos</Link>
           </nav>
         </div>
       </div>

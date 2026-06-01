@@ -201,6 +201,13 @@ export default function DashboardPage() {
     return name.split(' ').map(n => n[0]).join('');
   }
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  };
+
   return (
     <>
       <div className="container py-12 px-4 md:px-6">
@@ -219,9 +226,15 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="text-center">
                 <div className="flex justify-center items-center gap-1 text-lg">
-                  <Star className="w-5 h-5 fill-primary text-primary" />
-                  <span className="font-bold">{userData?.averageRating?.toFixed(1) || 'N/A'}</span>
-                  <span className="text-muted-foreground">({userData?.totalRatings || 0} avis)</span>
+                  {userData?.totalRatings && userData.totalRatings > 0 ? (
+                    <>
+                      <Star className="w-5 h-5 fill-primary text-primary" />
+                      <span className="font-bold">{userData.averageRating?.toFixed(1)}</span>
+                      <span className="text-muted-foreground text-sm">({userData.totalRatings} avis)</span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">Pas encore noté</span>
+                  )}
                 </div>
                 <Button asChild className="mt-6 w-full">
                   <Link href="/profile">Modifier le profil</Link>
@@ -231,7 +244,7 @@ export default function DashboardPage() {
           </div>
           <div className="md:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight mb-8">
-              Bonjour, {userData?.name?.split(' ')[0] || user?.displayName?.split(' ')[0]} !
+              {getGreeting()}, {userData?.name?.split(' ')[0] || user?.displayName?.split(' ')[0]} ! 👋
             </h1>
             {isTripsLoading ? (
               <div className="flex items-center justify-center pt-10">

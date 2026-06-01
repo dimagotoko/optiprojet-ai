@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dog, CigaretteOff, Luggage } from 'lucide-react';
+import Link from 'next/link';
 import { Slider } from '@/components/ui/slider';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -189,17 +190,22 @@ function TripsPageContent() {
 
     if(!allTrips || allTrips.length === 0) {
         return (
-             <div className="text-center py-10 border border-dashed rounded-lg">
-                <p className="text-lg text-muted-foreground">Aucun trajet n'est actuellement programmé.</p>
-                <p className="text-sm text-muted-foreground mt-2">Revenez bientôt ou proposez un trajet si vous êtes conducteur.</p>
+            <div className="text-center py-16 border border-dashed rounded-xl space-y-4">
+                <p className="text-4xl">🚗</p>
+                <p className="text-lg font-semibold">Aucun trajet disponible pour le moment.</p>
+                <p className="text-sm text-muted-foreground">Soyez le premier à proposer un trajet et aidez la communauté à voyager !</p>
+                <Button asChild className="mt-2">
+                    <Link href="/post-trip">Proposer un trajet</Link>
+                </Button>
             </div>
         )
     }
 
     return (
-      <div className="text-center py-10 border border-dashed rounded-lg">
-        <p className="text-lg text-muted-foreground">Aucun trajet trouvé pour ces critères.</p>
-        <p className="text-sm text-muted-foreground mt-2">Essayez de modifier votre recherche ou vos filtres.</p>
+      <div className="text-center py-16 border border-dashed rounded-xl space-y-3">
+        <p className="text-3xl">🔍</p>
+        <p className="text-lg font-semibold">Aucun trajet pour ces critères.</p>
+        <p className="text-sm text-muted-foreground">Essayez de modifier votre recherche ou de supprimer certains filtres.</p>
       </div>
     );
   };
@@ -232,11 +238,11 @@ function TripsPageContent() {
                {/* Heure de départ */}
               <div className="space-y-2">
                 <Label>Heure de départ</Label>
-                <div className="flex gap-2">
-                    <Button variant={departureTime === 'all' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('all')}>Tous</Button>
-                    <Button variant={departureTime === 'morning' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('morning')}>Matin</Button>
-                    <Button variant={departureTime === 'afternoon' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('afternoon')}>Après-midi</Button>
-                    <Button variant={departureTime === 'evening' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('evening')}>Soir</Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant={departureTime === 'all' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('all')}>Tous</Button>
+                    <Button size="sm" variant={departureTime === 'morning' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('morning')}>🌅 Matin</Button>
+                    <Button size="sm" variant={departureTime === 'afternoon' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('afternoon')}>☀️ Après-midi</Button>
+                    <Button size="sm" variant={departureTime === 'evening' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('evening')}>🌙 Soir</Button>
                 </div>
               </div>
               {/* Prix */}
