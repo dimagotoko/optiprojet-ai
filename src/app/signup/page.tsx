@@ -29,6 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/Logo';
+import { Eye, EyeOff } from 'lucide-react';
 import React from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
 
@@ -57,12 +58,27 @@ const formSchema = z
 
 type SignupFormValues = z.infer<typeof formSchema>;
 
+function passwordStrength(pwd: string): { score: number; label: string; color: string } {
+  if (!pwd) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (pwd.length >= 8) score++;
+  if (/[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+  if (score <= 1) return { score, label: 'Faible', color: 'bg-red-500' };
+  if (score === 2) return { score, label: 'Moyen', color: 'bg-orange-400' };
+  if (score === 3) return { score, label: 'Fort', color: 'bg-yellow-400' };
+  return { score, label: 'Très fort', color: 'bg-green-500' };
+}
+
 function SignupPageInternal() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const emailFromQuery = searchParams.get('email') || '';
 
@@ -85,6 +101,9 @@ function SignupPageInternal() {
   const {
     formState: { isSubmitting, isValid },
   } = form;
+
+  const passwordValue = form.watch('password') ?? '';
+  const strength = passwordStrength(passwordValue);
 
   const onSubmit = async (values: SignupFormValues) => {
     if (!auth || !firestore) return;
@@ -226,8 +245,34 @@ function SignupPageInternal() {
                     <FormItem>
                       <FormLabel>Mot de passe</FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} autoComplete="new-password" />
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            className="pr-10"
+                            {...field}
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setShowPassword(v => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </FormControl>
+                      {passwordValue && (
+                        <div className="mt-1 space-y-1">
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4].map(i => (
+                              <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : 'bg-muted'}`} />
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{strength.label}</p>
+                        </div>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -239,7 +284,23 @@ function SignupPageInternal() {
                     <FormItem>
                       <FormLabel>Confirmer le mot de passe</FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} autoComplete="new-password"/>
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            className="pr-10"
+                            {...field}
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setShowConfirmPassword(v => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
