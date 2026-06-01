@@ -7,8 +7,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
-
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -25,6 +23,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useAuth, useUser } from '@/firebase';
@@ -40,9 +47,9 @@ type LoginFormValues = z.infer<typeof formSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const [loginError, setLoginError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // Redirect to dashboard if user is already logged in
@@ -68,35 +75,30 @@ export default function LoginPage() {
     if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Connexion réussie',
-        description: "Vous allez être redirigé vers votre tableau de bord.",
-      });
-      // Use window.location.href for a full page reload to ensure all states (like Header) are reset
       window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Login error:', error.code, error.message);
 
-      let description: string;
+      let message: string;
       switch (error.code) {
         case 'auth/invalid-credential':
         case 'auth/wrong-password':
         case 'auth/user-not-found':
-          description = "Email ou mot de passe incorrect.";
+          message = "Email ou mot de passe incorrect.";
           break;
         case 'auth/invalid-email':
-          description = "L'adresse email est invalide.";
+          message = "L'adresse email est invalide.";
           break;
         case 'auth/user-disabled':
-          description = "Ce compte a été désactivé. Contactez le support.";
+          message = "Ce compte a été désactivé. Contactez le support.";
           break;
         case 'auth/too-many-requests':
-          description = "Trop de tentatives échouées. Réessayez dans quelques minutes.";
+          message = "Trop de tentatives échouées. Réessayez dans quelques minutes.";
           break;
         default:
-          description = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
+          message = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
       }
-      toast({ variant: 'destructive', title: 'Erreur de connexion', description });
+      setLoginError(message);
     }
   };
   
@@ -189,6 +191,18 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!loginError} onOpenChange={(open) => { if (!open) setLoginError(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Erreur de connexion</AlertDialogTitle>
+            <AlertDialogDescription>{loginError}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setLoginError(null)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </>
   );
