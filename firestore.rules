@@ -105,7 +105,7 @@ service cloud.firestore {
         function isValidTrip() {
           let d = request.resource.data;
           return d.offeredBy == request.auth.uid
-            && d.pricePerSeat is number && d.pricePerSeat >= 0 && d.pricePerSeat <= 9999
+            && d.pricePerSeat is number && d.pricePerSeat >= 0 && d.pricePerSeat <= 200
             && d.availableSeats is int && d.availableSeats >= 1 && d.availableSeats <= 8
             && d.origin is string && d.origin.size() > 0 && d.origin.size() <= 300
             && d.destination is string && d.destination.size() > 0 && d.destination.size() <= 300

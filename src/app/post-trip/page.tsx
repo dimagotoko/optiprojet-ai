@@ -94,7 +94,7 @@ const tripSchema = z.object({
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
     seats: z.coerce.number().min(1, 'Il doit y avoir au moins une place.'),
-    price: z.coerce.number().min(0, 'Le prix doit être positif.'),
+    price: z.coerce.number().min(0, 'Le prix doit être positif.').max(200, 'Le prix maximum par place est de 200 $.'),
     vehicleId: z.string().min(1, 'Veuillez sélectionner un véhicule.'),
     options: z.object({
         allowLargeBags: z.boolean(),
@@ -120,6 +120,15 @@ const tripSchema = z.object({
     path: ['arrivalTime'],
 });
 
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
 type TripFormValues = z.infer<typeof tripSchema>;
@@ -379,6 +388,18 @@ export default function PostTripPage() {
   
   const selectedVehicle = vehicles?.find(v => v.id === tripForm.watch('vehicleId'));
 
+  const watchedDeparture = tripForm.watch('departure');
+  const watchedDestination = tripForm.watch('destination');
+  const distanceKm = (() => {
+    const depCoords = watchedDeparture?.coords;
+    const destCoords = watchedDestination?.coords;
+    if (depCoords && destCoords && (depCoords.lat !== destCoords.lat || depCoords.lng !== destCoords.lng)) {
+      return Math.round(haversineKm(depCoords.lat, depCoords.lng, destCoords.lat, destCoords.lng));
+    }
+    return null;
+  })();
+  const suggestedMaxPrice = distanceKm ? Math.min(200, Math.max(3, Math.round(distanceKm * 0.20))) : null;
+
   return (
     <div className="container py-12 px-4 md:px-6">
     <Form {...tripForm}>
@@ -534,9 +555,14 @@ export default function PostTripPage() {
                                     <div className="relative">
                                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <FormControl>
-                                            <Input type="number" placeholder="ex: 25" className="pl-10 h-11" min="0" {...field} />
+                                            <Input type="number" placeholder="ex: 25" className="pl-10 h-11" min="0" max="200" {...field} />
                                         </FormControl>
                                     </div>
+                                    {suggestedMaxPrice && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Trajet ~{distanceKm} km — prix maximum recommandé : <span className="font-medium text-foreground">{suggestedMaxPrice} $</span>
+                                        </p>
+                                    )}
                                     <FormMessage />
                                 </FormItem>
                                 )}
