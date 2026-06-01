@@ -153,15 +153,15 @@ export default function Home() {
       </section>
 
       {/* CTA for drivers */}
-      <section className="w-full py-12 md:py-20 bg-primary text-primary-foreground">
+      <section className="w-full py-12 md:py-20 bg-secondary/50 border-y border-border">
         <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Vous conduisez ? Rentabilisez vos trajets.</h2>
-            <p className="mt-2 text-primary-foreground/80 max-w-xl">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Vous conduisez ? Rentabilisez vos trajets.</h2>
+            <p className="mt-2 text-muted-foreground max-w-xl">
               Proposez vos trajets, partagez les frais et voyagez accompagné. Inscription gratuite.
             </p>
           </div>
-          <Button asChild size="lg" variant="secondary" className="shrink-0">
+          <Button asChild size="lg" className="shrink-0">
             <Link href="/signup">Devenir conducteur <ArrowRight className="ml-2 h-4 w-4" /></Link>
           </Button>
         </div>
