@@ -25,16 +25,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useAuth, useUser } from '@/firebase';
@@ -53,8 +43,6 @@ export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const [showCreateAccountDialog, setShowCreateAccountDialog] = React.useState(false);
-  const [emailForSignup, setEmailForSignup] = React.useState('');
 
   React.useEffect(() => {
     // Redirect to dashboard if user is already logged in
@@ -88,17 +76,27 @@ export default function LoginPage() {
       window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Login error:', error.code, error.message);
-      
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        setEmailForSignup(values.email);
-        setShowCreateAccountDialog(true);
-      } else {
-        toast({
-            variant: 'destructive',
-            title: 'Erreur de connexion',
-            description: "Une erreur est survenue lors de la connexion. Veuillez réessayer.",
-        });
+
+      let description: string;
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/wrong-password':
+        case 'auth/user-not-found':
+          description = "Email ou mot de passe incorrect.";
+          break;
+        case 'auth/invalid-email':
+          description = "L'adresse email est invalide.";
+          break;
+        case 'auth/user-disabled':
+          description = "Ce compte a été désactivé. Contactez le support.";
+          break;
+        case 'auth/too-many-requests':
+          description = "Trop de tentatives échouées. Réessayez dans quelques minutes.";
+          break;
+        default:
+          description = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
       }
+      toast({ variant: 'destructive', title: 'Erreur de connexion', description });
     }
   };
   
@@ -192,23 +190,6 @@ export default function LoginPage() {
         </Card>
       </div>
 
-      <AlertDialog open={showCreateAccountDialog} onOpenChange={setShowCreateAccountDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Compte non trouvé</AlertDialogTitle>
-            <AlertDialogDescription>
-              Aucun compte n'est associé à l'adresse e-mail <strong>{emailForSignup}</strong>. 
-              Voulez-vous créer un nouveau compte ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction asChild>
-                <Link href={`/signup?email=${encodeURIComponent(emailForSignup)}`}>Créer un compte</Link>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
