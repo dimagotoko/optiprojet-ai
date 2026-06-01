@@ -201,12 +201,13 @@ export default function DashboardPage() {
     return name.split(' ').map(n => n[0]).join('');
   }
 
-  const getGreeting = () => {
+  const [greeting, setGreeting] = React.useState('Bonjour');
+  React.useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon après-midi';
-    return 'Bonsoir';
-  };
+    if (hour < 12) setGreeting('Bonjour');
+    else if (hour < 18) setGreeting('Bon après-midi');
+    else setGreeting('Bonsoir');
+  }, []);
 
   return (
     <>
@@ -244,7 +245,7 @@ export default function DashboardPage() {
           </div>
           <div className="md:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight mb-8">
-              {getGreeting()}, {userData?.name?.split(' ')[0] || user?.displayName?.split(' ')[0]} ! 👋
+              {greeting}, {userData?.name?.split(' ')[0] || user?.displayName?.split(' ')[0]} ! 👋
             </h1>
             {isTripsLoading ? (
               <div className="flex items-center justify-center pt-10">

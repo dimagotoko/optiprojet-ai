@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dog, CigaretteOff, Luggage } from 'lucide-react';
+import { Dog, CigaretteOff, Luggage, Sunrise, Sun, Sunset } from 'lucide-react';
 import Link from 'next/link';
 import { Slider } from '@/components/ui/slider';
 import { buttonVariants } from '@/components/ui/button';
@@ -239,10 +239,18 @@ function TripsPageContent() {
               <div className="space-y-2">
                 <Label>Heure de départ</Label>
                 <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant={departureTime === 'all' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('all')}>Tous</Button>
-                    <Button size="sm" variant={departureTime === 'morning' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('morning')}>🌅 Matin</Button>
-                    <Button size="sm" variant={departureTime === 'afternoon' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('afternoon')}>☀️ Après-midi</Button>
-                    <Button size="sm" variant={departureTime === 'evening' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('evening')}>🌙 Soir</Button>
+                    <Button size="sm" variant={departureTime === 'all' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('all')} aria-label="Toutes les heures">
+                        Tous
+                    </Button>
+                    <Button size="sm" variant={departureTime === 'morning' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('morning')} aria-label="Filtrer : Matin (6h–12h)" className="flex items-center gap-2">
+                        <Sunrise className="h-4 w-4" /> Matin
+                    </Button>
+                    <Button size="sm" variant={departureTime === 'afternoon' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('afternoon')} aria-label="Filtrer : Après-midi (12h–18h)" className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" /> Après-midi
+                    </Button>
+                    <Button size="sm" variant={departureTime === 'evening' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('evening')} aria-label="Filtrer : Soir (18h+)" className="flex items-center gap-2">
+                        <Sunset className="h-4 w-4" /> Soir
+                    </Button>
                 </div>
               </div>
               {/* Prix */}
