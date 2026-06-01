@@ -63,7 +63,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -136,6 +136,9 @@ export default function PostTripPage() {
   const [showReturnTripDialog, setShowReturnTripDialog] = useState(false);
   const [showFinalConfirmationDialog, setShowFinalConfirmationDialog] = useState(false);
   const [submittedTripData, setSubmittedTripData] = useState<TripFormValues | null>(null);
+  const [showDuplicateTripError, setShowDuplicateTripError] = useState(false);
+  const [showHighTripCountWarning, setShowHighTripCountWarning] = useState(false);
+  const [existingTripCount, setExistingTripCount] = useState(0);
 
   // Fetch user's vehicles
   const vehiclesQuery = useMemoFirebase(() => {
@@ -230,9 +233,9 @@ export default function PostTripPage() {
     setShowConfirmationDialog(true);
   };
   
-  const handleConfirmAndPublish = async () => {
+  // Writes the trip to Firestore — called after all checks pass.
+  const doPublish = async () => {
     if (!submittedTripData || !firestore || !user || !submittedTripData.departure || !submittedTripData.destination) return;
-
     try {
         const { date, time, arrivalTime } = submittedTripData;
 
@@ -279,11 +282,10 @@ export default function PostTripPage() {
         
         setShowConfirmationDialog(false);
 
-        // Check if this was a return trip
         if (searchParams.has('return')) {
             setShowFinalConfirmationDialog(true);
         } else {
-            setShowReturnTripDialog(true); // Show the next dialog to propose a return trip
+            setShowReturnTripDialog(true);
         }
 
     } catch (error) {
@@ -297,7 +299,58 @@ export default function PostTripPage() {
         setSubmittedTripData(null);
     }
   };
-  
+
+  const handleConfirmAndPublish = async () => {
+    if (!submittedTripData || !firestore || !user) return;
+
+    try {
+        const targetDate = format(submittedTripData.date, 'yyyy-MM-dd');
+
+        // Fetch all trips by this driver (client-side filter, no composite index needed)
+        const snapshot = await getDocs(
+            query(collection(firestore, 'trips'), where('offeredBy', '==', user.uid))
+        );
+
+        const sameDayTrips = snapshot.docs.filter(doc => {
+            const d = doc.data();
+            if (!d.departureTime) return false;
+            return format(d.departureTime.toDate(), 'yyyy-MM-dd') === targetDate;
+        });
+
+        // Level 1 — hard block: exact duplicate (same origin + destination + date)
+        const isDuplicate = sameDayTrips.some(doc => {
+            const d = doc.data();
+            return d.origin === submittedTripData.departure.description &&
+                   d.destination === submittedTripData.destination.description;
+        });
+
+        if (isDuplicate) {
+            setShowConfirmationDialog(false);
+            setShowDuplicateTripError(true);
+            return;
+        }
+
+        // Level 2 — soft warning: already 2+ trips this day (driving load)
+        if (sameDayTrips.length >= 2) {
+            setExistingTripCount(sameDayTrips.length);
+            setShowConfirmationDialog(false);
+            setShowHighTripCountWarning(true);
+            return;
+        }
+
+        await doPublish();
+    } catch (error) {
+        console.error("Error checking duplicates: ", error);
+        toast({ variant: 'destructive', title: "Erreur", description: "Impossible de vérifier les trajets existants." });
+    }
+  };
+
+  // Called when driver acknowledges the trip-count warning and wants to publish anyway.
+  const handleForcePublish = async () => {
+    setShowHighTripCountWarning(false);
+    await doPublish();
+  };
+
   const handleProposeReturnTrip = () => {
     if (!submittedTripData) return;
     const returnTripData = {
@@ -737,6 +790,37 @@ export default function PostTripPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogAction onClick={() => router.push('/dashboard')}>Aller au tableau de bord</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Hard block: exact duplicate trip */}
+    <AlertDialog open={showDuplicateTripError} onOpenChange={setShowDuplicateTripError}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Trajet déjà publié</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Vous avez déjà publié ce trajet ({submittedTripData?.departure?.description} → {submittedTripData?.destination?.description}) pour cette date. La publication a été annulée.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setShowDuplicateTripError(false)}>Compris</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Soft warning: already 2+ trips on this day */}
+    <AlertDialog open={showHighTripCountWarning} onOpenChange={setShowHighTripCountWarning}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Journée chargée</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Vous avez déjà {existingTripCount} trajet{existingTripCount > 1 ? 's' : ''} prévu{existingTripCount > 1 ? 's' : ''} ce jour-là. Pensez à votre sécurité et à la limite de conduite journalière recommandée. Souhaitez-vous quand même publier ce trajet ?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setShowHighTripCountWarning(false)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={handleForcePublish}>Publier quand même</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
