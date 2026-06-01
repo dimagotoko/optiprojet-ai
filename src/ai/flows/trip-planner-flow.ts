@@ -1,21 +1,17 @@
-
 'use server';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { firebaseConfig } from '@/firebase/config';
+import { getAi } from '@/ai/genkit';
 
-const TripPlanInputSchema = z.string().describe('A natural language query from a user looking for a carpool ride.');
-const TripPlanOutputSchema = z.object({
-    departure: z.string().optional().describe('The starting location or city for the trip.'),
-    destination: z.string().optional().describe('The ending location or city for the trip.'),
-    date: z.string().optional().describe("The desired date for the trip. Should be in YYYY-MM-DD format. Determine the date based on the current date, which is {{request.time}}"),
-    isComplete: z.boolean().describe('Set to true if both departure and destination are extracted. Otherwise, set to false.'),
-    missingInfo: z.enum(['departure', 'destination', 'date', 'none']).describe('If isComplete is false, specify which piece of information is missing. If the query is ambiguous, ask for both departure and destination.'),
-});
-
-export type TripPlanInput = z.infer<typeof TripPlanInputSchema>;
-export type TripPlanOutput = z.infer<typeof TripPlanOutputSchema>;
+// Pure TypeScript types — no genkit import at module level
+export type TripPlanInput = string;
+export type TripPlanOutput = {
+  departure?: string;
+  destination?: string;
+  date?: string;
+  isComplete: boolean;
+  missingInfo: 'departure' | 'destination' | 'date' | 'none';
+};
 
 // Verifies a Firebase ID token via Google's REST API — no firebase-admin needed.
 async function verifyFirebaseIdToken(idToken: string): Promise<boolean> {
@@ -34,12 +30,33 @@ async function verifyFirebaseIdToken(idToken: string): Promise<boolean> {
   }
 }
 
-const prompt = ai.definePrompt(
-  {
-    name: 'tripPlanPrompt',
-    input: { schema: TripPlanInputSchema },
-    output: { schema: TripPlanOutputSchema },
-    prompt: `You are an expert at parsing user requests for carpooling. Your goal is to extract the departure location, destination location, and date from the user's query.
+// Lazy singleton — prompt and flow are created only on the first real AI call,
+// not at module load time.
+let _planTripFlow: ((query: string) => Promise<TripPlanOutput>) | null = null;
+
+function getPlanTripFlow(): (query: string) => Promise<TripPlanOutput> {
+  if (_planTripFlow) return _planTripFlow;
+
+  const ai = getAi();
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { z } = require('genkit') as typeof import('genkit');
+
+  const outputSchema = z.object({
+    departure: z.string().optional().describe('The starting location or city for the trip.'),
+    destination: z.string().optional().describe('The ending location or city for the trip.'),
+    date: z.string().optional().describe('The desired date for the trip in YYYY-MM-DD format.'),
+    isComplete: z.boolean().describe('Set to true if both departure and destination are extracted.'),
+    missingInfo: z
+      .enum(['departure', 'destination', 'date', 'none'])
+      .describe('Which piece of information is missing, if any.'),
+  });
+
+  const prompt = ai.definePrompt(
+    {
+      name: 'tripPlanPrompt',
+      input: { schema: z.string().describe('A natural language query from a user looking for a carpool ride.') },
+      output: { schema: outputSchema },
+      prompt: `You are an expert at parsing user requests for carpooling. Your goal is to extract the departure location, destination location, and date from the user's query.
 
     The user's query is in French. All extracted locations should be in Canada, likely in Québec.
 
@@ -55,25 +72,28 @@ const prompt = ai.definePrompt(
     - User query: "je cherche un trajet pour laval" -> departure: undefined, destination: "Laval", isComplete: false, missingInfo: 'departure'
     - User query: "un voyage partant de Brossard" -> departure: "Brossard", destination: undefined, isComplete: false, missingInfo: 'destination'
     `,
-  }
-);
+    }
+  );
 
-const planTripFlow = ai.defineFlow(
-  {
-    name: 'planTripFlow',
-    inputSchema: TripPlanInputSchema,
-    outputSchema: TripPlanOutputSchema,
-  },
-  async (query) => {
-    const { output } = await prompt(query);
-    return output!;
-  }
-);
+  _planTripFlow = ai.defineFlow(
+    {
+      name: 'planTripFlow',
+      inputSchema: z.string().describe('A natural language query from a user looking for a carpool ride.'),
+      outputSchema: outputSchema,
+    },
+    async (query) => {
+      const { output } = await prompt(query);
+      return output!;
+    }
+  ) as (query: string) => Promise<TripPlanOutput>;
+
+  return _planTripFlow;
+}
 
 export async function planTrip(query: TripPlanInput, idToken: string): Promise<TripPlanOutput> {
   const isAuthenticated = await verifyFirebaseIdToken(idToken);
   if (!isAuthenticated) {
     throw new Error('Authentication required.');
   }
-  return planTripFlow(query);
+  return getPlanTripFlow()(query);
 }
