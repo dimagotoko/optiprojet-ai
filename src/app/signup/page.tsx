@@ -45,7 +45,9 @@ const formSchema = z
       .min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
     confirmPassword: z.string(),
     city: z.string().min(1, { message: 'La ville est requise.' }),
-    postalCode: z.string().min(1, { message: 'Le code postal est requis.' }),
+    postalCode: z.string()
+      .min(1, { message: 'Le code postal est requis.' })
+      .regex(/^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/, { message: 'Format invalide. Exemple : H3A 0G4' }),
     profilePictureUrl: z.string().url({ message: "Veuillez entrer une URL valide." }).optional().or(z.literal('')),
     userType: z.enum(['voyageur', 'transporteur'], {
       required_error: 'Veuillez sélectionner un type de compte.',
@@ -327,7 +329,18 @@ function SignupPageInternal() {
                       <FormItem>
                         <FormLabel>Code Postal</FormLabel>
                         <FormControl>
-                          <Input placeholder="H3A 0G4" {...field} />
+                          <Input
+                            placeholder="H3A 0G4"
+                            maxLength={7}
+                            {...field}
+                            onChange={(e) => {
+                              const raw = e.target.value.toUpperCase().replace(/\s/g, '');
+                              const formatted = raw.length > 3
+                                ? `${raw.slice(0, 3)} ${raw.slice(3, 6)}`
+                                : raw;
+                              field.onChange(formatted);
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
