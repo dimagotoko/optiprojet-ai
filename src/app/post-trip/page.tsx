@@ -379,16 +379,6 @@ export default function PostTripPage() {
   };
 
 
-  if (isUserLoading || !user || vehiclesLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    );
-  }
-  
-  const selectedVehicle = vehicles?.find(v => v.id === tripForm.watch('vehicleId'));
-
   const watchedDeparture = tripForm.watch('departure');
   const watchedDestination = tripForm.watch('destination');
   const distanceKm = (() => {
@@ -414,6 +404,16 @@ export default function PostTripPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPrice, hardCap]);
+
+  if (isUserLoading || !user || vehiclesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <LoadingLogo className="h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+
+  const selectedVehicle = vehicles?.find(v => v.id === tripForm.watch('vehicleId'));
 
   return (
     <div className="container py-12 px-4 md:px-6">
