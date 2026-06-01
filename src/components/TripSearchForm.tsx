@@ -87,12 +87,23 @@ export function TripSearchForm({ initialSearch, onSearch }: TripSearchFormProps)
                   <Button
                     variant={'outline'}
                     className={cn(
-                      'w-full justify-start text-left font-normal h-12 text-base',
+                      'w-full justify-start text-left font-normal h-12 overflow-hidden',
                       !date && 'text-muted-foreground'
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-5 w-5" />
-                    {isValidDate(date) ? format(date, 'd MMM yyyy', { locale: fr }) : <span>Date</span>}
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                    {isValidDate(date) ? (
+                      <div className="flex flex-col items-start leading-none min-w-0">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {format(date, 'EEE', { locale: fr })}
+                        </span>
+                        <span className="text-sm font-semibold truncate">
+                          {format(date, 'd MMM', { locale: fr })}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm">Date</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
