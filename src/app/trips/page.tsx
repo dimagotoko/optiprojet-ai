@@ -6,7 +6,7 @@ import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, Timestamp, query, where, QueryConstraint } from 'firebase/firestore';
-import { LoadingLogo } from '@/components/LoadingLogo';
+import { TripGridSkeleton } from '@/components/skeletons/TripCardSkeleton';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -155,11 +155,7 @@ function TripsPageContent() {
   
   const renderResults = () => {
     if (isLoading) {
-      return (
-        <div className="flex justify-center items-center py-10">
-          <LoadingLogo className="h-10 w-10 text-primary" />
-        </div>
-      );
+      return <TripGridSkeleton count={6} />;
     }
     
     if (resultsToShow.length > 0) {
@@ -295,11 +291,7 @@ function TripsPageContent() {
 
 export default function TripsPage() {
   return (
-    <Suspense fallback={
-        <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-            <LoadingLogo className="h-12 w-12 text-primary" />
-        </div>
-    }>
+    <Suspense fallback={<TripGridSkeleton count={6} />}>
       <TripsPageContent />
     </Suspense>
   )

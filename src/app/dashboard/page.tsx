@@ -21,6 +21,7 @@ import { Star, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -134,11 +135,7 @@ export default function DashboardPage() {
   const isLoading = isUserLoading || (!!user && isUserDocLoading);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
   
   if (!user) return null;

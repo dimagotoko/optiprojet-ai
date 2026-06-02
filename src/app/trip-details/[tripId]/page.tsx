@@ -6,6 +6,7 @@ import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@
 import { doc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { TripDetailSkeleton } from '@/components/skeletons/TripDetailSkeleton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, Banknote } from 'lucide-react';
@@ -174,11 +175,7 @@ function TripDetailsPageContent() {
     }
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-                <LoadingLogo className="h-12 w-12 text-primary" />
-            </div>
-        );
+        return <TripDetailSkeleton />;
     }
     
     if (!trip || !driver) {
@@ -371,11 +368,7 @@ function TripDetailsPageContent() {
 
 export default function TripDetailsPage() {
     return (
-        <React.Suspense fallback={
-            <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-                <LoadingLogo className="h-12 w-12 text-primary" />
-            </div>
-        }>
+        <React.Suspense fallback={<TripDetailSkeleton />}>
             <TripDetailsPageContent />
         </React.Suspense>
     )
