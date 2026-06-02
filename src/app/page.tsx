@@ -8,7 +8,7 @@ import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Users } from 'lucide-rea
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { TripSearchForm } from '@/components/TripSearchForm';
-import { TripCard } from '@/components/TripCard';
+import { RealTripsSection } from '@/components/home/RealTripsSection';
 import { Chatbot } from '@/components/Chatbot';
 import { LiveCounters } from '@/components/home/LiveCounters';
 import { useState } from 'react';
@@ -48,29 +48,6 @@ export default function Home() {
     },
   ];
 
-  const popularTrips = [
-    {
-      id: 'trip-1',
-      from: 'Montréal',
-      to: 'Québec',
-      date: '30 Juil',
-      price: '35$',
-    },
-    {
-      id: 'trip-2',
-      from: 'Longueuil',
-      to: 'Laval',
-      date: '02 Août',
-      price: '15$',
-    },
-    {
-      id: 'trip-3',
-      from: 'Montréal',
-      to: 'Sherbrooke',
-      date: '05 Août',
-      price: '25$',
-    },
-  ];
 
   const handleAiSearch = (search: any) => {
     const newSearch: TripSearch = {};
@@ -180,11 +157,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
-            {popularTrips.map((trip) => (
-              <TripCard key={trip.id} {...trip} />
-            ))}
-          </div>
+          <RealTripsSection />
           <div className="mt-12 text-center">
             <Button asChild size="lg">
               <Link href="/trips">

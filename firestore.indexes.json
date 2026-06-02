@@ -1,0 +1,12 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "travelerId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

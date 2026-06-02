@@ -252,5 +252,10 @@ service cloud.firestore {
       allow get: if true; // Allow anyone to check for admin status.
       allow read, write: if isAdmin();
     }
+
+    // Permet aux voyageurs de lister leurs propres réservations via collectionGroup('bookings')
+    match /{path=**}/bookings/{bookingId} {
+      allow list: if request.auth != null && resource.data.travelerId == request.auth.uid;
+    }
   }
 }
