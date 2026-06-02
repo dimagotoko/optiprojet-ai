@@ -1,6 +1,6 @@
 
 'use client';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/TripCard';
 import { TripSearchForm } from '@/components/TripSearchForm';
@@ -150,20 +150,37 @@ function TripsPageContent() {
     router.push(`/trips?${params.toString()}`);
   };
 
+  const PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   const hasActiveSearch = departure || destination;
   const resultsToShow = hasActiveSearch ? exactMatches : filteredTrips || [];
-  
+  const visibleTrips = resultsToShow.slice(0, visibleCount);
+  const hasMore = visibleCount < resultsToShow.length;
+
+  // Réinitialise la pagination quand les filtres/recherche changent
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [departure, destination, dateStr]);
+
   const renderResults = () => {
     if (isLoading) {
       return <TripGridSkeleton count={6} />;
     }
-    
+
     if (resultsToShow.length > 0) {
       return (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {resultsToShow.map((trip) => (
-            <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {visibleTrips.map((trip) => (
+              <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <Button variant="outline" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
+                Charger plus ({resultsToShow.length - visibleCount} restants)
+              </Button>
+            </div>
+          )}
         </div>
       );
     }

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RatingDialog } from '@/components/rating/RatingDialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
@@ -26,11 +27,19 @@ const statusConfig = {
 
 function BookedTripItem({ booking }: { booking: Booking }) {
   const firestore = useFirestore();
+  const [ratingOpen, setRatingOpen] = React.useState(false);
+
   const tripRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'trips', booking.tripId);
   }, [firestore, booking.tripId]);
   const { data: trip, isLoading } = useDoc<Trip>(tripRef);
+
+  const driverRef = useMemoFirebase(() => {
+    if (!firestore || !trip?.offeredBy) return null;
+    return doc(firestore, 'users', trip.offeredBy);
+  }, [firestore, trip?.offeredBy]);
+  const { data: driver } = useDoc<UserProfile>(driverRef);
 
   const cfg = statusConfig[booking.status] ?? statusConfig.pending;
   const StatusIcon = cfg.icon;
@@ -39,36 +48,55 @@ function BookedTripItem({ booking }: { booking: Booking }) {
   if (!trip) return null;
 
   const date = trip.departureTime.toDate();
+  const isPast = date < new Date();
+  const canRate = booking.status === 'accepted' && isPast && trip.offeredBy;
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2 rounded-full bg-primary/10 shrink-0">
-            <MapPin className="h-4 w-4 text-primary" />
+    <>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-full bg-primary/10 shrink-0">
+              <MapPin className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold flex items-center gap-1">
+                <span className="truncate">{trip.origin}</span>
+                <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <span className="truncate">{trip.destination}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {format(date, 'd MMM yyyy · HH:mm', { locale: fr })} · {trip.pricePerSeat}$
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-semibold flex items-center gap-1">
-              <span className="truncate">{trip.origin}</span>
-              <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <span className="truncate">{trip.destination}</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {format(date, 'd MMM yyyy · HH:mm', { locale: fr })} · {trip.pricePerSeat}$
-            </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className={cn('text-xs font-medium flex items-center gap-1', cfg.className)}>
+              <StatusIcon className="h-3 w-3" />
+              {cfg.label}
+            </Badge>
+            {canRate && (
+              <Button variant="outline" size="sm" className="gap-1 text-yellow-600 border-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20" onClick={() => setRatingOpen(true)}>
+                <Star className="h-3.5 w-3.5" /> Évaluer
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/trip-details/${trip.id}`}>Voir</Link>
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Badge variant="outline" className={cn('text-xs font-medium flex items-center gap-1', cfg.className)}>
-            <StatusIcon className="h-3 w-3" />
-            {cfg.label}
-          </Badge>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/trip-details/${trip.id}`}>Voir</Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {canRate && driver && (
+        <RatingDialog
+          open={ratingOpen}
+          onOpenChange={setRatingOpen}
+          driverId={trip.offeredBy}
+          driverName={driver.name}
+          tripId={booking.tripId}
+        />
+      )}
+    </>
   );
 }
 

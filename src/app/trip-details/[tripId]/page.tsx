@@ -9,7 +9,7 @@ import { LoadingLogo } from '@/components/LoadingLogo';
 import { TripDetailSkeleton } from '@/components/skeletons/TripDetailSkeleton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, Banknote, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, Banknote, CheckCircle, XCircle, Clock, Share2, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -134,6 +134,32 @@ const PassengersList = ({ tripId, isOwner }: { tripId: string; isOwner: boolean 
     );
 };
 
+
+function ShareButton({ origin, destination }: { origin: string; destination: string }) {
+    const { toast } = useToast();
+
+    const handleShare = async () => {
+        const url = window.location.href;
+        const title = `Covoiturage ${origin} → ${destination}`;
+        if ('share' in navigator) {
+            try {
+                await navigator.share({ title, url });
+            } catch {
+                // annulé par l'utilisateur
+            }
+        } else {
+            await navigator.clipboard.writeText(url);
+            toast({ title: 'Lien copié !', description: 'Partagez ce lien avec vos contacts.' });
+        }
+    };
+
+    return (
+        <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
+            <Share2 className="h-4 w-4" />
+            Partager
+        </Button>
+    );
+}
 
 function TripDetailsPageContent() {
     const firestore = useFirestore();
@@ -267,7 +293,10 @@ function TripDetailsPageContent() {
                                 <Calendar className="h-5 w-5" />
                                 <span>{format(departureDate, 'd MMMM yyyy', { locale: fr })} à {format(departureDate, 'HH:mm')}</span>
                             </div>
-                            <Badge variant="secondary" className="text-2xl font-bold py-1 px-4">{trip.pricePerSeat}$</Badge>
+                            <div className="flex items-center gap-2">
+                                <ShareButton origin={trip.origin} destination={trip.destination} />
+                                <Badge variant="secondary" className="text-2xl font-bold py-1 px-4">{trip.pricePerSeat}$</Badge>
+                            </div>
                         </div>
                     </div>
 
