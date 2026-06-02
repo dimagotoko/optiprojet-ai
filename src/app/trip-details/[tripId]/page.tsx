@@ -3,13 +3,13 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-import { doc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, where, addDoc, updateDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { TripDetailSkeleton } from '@/components/skeletons/TripDetailSkeleton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, Banknote } from 'lucide-react';
+import { Star, Calendar, Users, Briefcase, Dog, CigaretteOff, Luggage, Landmark, Banknote, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -35,63 +35,90 @@ const getInitials = (name: string | undefined) => {
     return name.split(' ').map(n => n[0]).join('');
 };
 
-const Passenger = ({ travelerId }: { travelerId: string }) => {
+const statusConfig = {
+    pending:   { label: 'En attente', icon: Clock,       className: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20' },
+    accepted:  { label: 'Acceptée',   icon: CheckCircle, className: 'text-green-600 bg-green-50 dark:bg-green-900/20' },
+    rejected:  { label: 'Refusée',    icon: XCircle,     className: 'text-red-500 bg-red-50 dark:bg-red-900/20' },
+    cancelled: { label: 'Annulée',    icon: XCircle,     className: 'text-muted-foreground bg-muted' },
+};
+
+const BookingRow = ({ booking, tripId, isOwner }: { booking: Booking; tripId: string; isOwner: boolean }) => {
     const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isUpdating, setIsUpdating] = React.useState(false);
+
     const travelerRef = useMemoFirebase(() => {
         if (!firestore) return null;
-        return doc(firestore, 'users', travelerId);
-    }, [firestore, travelerId]);
-
+        return doc(firestore, 'users', booking.travelerId);
+    }, [firestore, booking.travelerId]);
     const { data: traveler, isLoading } = useDoc<UserProfile>(travelerRef);
 
-    if (isLoading) {
-        return <Skeleton className="h-12 w-full rounded-md" />;
-    }
+    const updateStatus = async (status: 'accepted' | 'rejected') => {
+        if (!firestore) return;
+        setIsUpdating(true);
+        try {
+            await updateDoc(doc(firestore, 'trips', tripId, 'bookings', booking.id), { status });
+            toast({ title: status === 'accepted' ? 'Réservation acceptée' : 'Réservation refusée' });
+        } catch {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour.' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
-    if (!traveler) {
-        return <div className="p-3 text-sm text-muted-foreground">Voyageur inconnu</div>;
-    }
+    const status = booking.status ?? 'pending';
+    const cfg = statusConfig[status] ?? statusConfig.pending;
+    const StatusIcon = cfg.icon;
+
+    if (isLoading) return <Skeleton className="h-14 w-full rounded-md" />;
+    if (!traveler) return <div className="p-3 text-sm text-muted-foreground">Voyageur inconnu</div>;
 
     return (
-        <div className="flex items-center justify-between p-2 rounded-lg">
-            <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
+        <div className="flex items-center justify-between p-3 rounded-lg border gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+                <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={traveler.profilePictureUrl} alt={traveler.name} />
                     <AvatarFallback>{getInitials(traveler.name)}</AvatarFallback>
                 </Avatar>
-                <span className="font-medium">{traveler.name}</span>
+                <div className="min-w-0">
+                    <p className="font-medium truncate">{traveler.name}</p>
+                    <span className={cn('inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium', cfg.className)}>
+                        <StatusIcon className="h-3 w-3" />
+                        {cfg.label}
+                    </span>
+                </div>
             </div>
+            {isOwner && status === 'pending' && (
+                <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20" disabled={isUpdating} onClick={() => updateStatus('accepted')}>
+                        <CheckCircle className="h-4 w-4 mr-1" /> Accepter
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20" disabled={isUpdating} onClick={() => updateStatus('rejected')}>
+                        <XCircle className="h-4 w-4 mr-1" /> Refuser
+                    </Button>
+                </div>
+            )}
         </div>
     );
 };
 
-const PassengersList = ({ tripId }: { tripId: string }) => {
+const PassengersList = ({ tripId, isOwner }: { tripId: string; isOwner: boolean }) => {
     const firestore = useFirestore();
-    
+
     const bookingsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return collection(firestore, 'trips', tripId, 'bookings');
     }, [firestore, tripId]);
-    
+
     const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
-    if (isLoading) {
-        return (
-            <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-            </div>
-        );
-    }
-    
-    if (!bookings || bookings.length === 0) {
-        return <p className="text-sm text-muted-foreground p-2">Aucune réservation pour le moment.</p>;
-    }
+    if (isLoading) return <div className="space-y-2"><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></div>;
+    if (!bookings || bookings.length === 0) return <p className="text-sm text-muted-foreground p-2">Aucune demande de réservation pour le moment.</p>;
 
     return (
         <div className="space-y-2">
             {bookings.map(booking => (
-                <Passenger key={booking.id} travelerId={booking.travelerId} />
+                <BookingRow key={booking.id} booking={booking} tripId={tripId} isOwner={isOwner} />
             ))}
         </div>
     );
@@ -147,12 +174,25 @@ function TripDetailsPageContent() {
 
         setIsBooking(true);
         try {
+            const tripRef = doc(firestore, 'trips', trip.id);
             const bookingsCollection = collection(firestore, 'trips', trip.id, 'bookings');
-            await addDoc(bookingsCollection, {
-                tripId: trip.id,
-                travelerId: user.uid,
-                status: 'pending',
-                createdAt: serverTimestamp(),
+
+            await runTransaction(firestore, async (transaction) => {
+                const tripSnap = await transaction.get(tripRef);
+                if (!tripSnap.exists()) throw new Error('Trajet introuvable.');
+
+                const current = tripSnap.data() as Trip;
+                const booked = current.totalBookings ?? 0;
+                if (booked >= current.availableSeats) throw new Error('Plus de places disponibles.');
+
+                const bookingRef = doc(bookingsCollection);
+                transaction.set(bookingRef, {
+                    tripId: trip.id,
+                    travelerId: user.uid,
+                    status: 'pending',
+                    createdAt: serverTimestamp(),
+                });
+                transaction.update(tripRef, { totalBookings: increment(1) });
             });
 
             toast({
@@ -163,7 +203,7 @@ function TripDetailsPageContent() {
 
         } catch (error: any) {
             console.error("Booking error: ", error);
-             toast({
+            toast({
                 variant: "destructive",
                 title: "Erreur de réservation",
                 description: error.message || "Impossible de réserver ce trajet. Veuillez réessayer."
@@ -306,7 +346,7 @@ function TripDetailsPageContent() {
                             <h2 className="text-2xl font-bold mb-4">Passagers</h2>
                             <Card>
                                 <CardContent className="p-4">
-                                    <PassengersList tripId={trip.id} />
+                                    <PassengersList tripId={trip.id} isOwner={isOwner} />
                                 </CardContent>
                             </Card>
                         </div>

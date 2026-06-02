@@ -47,6 +47,7 @@ export type Booking = {
   id: string;
   tripId: string;
   travelerId: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
   paymentIntentId?: string;
   paymentStatus?: string;
   createdAt: Timestamp;
