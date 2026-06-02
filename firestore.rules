@@ -153,8 +153,14 @@ service cloud.firestore {
 
       allow get: if isAuthorized(tripId, resource.data.travelerId) || isAdmin();
       allow list: if isTripOwner(tripId) || isAdmin();
-      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
-      allow update: if isExistingAuthorized(tripId, resource.data.travelerId) || isAdmin();
+      allow create: if request.auth != null
+                    && request.resource.data.travelerId == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+                    || isTripOwner(tripId)
+                    || (isTraveler(resource.data.travelerId)
+                        && request.resource.data.status == 'cancelled'
+                        && request.resource.data.travelerId == resource.data.travelerId);
       allow delete: if isExistingAuthorized(tripId, resource.data.travelerId) || isAdmin();
     }
 
