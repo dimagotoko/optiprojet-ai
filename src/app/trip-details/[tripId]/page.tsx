@@ -141,12 +141,9 @@ function ShareButton({ origin, destination }: { origin: string; destination: str
     const handleShare = async () => {
         const url = window.location.href;
         const title = `Covoiturage ${origin} → ${destination}`;
-        if ('share' in navigator) {
-            try {
-                await navigator.share({ title, url });
-            } catch {
-                // annulé par l'utilisateur
-            }
+        const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+        if (typeof nav.share === 'function') {
+            try { await nav.share({ title, url }); } catch { /* annulé */ }
         } else {
             await navigator.clipboard.writeText(url);
             toast({ title: 'Lien copié !', description: 'Partagez ce lien avec vos contacts.' });
