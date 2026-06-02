@@ -68,14 +68,14 @@ function UsersTable() {
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-col text-sm">
-                                    <span className="font-medium">{user.email}</span>
-                                    <span className="text-muted-foreground">{user.phoneNumber || 'N/A'}</span>
+                                    {/* email/phoneNumber dans /private/profile — consulter Firebase Console */}
+                                    <span className="font-medium text-muted-foreground italic text-xs">Données privées</span>
+                                    <span className="text-xs text-muted-foreground">→ Firebase Console</span>
                                 </div>
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-col text-sm">
                                     <span className="font-medium">{user.city || 'N/A'}</span>
-                                    <span className="text-xs text-muted-foreground uppercase">{user.postalCode || 'N/A'}</span>
                                 </div>
                             </TableCell>
                             <TableCell className="text-center">

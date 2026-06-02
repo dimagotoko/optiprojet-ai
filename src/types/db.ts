@@ -28,19 +28,23 @@ export type Trip = {
   details?: string;
 };
 
+// Champs stockés dans /users/{uid} — lisibles publiquement
 export type UserProfile = {
   id: string;
   name: string;
-  email: string;
-  city: string;
-  postalCode: string;
-  phoneNumber: string;
+  city?: string;
   profilePictureUrl?: string;
   averageRating?: number;
   totalRatings?: number;
   role?: string;
+};
+
+// Champs stockés dans /users/{uid}/private/profile — owner + admin seulement
+export type UserProfilePrivate = {
+  email: string;
+  phoneNumber: string;
+  postalCode: string;
   driverLicense?: string;
-  stripeCustomerId?: string;
 };
 
 export type Booking = {

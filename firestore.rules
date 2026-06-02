@@ -265,5 +265,17 @@ service cloud.firestore {
       allow read: if request.auth != null
                   && resource.data.travelerId == request.auth.uid;
     }
+
+    // Données privées du profil (email, phoneNumber, postalCode, driverLicense)
+    // Seul l'utilisateur lui-même et les admins peuvent y accéder
+    match /users/{userId}/private/{docId} {
+      allow read, write: if request.auth.uid == userId || isAdmin();
+    }
+
+    // stripeCustomerId — lecture/écriture client totalement bloquée
+    // L'Admin SDK (Cloud Functions) ignore les Security Rules et garde l'accès
+    match /stripe_customers/{userId} {
+      allow read, write: if false;
+    }
   }
 }

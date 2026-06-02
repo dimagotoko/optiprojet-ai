@@ -124,24 +124,26 @@ function SignupPageInternal() {
         photoURL: values.profilePictureUrl || null,
       });
 
-      // 3. Create user document in Firestore (WAIT for it to be sure it exists)
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const profileData = {
+      // 3. Create user document in Firestore — champs publics + sous-doc privé
+      const userDocRef    = doc(firestore, 'users', user.uid);
+      const privateDocRef = doc(firestore, 'users', user.uid, 'private', 'profile');
+
+      await setDoc(userDocRef, {
         id: user.uid,
         name: values.fullName,
-        email: values.email,
         city: values.city,
-        postalCode: values.postalCode,
         role: values.userType,
-        phoneNumber: values.phoneNumber,
         profilePictureUrl: values.profilePictureUrl || '',
-        driverLicense: '', 
-        stripeCustomerId: '',
         averageRating: 0,
         totalRatings: 0,
-      };
-      
-      await setDoc(userDocRef, profileData);
+      });
+
+      await setDoc(privateDocRef, {
+        email: values.email,
+        phoneNumber: values.phoneNumber,
+        postalCode: values.postalCode,
+        driverLicense: '',
+      });
 
       toast({
         title: 'Compte créé avec succès!',

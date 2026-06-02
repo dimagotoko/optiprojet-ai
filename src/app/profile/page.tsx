@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -74,34 +74,27 @@ export default function ProfilePage() {
     const fetchUserData = async () => {
       try {
           setIsDataLoading(true);
-          const userRef = doc(firestore, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
+          const userRef    = doc(firestore, 'users', user.uid);
+          const privateRef = doc(firestore, 'users', user.uid, 'private', 'profile');
 
-          let dataToSet;
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            dataToSet = {
-              fullName: userData.name || '',
-              email: userData.email || user.email || '',
-              phoneNumber: userData.phoneNumber || '',
-              city: userData.city || '',
-              postalCode: userData.postalCode || '',
-              profilePictureUrl: userData.profilePictureUrl || '',
-              userType: (userData.role as 'voyageur' | 'transporteur') || 'voyageur',
-            };
-          } else {
-            dataToSet = {
-                fullName: user.displayName || '',
-                email: user.email || '',
-                phoneNumber: '',
-                city: '',
-                postalCode: '',
-                profilePictureUrl: user.photoURL || '',
-                userType: 'voyageur' as const,
-            };
-          }
-          form.reset(dataToSet);
-          setInitialData(dataToSet);
+          const [userSnap, privateSnap] = await Promise.all([
+            getDoc(userRef),
+            getDoc(privateRef),
+          ]);
+
+          const pub  = userSnap.exists()    ? userSnap.data()    : {};
+          const priv = privateSnap.exists() ? privateSnap.data() : {};
+
+          form.reset({
+            fullName:          pub.name            || user.displayName || '',
+            email:             priv.email          || user.email       || '',
+            phoneNumber:       priv.phoneNumber    || '',
+            city:              pub.city            || '',
+            postalCode:        priv.postalCode     || '',
+            profilePictureUrl: pub.profilePictureUrl || user.photoURL || '',
+            userType:          (pub.role as 'voyageur' | 'transporteur') || 'voyageur',
+          });
+          setInitialData(form.getValues());
       } catch (error) {
           console.error("Error fetching profile:", error);
       } finally {
@@ -117,17 +110,23 @@ export default function ProfilePage() {
     if (!user || !firestore) return;
 
     try {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, {
-        id: user.uid,
-        name: values.fullName,
-        email: values.email,
-        phoneNumber: values.phoneNumber,
-        city: values.city,
-        postalCode: values.postalCode,
-        profilePictureUrl: values.profilePictureUrl,
-        role: values.userType,
-      }, { merge: true });
+      const userDocRef    = doc(firestore, 'users', user.uid);
+      const privateDocRef = doc(firestore, 'users', user.uid, 'private', 'profile');
+
+      await Promise.all([
+        setDoc(userDocRef, {
+          id: user.uid,
+          name: values.fullName,
+          city: values.city,
+          profilePictureUrl: values.profilePictureUrl,
+          role: values.userType,
+        }, { merge: true }),
+        setDoc(privateDocRef, {
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          postalCode: values.postalCode,
+        }, { merge: true }),
+      ]);
 
       if (user.displayName !== values.fullName || user.photoURL !== values.profilePictureUrl) {
         await updateProfile(user, {
