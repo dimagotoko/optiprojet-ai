@@ -36,6 +36,7 @@ type Trip = {
 type Booking = {
     id: string;
     travelerId: string;
+    status?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
 };
 
 type UserProfile = {
@@ -123,7 +124,8 @@ const OwnerView = ({ tripId }: { tripId: string }) => {
         );
     }
     
-    const reservedSeats = bookings?.length ?? 0;
+    const activeBookings = (bookings ?? []).filter(b => b.status !== 'rejected' && b.status !== 'cancelled');
+    const reservedSeats = activeBookings.length;
     const totalSeats = trip.availableSeats;
     const progressValue = totalSeats > 0 ? (reservedSeats / totalSeats) * 100 : 0;
 
@@ -173,8 +175,8 @@ export const TripDetailsCard = ({ trip, currentUserId, onDeleteClick, onEditClic
 
     }, [firestore, trip.id, isOwner, currentUserId]);
     
-    const { data: bookings } = useCollection(bookingsQuery);
-    const reservedSeats = bookings?.length ?? 0;
+    const { data: bookings } = useCollection<Booking>(bookingsQuery);
+    const reservedSeats = (bookings ?? []).filter(b => b.status !== 'rejected' && b.status !== 'cancelled').length;
 
     return (
         <Card className="w-full">

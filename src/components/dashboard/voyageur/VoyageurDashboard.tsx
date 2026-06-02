@@ -19,7 +19,7 @@ const CO2_PER_TRIP_KG = 18; // ~150 km moy. × 0.12 kg/km, cohérent avec LiveCo
 
 const statusConfig = {
   pending:   { label: 'En attente',  icon: Clock,         className: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200' },
-  accepted:  { label: 'Confirmée',   icon: CheckCircle,   className: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200' },
+  accepted:  { label: 'Acceptée',    icon: CheckCircle,   className: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200' },
   rejected:  { label: 'Refusée',     icon: XCircle,       className: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border-red-200' },
   cancelled: { label: 'Annulée',     icon: XCircle,       className: 'bg-muted text-muted-foreground border-muted' },
 };

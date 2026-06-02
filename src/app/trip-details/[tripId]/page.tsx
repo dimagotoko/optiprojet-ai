@@ -57,7 +57,17 @@ const BookingRow = ({ booking, tripId, isOwner }: { booking: Booking; tripId: st
         if (!firestore) return;
         setIsUpdating(true);
         try {
-            await updateDoc(doc(firestore, 'trips', tripId, 'bookings', booking.id), { status });
+            const bookingRef = doc(firestore, 'trips', tripId, 'bookings', booking.id);
+            const tripRef = doc(firestore, 'trips', tripId);
+            if (status === 'rejected') {
+                // Décrémente totalBookings atomiquement pour libérer la place
+                await runTransaction(firestore, async (tx) => {
+                    tx.update(bookingRef, { status });
+                    tx.update(tripRef, { totalBookings: increment(-1) });
+                });
+            } else {
+                await updateDoc(bookingRef, { status });
+            }
             toast({ title: status === 'accepted' ? 'Réservation acceptée' : 'Réservation refusée' });
         } catch {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour.' });
