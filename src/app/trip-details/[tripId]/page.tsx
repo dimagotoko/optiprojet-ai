@@ -222,6 +222,7 @@ function TripDetailsPageContent() {
                 transaction.set(bookingRef, {
                     tripId: trip.id,
                     travelerId: user.uid,
+                    offeredBy: current.offeredBy,
                     status: 'pending',
                     createdAt: serverTimestamp(),
                 });
