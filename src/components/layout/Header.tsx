@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, UserCircle, LogOut } from 'lucide-react';
+import { Menu, UserCircle, LogOut, Sun, Moon } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import {
@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { signOut } from 'firebase/auth';
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from 'next-themes';
 import React from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { useAdmin } from '@/hooks/use-admin';
@@ -45,6 +46,7 @@ export function Header() {
   const { toast } = useToast();
   const [userRole, setUserRole] = React.useState<string | null>(null);
   const { isAdmin } = useAdmin();
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   React.useEffect(() => {
     let isMounted = true;
@@ -259,6 +261,15 @@ export function Header() {
         </Sheet>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={resolvedTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+          </Button>
           {renderUserMenu()}
         </div>
       </div>

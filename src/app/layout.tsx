@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { GoogleMapsProvider } from '@/components/GoogleMapsProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import React, { Suspense } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
 
@@ -22,27 +23,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${inter.variable} dark`}>
+    <html lang="fr" className={inter.variable} suppressHydrationWarning>
       <head />
       <body className="font-body antialiased">
-        <GoogleMapsProvider>
-          <FirebaseClientProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">
-                 <Suspense fallback={
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <GoogleMapsProvider>
+            <FirebaseClientProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">
+                  <Suspense fallback={
                     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-                        <LoadingLogo className="h-12 w-12 text-primary" />
+                      <LoadingLogo className="h-12 w-12 text-primary" />
                     </div>
-                }>
+                  }>
                     {children}
-                </Suspense>
-              </main>
-              <Footer />
-            </div>
-            <Toaster />
-          </FirebaseClientProvider>
-        </GoogleMapsProvider>
+                  </Suspense>
+                </main>
+                <Footer />
+              </div>
+              <Toaster />
+            </FirebaseClientProvider>
+          </GoogleMapsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
