@@ -15,10 +15,27 @@
  */
 
 const admin = require('firebase-admin');
+const path  = require('path');
+const fs    = require('fs');
 
-// Initialisation — utilise les credentials d'environnement ou un compte de service local
+// Initialisation — cherche un compte de service local, sinon Application Default Credentials
 if (!admin.apps.length) {
-  admin.initializeApp({ projectId: 'studio-2194514521-a4a53' });
+  const keyPath = path.join(__dirname, 'serviceAccountKey.json');
+  if (fs.existsSync(keyPath)) {
+    const serviceAccount = require(keyPath);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId:  'studio-2194514521-a4a53',
+    });
+    console.log('🔑 Authentification via serviceAccountKey.json\n');
+  } else {
+    // Tente Application Default Credentials (gcloud auth application-default login)
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      projectId:  'studio-2194514521-a4a53',
+    });
+    console.log('🔑 Authentification via Application Default Credentials\n');
+  }
 }
 
 const db = admin.firestore();

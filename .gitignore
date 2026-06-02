@@ -1,5 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Credentials — ne jamais commiter
+scripts/serviceAccountKey.json
+**/serviceAccountKey.json
+
 # dependencies
 /node_modules
 /.pnp
