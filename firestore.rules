@@ -253,9 +253,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Permet aux voyageurs de lister leurs propres réservations via collectionGroup('bookings')
+    // Un voyageur peut lire SES propres réservations, tous trajets confondus
     match /{path=**}/bookings/{bookingId} {
-      allow list: if request.auth != null && resource.data.travelerId == request.auth.uid;
+      allow read: if request.auth != null
+                  && resource.data.travelerId == request.auth.uid;
     }
   }
 }
