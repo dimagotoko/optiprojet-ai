@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { TripSearchForm } from '@/components/TripSearchForm';
 import { TripCard } from '@/components/TripCard';
 import { Chatbot } from '@/components/Chatbot';
+import { LiveCounters } from '@/components/home/LiveCounters';
 import { useState } from 'react';
 
 type TripSearch = {
@@ -122,6 +123,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <LiveCounters />
 
       <section id="comment-ca-marche" className="w-full py-12 md:py-24 lg:py-32 bg-background">
         <div className="container px-4 md:px-6">
