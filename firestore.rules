@@ -264,10 +264,16 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Un voyageur peut lire SES propres réservations, tous trajets confondus
+    // Voyageur et transporteur peuvent lire LEURS réservations via collectionGroup('bookings').
+    // Voyageur  → where('travelerId', '==', uid)  prouve travelerId == auth.uid
+    // Transporteur → where('offeredBy', '==', uid) prouve offeredBy == auth.uid
+    // Les deux conditions sont en OR : la requête doit inclure le filtre correspondant
+    // ("rules are not filters" — Firestore rejette si aucun filtre ne correspond).
     match /{path=**}/bookings/{bookingId} {
-      allow read: if request.auth != null
-                  && resource.data.travelerId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.travelerId == request.auth.uid ||
+        resource.data.offeredBy  == request.auth.uid
+      );
     }
 
     // Données privées du profil (email, phoneNumber, postalCode, driverLicense)

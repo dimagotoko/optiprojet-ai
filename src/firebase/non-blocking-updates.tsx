@@ -1,6 +1,6 @@
 
 'use client';
-    
+
 import {
   setDoc,
   addDoc,
@@ -9,9 +9,22 @@ import {
   CollectionReference,
   DocumentReference,
   SetOptions,
+  FirestoreError,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import {FirestorePermissionError} from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
+
+function handleWriteError(error: unknown, path: string, operation: 'write' | 'create' | 'update' | 'delete', data?: any) {
+  const firestoreError = error as FirestoreError;
+  if (firestoreError?.code === 'permission-denied') {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({ path, operation, requestResourceData: data })
+    );
+  }
+  // Autres codes (failed-precondition, unavailable…) : silencieux ici,
+  // l'appelant await-able peut gérer l'erreur lui-même.
+}
 
 /**
  * Initiates a setDoc operation for a document reference.
@@ -19,17 +32,7 @@ import {FirestorePermissionError} from '@/firebase/errors';
  */
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
   const op = options ? setDoc(docRef, data, options) : setDoc(docRef, data);
-  op.catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
-        requestResourceData: data,
-      })
-    )
-  })
-  // Execution continues immediately
+  op.catch(error => handleWriteError(error, docRef.path, 'write', data));
 }
 
 
@@ -40,16 +43,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
  */
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
   const promise = addDoc(colRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: colRef.path,
-          operation: 'create',
-          requestResourceData: data,
-        })
-      )
-    });
+    .catch(error => handleWriteError(error, colRef.path, 'create', data));
   return promise;
 }
 
@@ -60,16 +54,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
  */
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   updateDoc(docRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: data,
-        })
-      )
-    });
+    .catch(error => handleWriteError(error, docRef.path, 'update', data));
 }
 
 
@@ -79,15 +64,5 @@ export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) 
  */
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
   deleteDoc(docRef)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        })
-      )
-    });
+    .catch(error => handleWriteError(error, docRef.path, 'delete'));
 }
-
-    

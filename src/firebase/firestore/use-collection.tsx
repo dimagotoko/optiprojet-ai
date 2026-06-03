@@ -10,7 +10,7 @@ import {
   CollectionReference,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, FirestoreOperationError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -85,23 +85,24 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // This logic extracts the path from either a ref or a query
-        const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+        setData(null);
+        setIsLoading(false);
 
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-        })
+        if (error.code === 'permission-denied') {
+          // Seul permission-denied mérite un FirestorePermissionError global
+          const path: string =
+            memoizedTargetRefOrQuery.type === 'collection'
+              ? (memoizedTargetRefOrQuery as CollectionReference).path
+              : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-
-        // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
+          const contextualError = new FirestorePermissionError({ operation: 'list', path });
+          setError(contextualError);
+          errorEmitter.emit('permission-error', contextualError);
+        } else {
+          // failed-precondition (index manquant), unavailable, not-found, etc.
+          // On préserve le code + message d'origine (inclut le lien de création d'index).
+          setError(new FirestoreOperationError(error.code, error));
+        }
       }
     );
 

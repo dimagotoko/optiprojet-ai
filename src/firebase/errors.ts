@@ -110,6 +110,7 @@ ${JSON.stringify(requestObject, null, 2)}`;
  * A custom error class designed to be consumed by an LLM for debugging.
  * It structures the error information to mimic the request object
  * available in Firestore Security Rules.
+ * Only used when error.code === 'permission-denied'.
  */
 export class FirestorePermissionError extends Error {
   public readonly request: SecurityRuleRequest;
@@ -119,6 +120,28 @@ export class FirestorePermissionError extends Error {
     super(buildErrorMessage(requestObject));
     this.name = 'FirebaseError';
     this.request = requestObject;
+  }
+}
+
+/**
+ * Wraps any non-permission Firestore error (failed-precondition, unavailable,
+ * not-found, unauthenticated, resource-exhausted, …) while preserving the
+ * original code and message (including the index-creation URL for
+ * failed-precondition).
+ */
+export class FirestoreOperationError extends Error {
+  public readonly code: string;
+  public readonly originalMessage: string;
+
+  constructor(code: string, originalError: Error) {
+    super(`[Firestore ${code}] ${originalError.message}`);
+    this.name = 'FirestoreOperationError';
+    this.code = code;
+    this.originalMessage = originalError.message;
+    // Chaîne les stacks pour faciliter le debug
+    if (originalError.stack) {
+      this.stack = `${this.stack ?? ''}\nCaused by: ${originalError.stack}`;
+    }
   }
 }
 

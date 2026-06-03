@@ -102,13 +102,13 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
     );
 };
 
-const OwnerView = ({ tripId }: { tripId: string }) => {
+const OwnerView = ({ tripId, userId }: { tripId: string; userId: string }) => {
     const firestore = useFirestore();
 
     const bookingsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'trips', tripId, 'bookings'));
-    }, [firestore, tripId]);
+        return query(collection(firestore, 'trips', tripId, 'bookings'), where('offeredBy', '==', userId));
+    }, [firestore, tripId, userId]);
     
     const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
@@ -166,11 +166,10 @@ export const TripDetailsCard = ({ trip, currentUserId, onDeleteClick, onEditClic
         if (!firestore) return null;
         const bookingsRef = collection(firestore, 'trips', trip.id, 'bookings');
         if(isOwner) {
-            return query(bookingsRef);
+            // where('offeredBy') obligatoire : "rules are not filters" — la règle
+            // allow list exige un filtre correspondant pour prouver l'accès.
+            return query(bookingsRef, where('offeredBy', '==', currentUserId));
         }
-        // Traveler doesn't need to list all, just know if *any* exist for the delete button logic.
-        // A performant way is to just know their own booking. If they booked, they can't delete anyway.
-        // A better approach would be a count on the trip doc. For now, let's just query for *their* booking.
         return query(bookingsRef, where('travelerId', '==', currentUserId));
 
     }, [firestore, trip.id, isOwner, currentUserId]);
@@ -224,7 +223,7 @@ export const TripDetailsCard = ({ trip, currentUserId, onDeleteClick, onEditClic
                     </div>
                 </div>
             </CardHeader>
-            {isOwner && <OwnerView tripId={trip.id} />}
+            {isOwner && <OwnerView tripId={trip.id} userId={currentUserId} />}
         </Card>
     );
 };
