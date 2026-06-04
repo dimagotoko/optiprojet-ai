@@ -236,6 +236,76 @@ describe('BOOKINGS – update statut', () => {
   });
 });
 
+// ─── TRIPS – update totalBookings par voyageur ────────────────────────────────
+
+describe('TRIPS – voyageur incrémente totalBookings lors d\'une réservation', () => {
+  const TRIP = 'trip1';
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'trips', TRIP), {
+        offeredBy: DRIVER,
+        availableSeats: 3,
+        totalBookings: 1,
+        pricePerSeat: 10,
+        origin: 'Paris',
+        destination: 'Lyon',
+        details: '',
+      });
+    });
+  });
+
+  test('voyageur incrémente totalBookings de +1 (place dispo) → succès', async () => {
+    const db = asUser(TRAVELER);
+    await assertSucceeds(
+      updateDoc(doc(db, 'trips', TRIP), { totalBookings: increment(1) }),
+    );
+  });
+
+  test('voyageur incrémente totalBookings sur un trip sans champ totalBookings (première réservation) → succès', async () => {
+    await seed(async (db) => {
+      // trip sans totalBookings — cas réel à la première réservation
+      await setDoc(doc(db, 'trips', TRIP), {
+        offeredBy: DRIVER,
+        availableSeats: 3,
+        pricePerSeat: 10,
+        origin: 'Paris',
+        destination: 'Lyon',
+        details: '',
+      });
+    });
+    const db = asUser(TRAVELER);
+    await assertSucceeds(
+      updateDoc(doc(db, 'trips', TRIP), { totalBookings: increment(1) }),
+    );
+  });
+
+  test('voyageur tente de modifier un autre champ en même temps → échec', async () => {
+    const db = asUser(TRAVELER);
+    await assertFails(
+      updateDoc(doc(db, 'trips', TRIP), { totalBookings: increment(1), pricePerSeat: 0 }),
+    );
+  });
+
+  test('voyageur incrémente totalBookings sur un trajet complet → échec', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'trips', TRIP), {
+        offeredBy: DRIVER,
+        availableSeats: 1,
+        totalBookings: 1,
+        pricePerSeat: 10,
+        origin: 'Paris',
+        destination: 'Lyon',
+        details: '',
+      });
+    });
+    const db = asUser(TRAVELER);
+    await assertFails(
+      updateDoc(doc(db, 'trips', TRIP), { totalBookings: increment(1) }),
+    );
+  });
+});
+
 // ─── PROFIL – /users/{uid} ────────────────────────────────────────────────────
 
 describe('PROFIL – /users/{uid}', () => {
