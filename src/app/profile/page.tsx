@@ -360,11 +360,23 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <>
-                    <ul className="text-sm text-muted-foreground space-y-1.5">
-                      <li>• Respecter les passagers : politesse, ponctualité et propreté du véhicule</li>
-                      <li>• Ne jamais conduire sous l'influence de substances psychoactives</li>
-                      <li>• Signaler tout incident ou problème dans les 24 h via le support</li>
-                    </ul>
+                    {watchedUserType === 'transporteur' ? (
+                      <ul className="text-sm text-muted-foreground space-y-1.5">
+                        <li>• Respecter les passagers : politesse, ponctualité et propreté du véhicule</li>
+                        <li>• Ne jamais conduire sous l'influence de substances psychoactives</li>
+                        <li>• Maintenir votre véhicule en bon état de fonctionnement et conforme au code de la route</li>
+                        <li>• Respecter les tarifs affichés et ne pas demander de paiements supplémentaires non convenus</li>
+                        <li>• Signaler tout incident ou problème dans les 24 h via le support</li>
+                      </ul>
+                    ) : (
+                      <ul className="text-sm text-muted-foreground space-y-1.5">
+                        <li>• Respecter le conducteur et les autres passagers : politesse et ponctualité</li>
+                        <li>• Ne pas transporter de bagages dangereux, illicites ou encombrants sans accord préalable</li>
+                        <li>• Honorer vos réservations confirmées ou annuler dans les délais prévus</li>
+                        <li>• Ne pas partager les coordonnées personnelles des conducteurs en dehors de la plateforme</li>
+                        <li>• Signaler tout incident ou comportement inapproprié dans les 24 h via le support</li>
+                      </ul>
+                    )}
 
                     <FormField
                       control={form.control}
@@ -382,7 +394,10 @@ export default function ProfilePage() {
                             htmlFor="protocol-accepted"
                             className="font-normal cursor-pointer text-sm leading-snug"
                           >
-                            J'ai lu et j'accepte le protocole d'utilisation d'OptiTrajet AI
+                            {watchedUserType === 'transporteur'
+                            ? "J'ai lu et j'accepte le protocole des transporteurs OptiTrajet AI"
+                            : "J'ai lu et j'accepte le protocole des voyageurs OptiTrajet AI"
+                          }
                           </FormLabel>
                         </FormItem>
                       )}
