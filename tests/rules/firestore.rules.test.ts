@@ -10,6 +10,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  writeBatch,
+  increment,
   collectionGroup,
   query,
   where,
@@ -202,6 +204,35 @@ describe('BOOKINGS – update statut', () => {
         status: 'accepted',
       }),
     );
+  });
+
+  test('conducteur refuse un booking (status→rejected) → succès', async () => {
+    const db = asUser(DRIVER);
+    await assertSucceeds(
+      updateDoc(doc(db, 'trips', TRIP, 'bookings', BOOKING), {
+        status: 'rejected',
+      }),
+    );
+  });
+
+  test('autre user tente de refuser un booking → échec', async () => {
+    const db = asUser(OTHER);
+    await assertFails(
+      updateDoc(doc(db, 'trips', TRIP, 'bookings', BOOKING), {
+        status: 'rejected',
+      }),
+    );
+  });
+
+  test('conducteur accepte + met à jour availableSeats/totalBookings (batch) → succès', async () => {
+    const db = asUser(DRIVER);
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'trips', TRIP, 'bookings', BOOKING), { status: 'accepted' });
+    batch.update(doc(db, 'trips', TRIP), {
+      availableSeats: increment(-1),
+      totalBookings:  increment(1),
+    });
+    await assertSucceeds(batch.commit());
   });
 });
 

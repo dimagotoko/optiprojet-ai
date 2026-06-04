@@ -4,19 +4,15 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Chatbot } from '@/components/Chatbot';
 import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton';
+import { ProfileSidebar } from '@/components/dashboard/shared/ProfileSidebar';
 import { VoyageurDashboard } from '@/components/dashboard/voyageur/VoyageurDashboard';
 import { TransporteurDashboard } from '@/components/dashboard/transporteur/TransporteurDashboard';
 import type { UserProfile } from '@/types/db';
-
-const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('');
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -63,48 +59,34 @@ export default function DashboardPage() {
   }
 
   const isTransporteur = userData?.role === 'transporteur';
+  const firstName = userData?.name?.split(' ')[0] || user.displayName?.split(' ')[0] || '';
+  const subtitle = isTransporteur
+    ? 'Gérez vos départs et vos réservations.'
+    : 'Voici un aperçu de vos trajets et suggestions.';
 
   return (
     <>
-      <div className="container py-12 px-4 md:px-6">
-        <div className="grid gap-8 md:grid-cols-3">
-          {/* Profil */}
-          <div className="md:col-span-1">
-            <Card>
-              <CardHeader className="flex flex-col items-center text-center">
-                <Avatar className="h-24 w-24 mb-4">
-                  <AvatarImage src={userData?.profilePictureUrl || user?.photoURL || undefined} alt={userData?.name || 'Avatar'} />
-                  <AvatarFallback className="text-3xl">
-                    {userData?.name ? getInitials(userData.name) : (user?.displayName ? getInitials(user.displayName) : '')}
-                  </AvatarFallback>
-                </Avatar>
-                <CardTitle className="text-2xl">{userData?.name || user?.displayName}</CardTitle>
-                <CardDescription className="capitalize">{userData?.role || 'Voyageur'}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <div className="flex justify-center items-center gap-1 text-lg">
-                  {userData?.totalRatings && userData.totalRatings > 0 ? (
-                    <>
-                      <Star className="w-5 h-5 fill-primary text-primary" />
-                      <span className="font-bold">{userData.averageRating?.toFixed(1)}</span>
-                      <span className="text-muted-foreground text-sm">({userData.totalRatings} avis)</span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-muted-foreground italic">Pas encore noté</span>
-                  )}
-                </div>
-                <Button asChild className="mt-6 w-full">
-                  <Link href="/profile">Modifier le profil</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="container py-8 px-4 md:px-6">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Sidebar : bannière horizontale < lg, carte verticale lg+ */}
+          <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
+            {userData && (
+              <ProfileSidebar
+                userId={user.uid}
+                userData={userData}
+                photoURL={user.photoURL}
+              />
+            )}
+          </aside>
 
-          {/* Contenu principal par rôle */}
-          <div className="md:col-span-2">
-            <h1 className="text-3xl font-bold tracking-tight mb-8">
-              {greeting}, {userData?.name?.split(' ')[0] || user?.displayName?.split(' ')[0]} ! 👋
-            </h1>
+          {/* Contenu principal */}
+          <div className="flex-1 min-w-0 space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {greeting}, {firstName} !
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
+            </div>
             {userData && (
               isTransporteur ? (
                 <TransporteurDashboard userId={user.uid} userData={userData} />
@@ -116,7 +98,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <Chatbot onSearch={(s) => router.push(`/trips?departure=${s.departure}&destination=${s.destination}&date=${s.date}`)} />
+      <Chatbot
+        onSearch={(s) =>
+          router.push(`/trips?departure=${s.departure}&destination=${s.destination}&date=${s.date}`)
+        }
+      />
     </>
   );
 }

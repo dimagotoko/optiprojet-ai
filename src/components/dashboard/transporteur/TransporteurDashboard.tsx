@@ -3,11 +3,13 @@
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Car, Users, Star } from 'lucide-react';
+import { Car, DollarSign, TrendingUp, Star, Plus } from 'lucide-react';
 import { StatCard } from '../shared/StatCard';
+import { DemandesEnAttente } from './DemandesEnAttente';
+import { TripPublieRow } from './TripPublieRow';
+import { ProchainVersement } from './ProchainVersement';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -19,7 +21,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { TripDetailsCard } from '@/components/TripDetailsCard';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -46,16 +47,23 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
   const { upcomingTrips, pastTrips } = React.useMemo(() => {
     if (!allTrips) return { upcomingTrips: [], pastTrips: [] };
     const now = new Date();
-    const upcoming = allTrips.filter(t => t.departureTime.toDate() >= now)
+    const upcoming = allTrips
+      .filter(t => t.departureTime.toDate() >= now)
       .sort((a, b) => a.departureTime.toMillis() - b.departureTime.toMillis());
-    const past = allTrips.filter(t => t.departureTime.toDate() < now)
+    const past = allTrips
+      .filter(t => t.departureTime.toDate() < now)
       .sort((a, b) => b.departureTime.toMillis() - a.departureTime.toMillis());
     return { upcomingTrips: upcoming, pastTrips: past };
   }, [allTrips]);
 
   const totalBookings = (allTrips ?? []).reduce((acc, t) => acc + (t.totalBookings ?? 0), 0);
-  const totalSeats = (allTrips ?? []).reduce((acc, t) => acc + t.availableSeats, 0);
-  const fillRate = totalSeats > 0 ? Math.round((totalBookings / totalSeats) * 100) : 0;
+  const totalCapacity = (allTrips ?? []).reduce(
+    (acc, t) => acc + t.availableSeats + (t.totalBookings ?? 0), 0,
+  );
+  const fillRate = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
+  const totalGains = (allTrips ?? []).reduce(
+    (acc, t) => acc + t.pricePerSeat * (t.totalBookings ?? 0), 0,
+  );
 
   const handleEditClick = (tripId: string) => router.push(`/edit-trip/${tripId}`);
 
@@ -75,7 +83,7 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
       await deleteDoc(doc(firestore, 'trips', tripToDelete));
       toast({ title: 'Trajet annulé', description: 'Votre trajet a été supprimé.' });
     } catch {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'annuler le trajet.' });
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'annuler le trajet." });
     } finally {
       setTripToDelete(null);
     }
@@ -83,91 +91,88 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="space-y-6">
+        {/* CTA */}
+        <div className="flex justify-end">
+          <Button asChild className="gap-2">
+            <Link href="/post-trip">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Publier un départ
+            </Link>
+          </Button>
+        </div>
+
+        {/* Stats — 4 cartes, 2 col mobile / 4 col desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             icon={Car}
             label="Trajets offerts"
             value={isLoading ? '…' : (allTrips?.length ?? 0)}
             subtitle={`${upcomingTrips.length} à venir`}
+            iconClassName="text-primary"
+            accentClassName="bg-primary/10"
           />
           <StatCard
-            icon={Users}
-            label="Passagers totaux"
-            value={isLoading ? '…' : totalBookings}
-            subtitle={`${fillRate}% de taux de remplissage`}
+            icon={DollarSign}
+            label="Gains cumulés"
+            value={isLoading ? '…' : `${totalGains.toLocaleString('fr-CA')} $`}
+            subtitle="basé sur les places réservées"
+            iconClassName="text-green-400"
+            accentClassName="bg-green-400/10"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Taux de remplissage"
+            value={isLoading ? '…' : `${fillRate} %`}
+            subtitle={`${totalBookings} passagers au total`}
+            iconClassName="text-violet-400"
+            accentClassName="bg-violet-400/10"
           />
           <StatCard
             icon={Star}
             label="Note moyenne"
             value={userData.averageRating ? userData.averageRating.toFixed(1) : 'N/A'}
             subtitle={userData.totalRatings ? `${userData.totalRatings} avis` : 'Pas encore noté'}
-            iconClassName="text-yellow-500"
+            iconClassName="text-yellow-400"
+            accentClassName="bg-yellow-400/10"
           />
         </div>
 
-        {/* Liste des trajets */}
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
-        ) : (
-          <Tabs defaultValue="upcoming">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upcoming">Trajets publiés</TabsTrigger>
-              <TabsTrigger value="history">Historique</TabsTrigger>
-            </TabsList>
-            <TabsContent value="upcoming" className="mt-6">
-              {upcomingTrips.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">Vous n'avez aucun trajet programmé.</p>
-                    <Button asChild className="mt-4">
-                      <Link href="/post-trip">Proposer un trajet</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6">
-                  {upcomingTrips.map(trip => (
-                    <TripDetailsCard
-                      key={trip.id}
-                      trip={trip}
-                      currentUserId={userId}
-                      onDeleteClick={setTripToDelete}
-                      onEditClick={handleEditClick}
-                      onToggleCloseTrip={handleToggleCloseTrip}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="history" className="mt-6">
-              {pastTrips.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">Aucun trajet passé.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6">
-                  {pastTrips.map(trip => (
-                    <TripDetailsCard
-                      key={trip.id}
-                      trip={trip}
-                      currentUserId={userId}
-                      onDeleteClick={setTripToDelete}
-                      onEditClick={handleEditClick}
-                      onToggleCloseTrip={handleToggleCloseTrip}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
+        {/* Demandes en attente — Option B : N queries COLLECTION par trajet, zéro nouvel index */}
+        <DemandesEnAttente userId={userId} trips={upcomingTrips} />
+
+        {/* Vos trajets publiés */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-bold">Vos trajets publiés</h2>
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+            </div>
+          ) : upcomingTrips.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground text-sm mb-3">Aucun trajet programmé.</p>
+                <Button asChild size="sm">
+                  <Link href="/post-trip">Proposer un trajet</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            upcomingTrips.map(trip => (
+              <TripPublieRow
+                key={trip.id}
+                trip={trip}
+                onEditClick={handleEditClick}
+                onDeleteClick={setTripToDelete}
+                onToggleCloseTrip={handleToggleCloseTrip}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Prochain versement */}
+        {!isLoading && <ProchainVersement upcomingTrips={upcomingTrips} />}
       </div>
 
       <AlertDialog open={!!tripToDelete} onOpenChange={(open) => !open && setTripToDelete(null)}>

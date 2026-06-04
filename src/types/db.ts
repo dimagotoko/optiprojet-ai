@@ -45,6 +45,7 @@ export type UserProfilePrivate = {
   phoneNumber: string;
   postalCode: string;
   driverLicense?: string;
+  protocolSignedAt?: Timestamp;
 };
 
 export type Booking = {

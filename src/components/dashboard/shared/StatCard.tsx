@@ -10,13 +10,14 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   iconClassName?: string;
+  accentClassName?: string;
 }
 
-export function StatCard({ icon: Icon, label, value, subtitle, iconClassName = 'text-primary' }: StatCardProps) {
+export function StatCard({ icon: Icon, label, value, subtitle, iconClassName = 'text-primary', accentClassName = 'bg-primary/10' }: StatCardProps) {
   return (
     <Card>
       <CardContent className="p-5 flex items-center gap-4">
-        <div className="p-3 rounded-full bg-primary/10 shrink-0">
+        <div className={cn('p-3 rounded-full shrink-0', accentClassName)}>
           <Icon className={cn('h-5 w-5', iconClassName)} />
         </div>
         <div className="min-w-0">
