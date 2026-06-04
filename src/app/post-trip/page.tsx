@@ -64,6 +64,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { PostTripSkeleton } from '@/components/skeletons/PostTripSkeleton';
 import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where } from 'firebase/firestore';
 import { VEHICLE_TYPE_CONFIG, CANADIAN_PROVINCES, type VehicleType, type ProvinceCode, type Vehicle } from '@/types/db';
 import { useToast } from '@/hooks/use-toast';
@@ -427,11 +428,7 @@ export default function PostTripPage() {
   }, [selectedVehicle?.maxSeats, tripForm]);
 
   if (isUserLoading || !user || vehiclesLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    );
+    return <PostTripSkeleton />;
   }
 
   return (

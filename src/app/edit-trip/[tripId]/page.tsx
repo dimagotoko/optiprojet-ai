@@ -52,6 +52,7 @@ import { AddressInput, type Address } from '@/components/AddressInput';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { PostTripSkeleton } from '@/components/skeletons/PostTripSkeleton';
 import { collection, addDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
@@ -261,11 +262,7 @@ export default function EditTripPage() {
 
 
   if (isUserLoading || vehiclesLoading || tripLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    );
+    return <PostTripSkeleton />;
   }
 
   return (

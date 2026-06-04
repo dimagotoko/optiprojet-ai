@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { useAdmin } from '@/hooks/use-admin';
 import { useRouter } from 'next/navigation';
@@ -34,7 +35,27 @@ function UsersTable() {
     const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('name')) : null, [firestore]);
     const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
 
-    if (isLoading) return <div className="py-12 flex justify-center"><LoadingLogo className="h-8 w-8 text-primary" /></div>;
+    if (isLoading) return (
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              {[0, 1, 2, 3].map((i) => <TableHead key={i}><Skeleton className="h-4 w-24" /></TableHead>)}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <TableRow key={i}>
+                <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-32" /></div></TableCell>
+                <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
 
     if (!users || users.length === 0) return <p className="text-muted-foreground p-8 text-center border rounded-lg border-dashed">Aucun utilisateur trouvé.</p>;
 
@@ -96,7 +117,27 @@ function TripsTable() {
     const tripsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'trips'), orderBy('departureTime', 'desc')) : null, [firestore]);
     const { data: trips, isLoading } = useCollection<Trip>(tripsQuery);
     
-    if (isLoading) return <div className="py-12 flex justify-center"><LoadingLogo className="h-8 w-8 text-primary" /></div>;
+    if (isLoading) return (
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              {[0, 1, 2, 3].map((i) => <TableHead key={i}><Skeleton className="h-4 w-24" /></TableHead>)}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
 
     if (!trips || trips.length === 0) return <p className="text-muted-foreground p-8 text-center border rounded-lg border-dashed">Aucun trajet publié.</p>;
 

@@ -36,6 +36,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LoadingLogo } from '@/components/LoadingLogo';
+import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
 import { CheckCircle, Shield } from 'lucide-react';
 
 const profileSchema = z.object({
@@ -184,11 +185,7 @@ function ProfilePageInternal() {
   };
 
   if (isUserLoading || isDataLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!user) {
@@ -437,11 +434,7 @@ function ProfilePageInternal() {
 
 export default function ProfilePage() {
   return (
-    <React.Suspense fallback={
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <LoadingLogo className="h-12 w-12 text-primary" />
-      </div>
-    }>
+    <React.Suspense fallback={<ProfileSkeleton />}>
       <ProfilePageInternal />
     </React.Suspense>
   );
