@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Car, DollarSign, TrendingUp, Star, Plus } from 'lucide-react';
+import { Car, DollarSign, TrendingUp, Star, Plus, Phone, Mail, ShieldCheck } from 'lucide-react';
 import { StatCard } from '../shared/StatCard';
 import { DemandesEnAttente } from './DemandesEnAttente';
 import { TripPublieRow } from './TripPublieRow';
@@ -24,7 +24,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Trip, UserProfile, Vehicle } from '@/types/db';
+import type { Trip, UserProfile, Vehicle, UserProfilePrivate } from '@/types/db';
 
 interface TransporteurDashboardProps {
   userId: string;
@@ -46,6 +46,12 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
     if (!firestore) return null;
     return collection(firestore, 'users', userId, 'vehicles');
   }, [firestore, userId]);
+
+  const privateRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'users', userId, 'private', 'profile');
+  }, [firestore, userId]);
+  const { data: privateProfile } = useDoc<UserProfilePrivate>(privateRef);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
   const { data: vehicles } = useCollection<Vehicle>(vehiclesQuery);
@@ -112,6 +118,30 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
             </Link>
           </Button>
         </div>
+
+        {/* Vignette conducteur — coordonnées partagées avec les voyageurs acceptés */}
+        {(userData.isVerified || privateProfile?.email || privateProfile?.phoneNumber) && (
+          <div className="rounded-xl border bg-card p-4 flex items-center gap-4 flex-wrap">
+            {userData.isVerified && (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Chauffeur vérifié
+              </span>
+            )}
+            {privateProfile?.phoneNumber && (
+              <a href={`tel:${privateProfile.phoneNumber}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Phone className="h-4 w-4 text-primary shrink-0" />
+                {privateProfile.phoneNumber}
+              </a>
+            )}
+            {privateProfile?.email && (
+              <a href={`mailto:${privateProfile.email}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Mail className="h-4 w-4 text-primary shrink-0" />
+                {privateProfile.email}
+              </a>
+            )}
+          </div>
+        )}
 
         {/* Stats — 4 cartes, 2 col mobile / 4 col desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

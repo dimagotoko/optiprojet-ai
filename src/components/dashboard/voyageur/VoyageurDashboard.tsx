@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collectionGroup, query, where, doc } from 'firebase/firestore';
-import { Car, DollarSign, Leaf, Star, MapPin, ArrowRight, Clock, CheckCircle, XCircle, Sparkles, Phone } from 'lucide-react';
+import { Car, DollarSign, Leaf, Star, MapPin, ArrowRight, Clock, CheckCircle, XCircle, Sparkles, Phone, Mail, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { StatCard } from '../shared/StatCard';
 import { QuickSearchBar } from './QuickSearchBar';
@@ -101,32 +101,60 @@ function BookedTripItem({ booking }: { booking: Booking }) {
             </div>
           </div>
 
-          {/* Infos véhicule — visible uniquement si réservation acceptée */}
-          {booking.status === 'accepted' && vehicle && (
-            <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
-              {vehicle.imageUrl ? (
-                <div className="relative h-10 w-16 rounded overflow-hidden shrink-0 border">
-                  <Image src={vehicle.imageUrl} alt={`${vehicle.make} ${vehicle.model}`} fill className="object-cover" />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-10 w-10 rounded bg-background border shrink-0">
-                  <Car className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+          {/* Infos conducteur + véhicule + contact — visibles si réservation acceptée */}
+          {booking.status === 'accepted' && (
+            <div className="rounded-lg border bg-muted/40 px-3 py-2.5 space-y-2">
+              {/* Badge vérifié */}
+              {driver?.isVerified && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                  <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                  Chauffeur vérifié
+                </span>
+              )}
+              {/* Véhicule */}
+              {vehicle && (
+                <div className="flex items-center gap-3">
+                  {vehicle.imageUrl ? (
+                    <div className="relative h-10 w-16 rounded overflow-hidden shrink-0 border">
+                      <Image src={vehicle.imageUrl} alt={`${vehicle.make} ${vehicle.model}`} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-10 w-10 rounded bg-background border shrink-0">
+                      <Car className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground">{vehicle.make} {vehicle.model} {vehicle.year}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full border border-border shrink-0" style={{ backgroundColor: vehicle.color.toLowerCase() }} />
+                      <span className="text-xs text-muted-foreground">{vehicle.color}</span>
+                      {vehicle.province && (
+                        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+                          <span className="font-bold text-primary">{vehicle.province}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="font-mono font-semibold tracking-widest">{vehicle.licensePlate}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-foreground">
-                  {vehicle.make} {vehicle.model} {vehicle.year}
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full border border-border shrink-0"
-                    style={{ backgroundColor: vehicle.color.toLowerCase() }}
-                    title={vehicle.color}
-                  />
-                  <span className="text-xs text-muted-foreground">{vehicle.color}</span>
-                  <span className="text-xs text-muted-foreground">· {vehicle.licensePlate}</span>
+              {/* Contact conducteur */}
+              {(booking.driverPhone || booking.driverEmail) && (
+                <div className="border-t pt-2 space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground">Contacter le conducteur</p>
+                  {booking.driverPhone && (
+                    <a href={`tel:${booking.driverPhone}`} className="flex items-center gap-2 text-xs text-foreground hover:underline">
+                      <Phone className="h-3.5 w-3.5 text-primary shrink-0" />{booking.driverPhone}
+                    </a>
+                  )}
+                  {booking.driverEmail && (
+                    <a href={`mailto:${booking.driverEmail}`} className="flex items-center gap-2 text-xs text-foreground hover:underline">
+                      <Mail className="h-3.5 w-3.5 text-primary shrink-0" />{booking.driverEmail}
+                    </a>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           )}
         </CardContent>

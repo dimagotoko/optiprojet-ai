@@ -9,14 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import type { Booking, Trip, UserProfile } from '@/types/db';
+import type { Booking, Trip, UserProfile, UserProfilePrivate } from '@/types/db';
 
 const getInitials = (name: string) =>
   name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
 // ─── DemandeCard ──────────────────────────────────────────────────────────────
 
-function DemandeCard({ booking, trip }: { booking: Booking; trip: Trip }) {
+function DemandeCard({ booking, trip, driverId }: { booking: Booking; trip: Trip; driverId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = React.useState<'accept' | 'refuse' | null>(null);
@@ -27,14 +27,24 @@ function DemandeCard({ booking, trip }: { booking: Booking; trip: Trip }) {
   }, [firestore, booking.travelerId]);
   const { data: traveler, isLoading: travelerLoading } = useDoc<UserProfile>(travelerRef);
 
+  // Profil privé du conducteur pour dénormaliser le contact lors de l'acceptation
+  const driverPrivateRef = useMemoFirebase(() => {
+    if (!firestore || !driverId) return null;
+    return doc(firestore, 'users', driverId, 'private', 'profile');
+  }, [firestore, driverId]);
+  const { data: driverPrivate } = useDoc<UserProfilePrivate>(driverPrivateRef);
+
   const handleAccept = async () => {
     if (!firestore || loading) return;
     setLoading('accept');
     try {
-      // Batch : status→accepted + trip.availableSeats-=1 + trip.totalBookings+=1
       const batch = writeBatch(firestore);
       batch.update(doc(firestore, 'trips', trip.id, 'bookings', booking.id), {
         status: 'accepted',
+        ...(driverPrivate ? {
+          driverEmail: driverPrivate.email,
+          driverPhone: driverPrivate.phoneNumber,
+        } : {}),
       });
       batch.update(doc(firestore, 'trips', trip.id), {
         availableSeats: increment(-1),
@@ -127,7 +137,6 @@ function DemandeCard({ booking, trip }: { booking: Booking; trip: Trip }) {
 }
 
 // ─── TripPendingBookings ───────────────────────────────────────────────────────
-// Option B : query COLLECTION scope par trajet — zéro nouvel index (double equality = auto-indexé)
 
 interface TripPendingProps {
   trip: Trip;
@@ -160,7 +169,7 @@ function TripPendingBookings({ trip, userId, onCountChange }: TripPendingProps) 
   return (
     <>
       {pending.map(booking => (
-        <DemandeCard key={booking.id} booking={booking} trip={trip} />
+        <DemandeCard key={booking.id} booking={booking} trip={trip} driverId={userId} />
       ))}
     </>
   );

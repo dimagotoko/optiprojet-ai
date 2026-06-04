@@ -65,7 +65,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where } from 'firebase/firestore';
-import { VEHICLE_TYPE_CONFIG, type VehicleType, type Vehicle } from '@/types/db';
+import { VEHICLE_TYPE_CONFIG, CANADIAN_PROVINCES, type VehicleType, type ProvinceCode, type Vehicle } from '@/types/db';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,6 +75,9 @@ const vehicleSchema = z.object({
     model: z.string().min(1, 'Le modèle est requis'),
     year: z.coerce.number().min(1900, 'Année invalide').max(new Date().getFullYear() + 1, 'Année invalide'),
     color: z.string().min(1, 'La couleur est requise'),
+    province: z.enum(['QC','ON','BC','AB','MB','SK','NS','NB','PE','NL','YT','NT','NU'] as const, {
+        required_error: 'La province est requise',
+    }),
     licensePlate: z.string().min(1, 'La plaque est requise'),
     type: z.enum(['berline', 'vus_compact', 'vus', 'minifourgonnette', 'camionnette', 'autre'] as const, {
         required_error: 'Le type de véhicule est requis',
@@ -171,7 +174,7 @@ export default function PostTripPage() {
 
   const vehicleForm = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
-    defaultValues: { make: '', model: '', year: new Date().getFullYear(), color: '', licensePlate: '', type: 'berline', imageUrl: '' },
+    defaultValues: { make: '', model: '', year: new Date().getFullYear(), color: '', province: 'QC' as ProvinceCode, licensePlate: '', type: 'berline', imageUrl: '' },
   });
   
   const tripForm = useForm<TripFormValues>({
@@ -234,7 +237,8 @@ export default function PostTripPage() {
     try {
         const vehicleRef = collection(firestore, `users/${user.uid}/vehicles`);
         const maxSeats = VEHICLE_TYPE_CONFIG[values.type as VehicleType]?.maxSeats ?? 8;
-        await addDoc(vehicleRef, { ...values, ownerId: user.uid, maxSeats });
+        const plateFormatted = values.licensePlate.toUpperCase().trim();
+        await addDoc(vehicleRef, { ...values, licensePlate: plateFormatted, ownerId: user.uid, maxSeats });
         toast({ title: "Succès", description: "Votre véhicule a été ajouté." });
         vehicleForm.reset();
         setShowAddVehicleDialog(false);
@@ -690,7 +694,42 @@ export default function PostTripPage() {
                                                             <FormField control={vehicleForm.control} name="year" render={({ field }) => ( <FormItem><Label>Année</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                                             <FormField control={vehicleForm.control} name="color" render={({ field }) => ( <FormItem><Label>Couleur</Label><FormControl><Input {...field} placeholder="ex: Bleu nuit" /></FormControl><FormMessage /></FormItem> )} />
                                                         </div>
-                                                        <FormField control={vehicleForm.control} name="licensePlate" render={({ field }) => ( <FormItem><Label>Plaque d'immatriculation</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <FormField control={vehicleForm.control} name="province" render={({ field }) => (
+                                                                <FormItem>
+                                                                    <Label>Province</Label>
+                                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                                        <FormControl>
+                                                                            <SelectTrigger><SelectValue placeholder="Prov." /></SelectTrigger>
+                                                                        </FormControl>
+                                                                        <SelectContent>
+                                                                            {(Object.entries(CANADIAN_PROVINCES) as [ProvinceCode, { label: string; plateFormat: string; placeholder: string }][]).map(([code, p]) => (
+                                                                                <SelectItem key={code} value={code}>{code} — {p.label}</SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={vehicleForm.control} name="licensePlate" render={({ field }) => {
+                                                                const prov = vehicleForm.watch('province') as ProvinceCode;
+                                                                const fmt = CANADIAN_PROVINCES[prov];
+                                                                return (
+                                                                    <FormItem>
+                                                                        <Label>Plaque</Label>
+                                                                        <FormControl>
+                                                                            <Input
+                                                                                {...field}
+                                                                                placeholder={fmt?.placeholder ?? 'ABC-123'}
+                                                                                onChange={e => field.onChange(e.target.value.toUpperCase())}
+                                                                            />
+                                                                        </FormControl>
+                                                                        {fmt && <p className="text-xs text-muted-foreground">Format : {fmt.plateFormat}</p>}
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                );
+                                                            }} />
+                                                        </div>
                                                         <FormField control={vehicleForm.control} name="imageUrl" render={({ field }) => ( <FormItem><Label>Photo du véhicule <span className="text-muted-foreground">(URL, optionnel)</span></Label><FormControl><Input {...field} placeholder="https://example.com/photo.jpg" /></FormControl><FormMessage /></FormItem> )} />
                                                     </form>
                                                 </Form>

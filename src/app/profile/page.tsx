@@ -135,6 +135,8 @@ function ProfilePageInternal() {
       const userDocRef    = doc(firestore, 'users', user.uid);
       const privateDocRef = doc(firestore, 'users', user.uid, 'private', 'profile');
 
+      const isFirstProtocolSign = values.protocolAccepted && !existingProtocolSignedAt;
+
       // Construire les données privées ; protocolSignedAt uniquement si première signature
       const privateData: Record<string, unknown> = {
         email:         values.email,
@@ -142,10 +144,9 @@ function ProfilePageInternal() {
         postalCode:    values.postalCode,
         driverLicense: values.driverLicense ?? '',
       };
-      if (values.protocolAccepted && !existingProtocolSignedAt) {
+      if (isFirstProtocolSign) {
         privateData.protocolSignedAt = serverTimestamp();
       }
-
       await Promise.all([
         setDoc(userDocRef, {
           id:                user.uid,
@@ -153,6 +154,7 @@ function ProfilePageInternal() {
           city:              values.city,
           profilePictureUrl: values.profilePictureUrl,
           role:              values.userType,
+          ...(isFirstProtocolSign ? { isVerified: true } : {}),
         }, { merge: true }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setDoc(privateDocRef, privateData as any, { merge: true }),

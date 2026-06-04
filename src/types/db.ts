@@ -37,6 +37,7 @@ export type UserProfile = {
   averageRating?: number;
   totalRatings?: number;
   role?: string;
+  isVerified?: boolean;
 };
 
 // Champs stockés dans /users/{uid}/private/profile — owner + admin seulement
@@ -57,6 +58,9 @@ export type Booking = {
   paymentIntentId?: string;
   paymentStatus?: string;
   createdAt: Timestamp;
+  // Dénormalisé lors de l'acceptation pour que le voyageur puisse contacter le conducteur
+  driverEmail?: string;
+  driverPhone?: string;
 };
 
 export type VehicleType =
@@ -76,6 +80,26 @@ export const VEHICLE_TYPE_CONFIG: Record<VehicleType, { label: string; maxSeats:
   autre:            { label: 'Autre',             maxSeats: 8 },
 };
 
+export type ProvinceCode =
+  | 'QC' | 'ON' | 'BC' | 'AB' | 'MB' | 'SK'
+  | 'NS' | 'NB' | 'PE' | 'NL' | 'YT' | 'NT' | 'NU';
+
+export const CANADIAN_PROVINCES: Record<ProvinceCode, { label: string; plateFormat: string; placeholder: string }> = {
+  QC: { label: 'Québec',                      plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  ON: { label: 'Ontario',                     plateFormat: 'AAAA-999', placeholder: 'ABCD-123' },
+  BC: { label: 'Colombie-Britannique',        plateFormat: 'AAA-999A', placeholder: 'ABC-123D' },
+  AB: { label: 'Alberta',                     plateFormat: 'AAA-9999', placeholder: 'ABC-1234' },
+  MB: { label: 'Manitoba',                    plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  SK: { label: 'Saskatchewan',               plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  NS: { label: 'Nouvelle-Écosse',             plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  NB: { label: 'Nouveau-Brunswick',           plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  PE: { label: 'Île-du-Prince-Édouard',       plateFormat: 'AA-9999',  placeholder: 'AB-1234'  },
+  NL: { label: 'Terre-Neuve-et-Labrador',     plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  YT: { label: 'Yukon',                       plateFormat: 'AAAA-99',  placeholder: 'ABCD-12'  },
+  NT: { label: 'Territoires du Nord-Ouest',   plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+  NU: { label: 'Nunavut',                     plateFormat: 'AAA-999',  placeholder: 'ABC-123'  },
+};
+
 export type Vehicle = {
     id: string;
     ownerId: string;
@@ -84,6 +108,7 @@ export type Vehicle = {
     year: number;
     color: string;
     licensePlate: string;
+    province: ProvinceCode;
     type: VehicleType;
     maxSeats: number;
     imageUrl?: string;
