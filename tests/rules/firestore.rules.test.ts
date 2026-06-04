@@ -306,6 +306,48 @@ describe('TRIPS – voyageur incrémente totalBookings lors d\'une réservation'
   });
 });
 
+// ─── VEHICLES – /users/{userId}/vehicles/{vehicleId} ─────────────────────────
+
+describe('VEHICLES – lecture par voyageur', () => {
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'users', DRIVER, 'vehicles', 'v1'), {
+        make: 'Toyota', model: 'Corolla', year: 2022,
+        color: 'Blanc', licensePlate: 'ABC-123',
+        type: 'berline', maxSeats: 4, ownerId: DRIVER,
+      });
+    });
+  });
+
+  test('propriétaire lit son propre véhicule → succès', async () => {
+    await assertSucceeds(
+      getDoc(doc(asUser(DRIVER), 'users', DRIVER, 'vehicles', 'v1')),
+    );
+  });
+
+  test('voyageur authentifié lit le véhicule du conducteur → succès', async () => {
+    await assertSucceeds(
+      getDoc(doc(asUser(TRAVELER), 'users', DRIVER, 'vehicles', 'v1')),
+    );
+  });
+
+  test('utilisateur non authentifié lit un véhicule → échec', async () => {
+    await assertFails(
+      getDoc(doc(asAnon(), 'users', DRIVER, 'vehicles', 'v1')),
+    );
+  });
+
+  test('autre user tente d\'écrire le véhicule du conducteur → échec', async () => {
+    await assertFails(
+      setDoc(doc(asUser(TRAVELER), 'users', DRIVER, 'vehicles', 'v2'), {
+        make: 'Honda', model: 'Civic', year: 2020,
+        color: 'Rouge', licensePlate: 'XYZ-999',
+        type: 'berline', maxSeats: 4, ownerId: DRIVER,
+      }),
+    );
+  });
+});
+
 // ─── PROFIL – /users/{uid} ────────────────────────────────────────────────────
 
 describe('PROFIL – /users/{uid}', () => {

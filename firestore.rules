@@ -80,7 +80,10 @@ service cloud.firestore {
             return isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
         }
 
-        allow read, write: if isExistingOwner(userId);
+        // Lecture ouverte à tout utilisateur authentifié : un voyageur doit pouvoir
+        // voir le véhicule du conducteur après acceptation de sa réservation.
+        allow read: if request.auth != null;
+        allow write: if isExistingOwner(userId);
     }
 
     /**
