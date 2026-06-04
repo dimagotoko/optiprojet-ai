@@ -440,7 +440,7 @@ export default function PostTripPage() {
       <form onSubmit={tripForm.handleSubmit(onSubmitTrip)} className="space-y-8">
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
-            <CardTitle className="text-3xl font-bold">{searchParams.has('return') ? 'Proposer un trajet retour' : 'Proposer un trajet'}</CardTitle>
+            <CardTitle className="text-xl sm:text-3xl font-bold">{searchParams.has('return') ? 'Proposer un trajet retour' : 'Proposer un trajet'}</CardTitle>
             <CardDescription>
                 {searchParams.has('return') ? 'Vérifiez et complétez les informations pour votre trajet retour.' : 'Partagez votre itinéraire et vos places disponibles avec la communauté.'}
             </CardDescription>

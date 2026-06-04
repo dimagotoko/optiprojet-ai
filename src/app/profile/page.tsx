@@ -211,7 +211,7 @@ function ProfilePageInternal() {
                   <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-3xl font-bold">
+                  <CardTitle className="text-xl sm:text-3xl font-bold">
                     {form.watch('fullName') || user.displayName || 'Mon Profil'}
                   </CardTitle>
                   <CardDescription>{user.email}</CardDescription>
@@ -413,7 +413,7 @@ function ProfilePageInternal() {
             </CardContent>
 
             <CardFooter className="border-t px-6 py-4">
-              <div className="flex justify-between items-center w-full gap-3">
+              <div className="flex flex-wrap justify-between items-center w-full gap-3">
                 <Button
                   type="button"
                   variant="outline"

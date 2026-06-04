@@ -64,7 +64,7 @@ function BookedTripItem({ booking }: { booking: Booking }) {
     <>
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="p-2 rounded-full bg-primary/10 shrink-0">
                 <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -80,7 +80,7 @@ function BookedTripItem({ booking }: { booking: Booking }) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Badge variant="outline" className={cn('text-xs font-medium flex items-center gap-1', cfg.className)}>
                 <StatusIcon className="h-3 w-3" aria-hidden="true" />
                 {cfg.label}

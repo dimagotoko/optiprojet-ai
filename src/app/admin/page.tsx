@@ -41,7 +41,7 @@ function UsersTable() {
     const getInitials = (name: string) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
 
     return (
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border overflow-x-auto">
             <Table>
                 <TableHeader className="bg-muted/50">
                     <TableRow>
@@ -101,7 +101,7 @@ function TripsTable() {
     if (!trips || trips.length === 0) return <p className="text-muted-foreground p-8 text-center border rounded-lg border-dashed">Aucun trajet publié.</p>;
 
     return (
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border overflow-x-auto">
             <Table>
                 <TableHeader className="bg-muted/50">
                     <TableRow>
@@ -171,8 +171,8 @@ export default function AdminPage() {
     return (
         <div className="container py-12 px-4 md:px-6 space-y-12">
             <header className="flex flex-col gap-2">
-                <h1 className="text-4xl font-extrabold tracking-tight">Portail Admin</h1>
-                <p className="text-muted-foreground text-lg">Supervision des activités de la plateforme OptiTrajet AI.</p>
+                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Portail Admin</h1>
+                <p className="text-muted-foreground text-sm sm:text-lg">Supervision des activités de la plateforme OptiTrajet AI.</p>
             </header>
             
             <div className="grid gap-8">

@@ -334,14 +334,14 @@ function TripDetailsPageContent() {
                                 </h1>
                             </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-lg text-muted-foreground">
-                                <Calendar className="h-5 w-5" />
+                        <div className="flex flex-wrap justify-between items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm sm:text-lg text-muted-foreground">
+                                <Calendar className="h-5 w-5 shrink-0" />
                                 <span>{format(departureDate, 'd MMMM yyyy', { locale: fr })} à {format(departureDate, 'HH:mm')}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <ShareButton origin={trip.origin} destination={trip.destination} />
-                                <Badge variant="secondary" className="text-2xl font-bold py-1 px-4">{trip.pricePerSeat}$</Badge>
+                                <Badge variant="secondary" className="text-xl sm:text-2xl font-bold py-1 px-3 sm:px-4">{trip.pricePerSeat}$</Badge>
                             </div>
                         </div>
                     </div>
@@ -494,7 +494,7 @@ function TripDetailsPageContent() {
                      <div>
                         <h2 className="text-2xl font-bold mb-4">Détails, options et paiement</h2>
                         <Card>
-                            <CardContent className="p-6 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <CardContent className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                 <div className="flex items-center gap-3">
                                     <Users className="h-8 w-8 text-primary" />
                                     <div>
