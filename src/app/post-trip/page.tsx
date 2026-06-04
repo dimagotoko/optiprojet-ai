@@ -65,6 +65,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where } from 'firebase/firestore';
+import { VEHICLE_TYPE_CONFIG, type VehicleType, type Vehicle } from '@/types/db';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,6 +76,10 @@ const vehicleSchema = z.object({
     year: z.coerce.number().min(1900, 'Année invalide').max(new Date().getFullYear() + 1, 'Année invalide'),
     color: z.string().min(1, 'La couleur est requise'),
     licensePlate: z.string().min(1, 'La plaque est requise'),
+    type: z.enum(['berline', 'vus_compact', 'vus', 'minifourgonnette', 'camionnette', 'autre'] as const, {
+        required_error: 'Le type de véhicule est requis',
+    }),
+    imageUrl: z.string().url('URL invalide').optional().or(z.literal('')),
 });
 
 const addressSchema = z.object({
@@ -166,7 +171,7 @@ export default function PostTripPage() {
 
   const vehicleForm = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
-    defaultValues: { make: '', model: '', year: new Date().getFullYear(), color: '', licensePlate: '' },
+    defaultValues: { make: '', model: '', year: new Date().getFullYear(), color: '', licensePlate: '', type: 'berline', imageUrl: '' },
   });
   
   const tripForm = useForm<TripFormValues>({
@@ -228,7 +233,8 @@ export default function PostTripPage() {
     if (!firestore || !user) return;
     try {
         const vehicleRef = collection(firestore, `users/${user.uid}/vehicles`);
-        await addDoc(vehicleRef, { ...values, ownerId: user.uid });
+        const maxSeats = VEHICLE_TYPE_CONFIG[values.type as VehicleType]?.maxSeats ?? 8;
+        await addDoc(vehicleRef, { ...values, ownerId: user.uid, maxSeats });
         toast({ title: "Succès", description: "Votre véhicule a été ajouté." });
         vehicleForm.reset();
         setShowAddVehicleDialog(false);
@@ -413,7 +419,16 @@ export default function PostTripPage() {
     );
   }
 
-  const selectedVehicle = vehicles?.find(v => v.id === tripForm.watch('vehicleId'));
+  const selectedVehicle = vehicles?.find(v => v.id === tripForm.watch('vehicleId')) as Vehicle | undefined;
+  const maxSeatsForVehicle = selectedVehicle?.maxSeats ?? 8;
+
+  // Quand le véhicule change, plafonne les places au max autorisé
+  React.useEffect(() => {
+    const currentSeats = tripForm.getValues('seats');
+    if (selectedVehicle?.maxSeats && currentSeats > selectedVehicle.maxSeats) {
+      tripForm.setValue('seats', selectedVehicle.maxSeats, { shouldValidate: true });
+    }
+  }, [selectedVehicle?.maxSeats, tripForm]);
 
   return (
     <div className="container py-12 px-4 md:px-6">
@@ -554,9 +569,14 @@ export default function PostTripPage() {
                                     <div className="relative">
                                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <FormControl>
-                                            <Input type="number" placeholder="ex: 3" className="pl-10 h-11" min="1" {...field} />
+                                            <Input type="number" placeholder="ex: 3" className="pl-10 h-11" min="1" max={maxSeatsForVehicle} {...field} />
                                         </FormControl>
                                     </div>
+                                    {selectedVehicle && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Maximum {maxSeatsForVehicle} places pour ce véhicule ({VEHICLE_TYPE_CONFIG[selectedVehicle.type as VehicleType]?.label ?? 'Autre'})
+                                      </p>
+                                    )}
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -644,15 +664,34 @@ export default function PostTripPage() {
                                                 </DialogHeader>
                                                 <Form {...vehicleForm}>
                                                     <form id="add-vehicle-form" onSubmit={vehicleForm.handleSubmit(handleAddVehicle)} className="grid gap-4 py-4">
+                                                        <FormField control={vehicleForm.control} name="type" render={({ field }) => (
+                                                            <FormItem>
+                                                                <Label>Type de véhicule</Label>
+                                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                                    <FormControl>
+                                                                        <SelectTrigger><SelectValue placeholder="Sélectionner le type" /></SelectTrigger>
+                                                                    </FormControl>
+                                                                    <SelectContent>
+                                                                        {(Object.entries(VEHICLE_TYPE_CONFIG) as [VehicleType, { label: string; maxSeats: number }][]).map(([key, cfg]) => (
+                                                                            <SelectItem key={key} value={key}>
+                                                                                {cfg.label} — max {cfg.maxSeats} places
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <FormField control={vehicleForm.control} name="make" render={({ field }) => ( <FormItem><Label>Marque</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                                             <FormField control={vehicleForm.control} name="model" render={({ field }) => ( <FormItem><Label>Modèle</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <FormField control={vehicleForm.control} name="year" render={({ field }) => ( <FormItem><Label>Année</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                                            <FormField control={vehicleForm.control} name="color" render={({ field }) => ( <FormItem><Label>Couleur</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                            <FormField control={vehicleForm.control} name="color" render={({ field }) => ( <FormItem><Label>Couleur</Label><FormControl><Input {...field} placeholder="ex: Bleu nuit" /></FormControl><FormMessage /></FormItem> )} />
                                                         </div>
                                                         <FormField control={vehicleForm.control} name="licensePlate" render={({ field }) => ( <FormItem><Label>Plaque d'immatriculation</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                                        <FormField control={vehicleForm.control} name="imageUrl" render={({ field }) => ( <FormItem><Label>Photo du véhicule <span className="text-muted-foreground">(URL, optionnel)</span></Label><FormControl><Input {...field} placeholder="https://example.com/photo.jpg" /></FormControl><FormMessage /></FormItem> )} />
                                                     </form>
                                                 </Form>
                                                 <DialogFooter>

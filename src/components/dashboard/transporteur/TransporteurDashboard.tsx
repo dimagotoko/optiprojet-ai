@@ -24,7 +24,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Trip, UserProfile } from '@/types/db';
+import type { Trip, UserProfile, Vehicle } from '@/types/db';
 
 interface TransporteurDashboardProps {
   userId: string;
@@ -42,7 +42,18 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
     return query(collection(firestore, 'trips'), where('offeredBy', '==', userId));
   }, [firestore, userId]);
 
+  const vehiclesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users', userId, 'vehicles');
+  }, [firestore, userId]);
+
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
+  const { data: vehicles } = useCollection<Vehicle>(vehiclesQuery);
+
+  const vehicleMap = React.useMemo(() => {
+    if (!vehicles) return {};
+    return Object.fromEntries(vehicles.map(v => [v.id, v]));
+  }, [vehicles]);
 
   const { upcomingTrips, pastTrips } = React.useMemo(() => {
     if (!allTrips) return { upcomingTrips: [], pastTrips: [] };
@@ -163,6 +174,7 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
               <TripPublieRow
                 key={trip.id}
                 trip={trip}
+                vehicle={vehicleMap[trip.vehicleId]}
                 onEditClick={handleEditClick}
                 onDeleteClick={setTripToDelete}
                 onToggleCloseTrip={handleToggleCloseTrip}

@@ -59,6 +59,23 @@ export type Booking = {
   createdAt: Timestamp;
 };
 
+export type VehicleType =
+  | 'berline'
+  | 'vus_compact'
+  | 'vus'
+  | 'minifourgonnette'
+  | 'camionnette'
+  | 'autre';
+
+export const VEHICLE_TYPE_CONFIG: Record<VehicleType, { label: string; maxSeats: number }> = {
+  berline:          { label: 'Berline / Coupé',  maxSeats: 4 },
+  vus_compact:      { label: 'VUS compact',       maxSeats: 5 },
+  vus:              { label: 'VUS / SUV',         maxSeats: 7 },
+  minifourgonnette: { label: 'Minifourgonnette',  maxSeats: 8 },
+  camionnette:      { label: 'Camionnette',       maxSeats: 5 },
+  autre:            { label: 'Autre',             maxSeats: 8 },
+};
+
 export type Vehicle = {
     id: string;
     ownerId: string;
@@ -67,4 +84,7 @@ export type Vehicle = {
     year: number;
     color: string;
     licensePlate: string;
+    type: VehicleType;
+    maxSeats: number;
+    imageUrl?: string;
 };

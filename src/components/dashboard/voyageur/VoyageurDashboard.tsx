@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collectionGroup, query, where, doc } from 'firebase/firestore';
-import { Car, DollarSign, Leaf, Star, MapPin, ArrowRight, Clock, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { Car, DollarSign, Leaf, Star, MapPin, ArrowRight, Clock, CheckCircle, XCircle, Sparkles, Phone } from 'lucide-react';
+import Image from 'next/image';
 import { StatCard } from '../shared/StatCard';
 import { QuickSearchBar } from './QuickSearchBar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +17,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import type { Booking, Trip, UserProfile } from '@/types/db';
+import type { Booking, Trip, UserProfile, Vehicle } from '@/types/db';
 
 const CO2_PER_TRIP_KG = 18;
 
@@ -43,6 +44,12 @@ function BookedTripItem({ booking }: { booking: Booking }) {
   }, [firestore, trip?.offeredBy]);
   const { data: driver } = useDoc<UserProfile>(driverRef);
 
+  const vehicleRef = useMemoFirebase(() => {
+    if (!firestore || !trip?.offeredBy || !trip?.vehicleId || booking.status !== 'accepted') return null;
+    return doc(firestore, 'users', trip.offeredBy, 'vehicles', trip.vehicleId);
+  }, [firestore, trip?.offeredBy, trip?.vehicleId, booking.status]);
+  const { data: vehicle } = useDoc<Vehicle>(vehicleRef);
+
   const cfg = statusConfig[booking.status] ?? statusConfig.pending;
   const StatusIcon = cfg.icon;
 
@@ -56,41 +63,72 @@ function BookedTripItem({ booking }: { booking: Booking }) {
   return (
     <>
       <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 rounded-full bg-primary/10 shrink-0">
-              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold flex items-center gap-1">
+                  <span className="truncate">{trip.origin}</span>
+                  <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="truncate">{trip.destination}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {format(date, 'd MMM yyyy · HH:mm', { locale: fr })} · {trip.pricePerSeat} $
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-semibold flex items-center gap-1">
-                <span className="truncate">{trip.origin}</span>
-                <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <span className="truncate">{trip.destination}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {format(date, 'd MMM yyyy · HH:mm', { locale: fr })} · {trip.pricePerSeat} $
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className={cn('text-xs font-medium flex items-center gap-1', cfg.className)}>
-              <StatusIcon className="h-3 w-3" aria-hidden="true" />
-              {cfg.label}
-            </Badge>
-            {canRate && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-yellow-600 border-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                onClick={() => setRatingOpen(true)}
-              >
-                <Star className="h-3.5 w-3.5" aria-hidden="true" /> Évaluer
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge variant="outline" className={cn('text-xs font-medium flex items-center gap-1', cfg.className)}>
+                <StatusIcon className="h-3 w-3" aria-hidden="true" />
+                {cfg.label}
+              </Badge>
+              {canRate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-yellow-600 border-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                  onClick={() => setRatingOpen(true)}
+                >
+                  <Star className="h-3.5 w-3.5" aria-hidden="true" /> Évaluer
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={`/trip-details/${trip.id}`}>Voir</Link>
               </Button>
-            )}
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/trip-details/${trip.id}`}>Voir</Link>
-            </Button>
+            </div>
           </div>
+
+          {/* Infos véhicule — visible uniquement si réservation acceptée */}
+          {booking.status === 'accepted' && vehicle && (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+              {vehicle.imageUrl ? (
+                <div className="relative h-10 w-16 rounded overflow-hidden shrink-0 border">
+                  <Image src={vehicle.imageUrl} alt={`${vehicle.make} ${vehicle.model}`} fill className="object-cover" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-10 w-10 rounded bg-background border shrink-0">
+                  <Car className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground">
+                  {vehicle.make} {vehicle.model} {vehicle.year}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full border border-border shrink-0"
+                    style={{ backgroundColor: vehicle.color.toLowerCase() }}
+                    title={vehicle.color}
+                  />
+                  <span className="text-xs text-muted-foreground">{vehicle.color}</span>
+                  <span className="text-xs text-muted-foreground">· {vehicle.licensePlate}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       {canRate && driver && (
