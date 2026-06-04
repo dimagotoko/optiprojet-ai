@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
@@ -52,11 +52,14 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-export default function ProfilePage() {
+function ProfilePageInternal() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+  const redirect = searchParams.get('redirect');
+  const redirectUrl = (redirect && redirect.startsWith('/')) ? redirect : '/dashboard';
   const [isDataLoading, setIsDataLoading] = React.useState(false);
   const [initialData, setInitialData] = React.useState<ProfileFormValues | null>(null);
   const [existingProtocolSignedAt, setExistingProtocolSignedAt] = React.useState<Timestamp | null>(null);
@@ -167,7 +170,7 @@ export default function ProfilePage() {
         description: 'Vos informations ont été sauvegardées avec succès.',
       });
 
-      window.location.href = '/dashboard';
+      window.location.href = redirectUrl;
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -427,5 +430,17 @@ export default function ProfilePage() {
         </form>
       </Form>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <React.Suspense fallback={
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <LoadingLogo className="h-12 w-12 text-primary" />
+      </div>
+    }>
+      <ProfilePageInternal />
+    </React.Suspense>
   );
 }

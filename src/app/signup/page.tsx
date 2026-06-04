@@ -83,6 +83,9 @@ function SignupPageInternal() {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const emailFromQuery = searchParams.get('email') || '';
+  const redirect = searchParams.get('redirect');
+  const safeRedirectUrl = (redirect && redirect.startsWith('/')) ? redirect : null;
+  const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
@@ -150,8 +153,10 @@ function SignupPageInternal() {
         description: "Bienvenue sur OptiTrajet AI.",
       });
 
-      // Force a full refresh to ensure all providers are synced with the new user data and project ID
-      window.location.href = '/dashboard';
+      // Redirige vers le profil pour accepter le protocole, en conservant le redirect final
+      window.location.href = safeRedirectUrl
+        ? `/profile?redirect=${encodeURIComponent(safeRedirectUrl)}`
+        : '/dashboard';
 
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -383,7 +388,7 @@ function SignupPageInternal() {
                 />
                 <div className="mt-2 text-center text-sm">
                     Vous avez déjà un compte?{' '}
-                    <Link href="/login" className="underline">
+                    <Link href={loginHref} className="underline">
                     Connectez-vous
                     </Link>
                 </div>

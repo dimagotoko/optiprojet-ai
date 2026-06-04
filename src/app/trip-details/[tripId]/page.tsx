@@ -4,7 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
 import { doc, collection, query, where, addDoc, updateDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { LoadingLogo } from '@/components/LoadingLogo';
 import { TripDetailSkeleton } from '@/components/skeletons/TripDetailSkeleton';
 import { Button } from '@/components/ui/button';
@@ -166,6 +166,8 @@ function TripDetailsPageContent() {
     const { toast } = useToast();
 
     const tripId = params.tripId as string;
+    const searchParams = useSearchParams();
+    const autobook = searchParams.get('autobook') === '1';
     const [showBookingConfirm, setShowBookingConfirm] = React.useState(false);
     const [isBooking, setIsBooking] = React.useState(false);
 
@@ -247,6 +249,14 @@ function TripDetailsPageContent() {
             setShowBookingConfirm(false);
         }
     }
+
+    // Auto-ouvre la modal après retour d'authentification
+    React.useEffect(() => {
+        if (!isLoading && autobook && user && !isOwner) {
+            setShowBookingConfirm(true);
+            router.replace(`/trip-details/${tripId}`, { scroll: false });
+        }
+    }, [autobook, isLoading, user, isOwner, tripId, router]);
 
     if (isLoading) {
         return <TripDetailSkeleton />;
@@ -406,7 +416,7 @@ function TripDetailsPageContent() {
                             ) : isSoldOut ? (
                                 <Button className="w-full" disabled>Complet</Button>
                             ) : (
-                                 <Button className="w-full" size="lg" onClick={() => user ? setShowBookingConfirm(true) : router.push('/login')}>Réserver ce trajet</Button>
+                                 <Button className="w-full" size="lg" onClick={() => user ? setShowBookingConfirm(true) : router.push(`/login?redirect=${encodeURIComponent(`/trip-details/${tripId}?autobook=1`)}`)}>Réserver ce trajet</Button>
                             )}
 
                             <p className="text-xs text-muted-foreground text-center mt-4">

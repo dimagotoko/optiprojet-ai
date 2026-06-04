@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -46,20 +46,28 @@ const formSchema = z.object({
 
 type LoginFormValues = z.infer<typeof formSchema>;
 
-export default function LoginPage() {
+function safeRedirect(redirect: string | null, fallback = '/dashboard'): string {
+  if (!redirect || !redirect.startsWith('/')) return fallback;
+  return redirect;
+}
+
+function LoginPageInternal() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const [loginError, setLoginError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
 
-  React.useEffect(() => {
-    // Redirect to dashboard if user is already logged in
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
+  const redirect = searchParams.get('redirect');
+  const redirectUrl = safeRedirect(redirect);
+  const signupHref = redirect ? `/signup?redirect=${encodeURIComponent(redirect)}` : '/signup';
 
+  React.useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push(redirectUrl);
+    }
+  }, [user, isUserLoading, router, redirectUrl]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
@@ -77,7 +85,7 @@ export default function LoginPage() {
     if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      window.location.href = '/dashboard';
+      window.location.href = redirectUrl;
     } catch (error: any) {
       console.error('Login error:', error.code, error.message);
 
@@ -103,7 +111,7 @@ export default function LoginPage() {
       setLoginError(message);
     }
   };
-  
+
   if (isUserLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -111,7 +119,6 @@ export default function LoginPage() {
       </div>
     );
   }
-
 
   return (
     <>
@@ -198,7 +205,7 @@ export default function LoginPage() {
             </Form>
             <div className="mt-4 text-center text-sm">
               Vous n'avez pas de compte?{' '}
-              <Link href="/signup" className="underline">
+              <Link href={signupHref} className="underline">
                 Inscrivez-vous
               </Link>
             </div>
@@ -217,7 +224,18 @@ export default function LoginPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <LoadingLogo className="h-12 w-12 text-primary" />
+      </div>
+    }>
+      <LoginPageInternal />
+    </React.Suspense>
   );
 }
