@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$d = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $d.tool_input.file_path; if ($f) { npx prettier --write \"$f\" --ignore-unknown 2>$null }",
+            "shell": "powershell"
+          }
+        ]
+      }
+    ]
+  }
+}

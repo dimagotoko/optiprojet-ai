@@ -1,17 +1,22 @@
+"use client";
 
-'use client';
-
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, CalendarDays, MapPin, ShieldCheck, Users } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Button } from '@/components/ui/button';
-import { TripSearchForm } from '@/components/TripSearchForm';
-import { RealTripsSection } from '@/components/home/RealTripsSection';
-import { Chatbot } from '@/components/Chatbot';
-import { LiveCounters } from '@/components/home/LiveCounters';
-import { useState } from 'react';
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  CalendarDays,
+  MapPin,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Button } from "@/components/ui/button";
+import { TripSearchForm } from "@/components/TripSearchForm";
+import { RealTripsSection } from "@/components/home/RealTripsSection";
+import { Chatbot } from "@/components/Chatbot";
+import { LiveCounters } from "@/components/home/LiveCounters";
+import { useState } from "react";
 
 type TripSearch = {
   departure?: string;
@@ -23,31 +28,36 @@ export default function Home() {
   const router = useRouter();
   const [tripSearch, setTripSearch] = useState<TripSearch>({});
 
-  const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-background');
+  const heroImage = PlaceHolderImages.find(
+    (img) => img.id === "hero-background",
+  );
 
   const howItWorks = [
     {
       icon: <MapPin className="h-8 w-8 text-primary" />,
-      title: 'Recherchez votre trajet',
-      description: 'Entrez votre départ, destination et date pour trouver les trajets disponibles.',
+      title: "Recherchez votre trajet",
+      description:
+        "Entrez votre départ, destination et date pour trouver les trajets disponibles.",
     },
     {
       icon: <Users className="h-8 w-8 text-primary" />,
-      title: 'Réservez votre place',
-      description: 'Payez en toute sécurité via notre plateforme et confirmez votre réservation.',
+      title: "Réservez votre place",
+      description:
+        "Payez en toute sécurité via notre plateforme et confirmez votre réservation.",
     },
     {
       icon: <CalendarDays className="h-8 w-8 text-primary" />,
-      title: 'Voyagez ensemble',
-      description: "Rencontrez votre conducteur et profitez d'un voyage économique et convivial.",
+      title: "Voyagez ensemble",
+      description:
+        "Rencontrez votre conducteur et profitez d'un voyage économique et convivial.",
     },
     {
       icon: <ShieldCheck className="h-8 w-8 text-primary" />,
-      title: 'Sécurité avant tout',
-      description: 'Tous nos conducteurs sont vérifiés pour vous assurer un voyage en toute tranquillité.',
+      title: "Sécurité avant tout",
+      description:
+        "Tous nos conducteurs sont vérifiés pour vous assurer un voyage en toute tranquillité.",
     },
   ];
-
 
   const handleAiSearch = (search: any) => {
     const newSearch: TripSearch = {};
@@ -64,9 +74,10 @@ export default function Home() {
       }
     }
     setTripSearch(newSearch);
-    router.push(`/trips?departure=${newSearch.departure || ''}&destination=${newSearch.destination || ''}&date=${newSearch.date ? newSearch.date.toISOString() : ''}`);
+    router.push(
+      `/trips?departure=${newSearch.departure || ""}&destination=${newSearch.destination || ""}&date=${newSearch.date ? newSearch.date.toISOString() : ""}`,
+    );
   };
-
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -88,13 +99,18 @@ export default function Home() {
               Trouvez votre covoiturage idéal
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-              Optimisé par l'IA pour des trajets plus intelligents, économiques et conviviaux.
+              Optimisé par l'IA pour des trajets plus intelligents, économiques
+              et conviviaux.
             </p>
             <div className="mt-8 w-full max-w-3xl">
-              <TripSearchForm 
-                key={JSON.stringify(tripSearch)} 
-                initialSearch={tripSearch} 
-                onSearch={(s) => router.push(`/trips?departure=${s.departure || ''}&destination=${s.destination || ''}&date=${s.date ? s.date.toISOString() : ''}`)}
+              <TripSearchForm
+                key={JSON.stringify(tripSearch)}
+                initialSearch={tripSearch}
+                onSearch={(s) =>
+                  router.push(
+                    `/trips?departure=${s.departure || ""}&destination=${s.destination || ""}&date=${s.date ? s.date.toISOString() : ""}`,
+                  )
+                }
               />
             </div>
           </div>
@@ -103,11 +119,16 @@ export default function Home() {
 
       <LiveCounters />
 
-      <section id="comment-ca-marche" className="w-full py-12 md:py-24 lg:py-32 bg-background">
+      <section
+        id="comment-ca-marche"
+        className="w-full py-12 md:py-24 lg:py-32 bg-background"
+      >
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Comment ça marche ?</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                Comment ça marche ?
+              </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                 Rejoignez la communauté OptiTrajet en quatre étapes simples.
               </p>
@@ -125,7 +146,9 @@ export default function Home() {
                   </div>
                 </div>
                 <h3 className="text-lg font-bold">{step.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {step.description}
+                </p>
               </div>
             ))}
           </div>
@@ -136,22 +159,32 @@ export default function Home() {
       <section className="w-full py-12 md:py-20 bg-secondary/50 border-y border-border">
         <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Vous conduisez ? Rentabilisez vos trajets.</h2>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+              Vous conduisez ? Rentabilisez vos trajets.
+            </h2>
             <p className="mt-2 text-muted-foreground max-w-xl">
-              Proposez vos trajets, partagez les frais et voyagez accompagné. Inscription gratuite.
+              Proposez vos trajets, partagez les frais et voyagez accompagné.
+              Inscription gratuite.
             </p>
           </div>
           <Button asChild size="lg" className="shrink-0">
-            <Link href="/signup">Devenir conducteur <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link href="/signup">
+              Devenir conducteur <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </section>
 
-      <section id="trajets-populaires" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
+      <section
+        id="trajets-populaires"
+        className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20"
+      >
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Trajets populaires</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                Trajets populaires
+              </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                 Découvrez les itinéraires les plus prisés par notre communauté.
               </p>
