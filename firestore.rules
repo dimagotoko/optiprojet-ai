@@ -296,5 +296,12 @@ service cloud.firestore {
     match /stripe_customers/{userId} {
       allow read, write: if false;
     }
+
+    // Compteurs globaux (trajets publiés, membres inscrits) — lecture publique
+    // Mis à jour côté client via increment() à chaque création de profil ou de trajet
+    match /stats/{docId} {
+      allow get: if true;
+      allow create, update: if request.auth != null;
+    }
   }
 }

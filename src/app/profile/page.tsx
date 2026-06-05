@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -64,6 +64,7 @@ function ProfilePageInternal() {
   const [isDataLoading, setIsDataLoading] = React.useState(false);
   const [initialData, setInitialData] = React.useState<ProfileFormValues | null>(null);
   const [existingProtocolSignedAt, setExistingProtocolSignedAt] = React.useState<Timestamp | null>(null);
+  const isNewProfileRef = React.useRef(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -96,6 +97,8 @@ function ProfilePageInternal() {
           getDoc(userRef),
           getDoc(privateRef),
         ]);
+
+        isNewProfileRef.current = !userSnap.exists();
 
         const pub  = userSnap.exists()    ? userSnap.data()    : {};
         const priv = privateSnap.exists() ? privateSnap.data() : {};
@@ -160,6 +163,12 @@ function ProfilePageInternal() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setDoc(privateDocRef, privateData as any, { merge: true }),
       ]);
+
+      if (isNewProfileRef.current) {
+        isNewProfileRef.current = false;
+        const statsRef = doc(firestore, 'stats', 'global');
+        setDoc(statsRef, { memberCount: increment(1) }, { merge: true }).catch(() => {});
+      }
 
       if (user.displayName !== values.fullName || user.photoURL !== values.profilePictureUrl) {
         await updateProfile(user, {

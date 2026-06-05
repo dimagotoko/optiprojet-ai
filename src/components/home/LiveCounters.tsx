@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, getCountFromServer } from 'firebase/firestore';
+import { collection, getCountFromServer, doc, getDoc } from 'firebase/firestore';
 import { Car, Leaf, Users } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function useCountUp(target: number, duration = 1200) {
   const [count, setCount] = useState(0);
@@ -14,7 +15,7 @@ function useCountUp(target: number, duration = 1200) {
     const timer = setInterval(() => {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(eased * target));
       if (progress >= 1) {
         setCount(target);
@@ -45,43 +46,66 @@ function Counter({ value, label, icon: Icon, unit }: {
   );
 }
 
+function CounterSkeleton() {
+  return (
+    <div className="flex flex-col items-center gap-1 px-6">
+      <Skeleton className="h-6 w-6 rounded mb-1" />
+      <Skeleton className="h-9 w-20 mt-1" />
+      <Skeleton className="h-4 w-28 mt-1" />
+    </div>
+  );
+}
+
 export function LiveCounters() {
   const firestore = useFirestore();
-  const [stats, setStats] = useState({ trips: 0, co2: 0, members: 0 });
-  const [loaded, setLoaded] = useState(false);
+  const [stats, setStats] = useState<{ trips: number; co2: number; members: number } | null>(null);
 
   useEffect(() => {
-    if (!firestore || loaded) return;
+    if (!firestore) return;
 
     async function fetchCounts() {
+      let trips = 0;
       try {
-        const [tripsSnap, usersSnap] = await Promise.all([
-          getCountFromServer(collection(firestore!, 'trips')),
-          getCountFromServer(collection(firestore!, 'users')),
-        ]);
-        const trips = tripsSnap.data().count;
-        const members = usersSnap.data().count;
-        // ~18 kg CO₂ évités par trajet (150 km moy. × 0,12 kg/km)
-        const co2 = Math.round(trips * 18);
-        setStats({ trips, co2, members });
-        setLoaded(true);
+        const tripsSnap = await getCountFromServer(collection(firestore!, 'trips'));
+        trips = tripsSnap.data().count;
       } catch {
-        // Silently ignore — section simply won't show
+        // trips inaccessible — on garde 0
       }
+
+      let members = 0;
+      try {
+        const statsSnap = await getDoc(doc(firestore!, 'stats', 'global'));
+        if (statsSnap.exists()) {
+          members = statsSnap.data().memberCount ?? 0;
+        }
+      } catch {
+        // stats doc absent ou inaccessible
+      }
+
+      // ~18 kg CO₂ évités par trajet (150 km moy. × 0,12 kg/km)
+      setStats({ trips, co2: Math.round(trips * 18), members });
     }
 
     fetchCounts();
-  }, [firestore, loaded]);
-
-  if (!loaded && stats.trips === 0) return null;
+  }, [firestore]);
 
   return (
     <section className="w-full border-y bg-card py-8">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
-          <Counter value={stats.trips} label="Trajets partagés" icon={Car} />
-          <Counter value={stats.co2} label="kg de CO₂ évités" icon={Leaf} unit=" kg" />
-          <Counter value={stats.members} label="Membres inscrits" icon={Users} />
+          {stats === null ? (
+            <>
+              <CounterSkeleton />
+              <CounterSkeleton />
+              <CounterSkeleton />
+            </>
+          ) : (
+            <>
+              <Counter value={stats.trips} label="Trajets partagés" icon={Car} />
+              <Counter value={stats.co2} label="kg de CO₂ évités" icon={Leaf} unit=" kg" />
+              <Counter value={stats.members} label="Membres inscrits" icon={Users} />
+            </>
+          )}
         </div>
       </div>
     </section>
