@@ -75,7 +75,7 @@ export default function DashboardPage() {
   return (
     <>
       <div className="container py-8 px-4 md:px-6">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start min-w-0">
           {/* Sidebar : bannière horizontale < lg, carte verticale lg+ */}
           <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
             {userData && (
