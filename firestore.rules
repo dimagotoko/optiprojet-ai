@@ -170,7 +170,16 @@ service cloud.firestore {
                     && request.resource.data.status == 'pending'
                     && request.resource.data.offeredBy == getTripData(tripId).offeredBy;
       allow update: if isAdmin()
-                    || isTripOwner(tripId)
+                    || (isTripOwner(tripId)
+                        && (!('pricePerSeat' in request.resource.data)
+                            || request.resource.data.pricePerSeat == getTripData(tripId).pricePerSeat)
+                        && (!('seatsBooked' in request.resource.data)
+                            || (request.resource.data.seatsBooked is int
+                                && request.resource.data.seatsBooked >= 1
+                                && request.resource.data.seatsBooked <= 8))
+                        && (!('distanceKm' in request.resource.data)
+                            || (request.resource.data.distanceKm is number
+                                && request.resource.data.distanceKm >= 0)))
                     || (isTraveler(resource.data.travelerId)
                         && request.resource.data.status == 'cancelled'
                         && request.resource.data.travelerId == resource.data.travelerId);

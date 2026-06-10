@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { haversineKm } from "@/lib/geo";
 import type {
   Booking,
   Trip,
@@ -75,6 +76,16 @@ function DemandeCard({
       const batch = writeBatch(firestore);
       batch.update(doc(firestore, "trips", trip.id, "bookings", booking.id), {
         status: "accepted",
+        pricePerSeat: trip.pricePerSeat,
+        seatsBooked: 1,
+        distanceKm: Math.round(
+          haversineKm(
+            trip.originCoords.lat,
+            trip.originCoords.lng,
+            trip.destinationCoords.lat,
+            trip.destinationCoords.lng,
+          ),
+        ),
         ...(driverPrivate
           ? {
               driverEmail: driverPrivate.email,

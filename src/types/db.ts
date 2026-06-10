@@ -67,6 +67,10 @@ export type Booking = {
   // Dénormalisé lors de l'acceptation pour que le voyageur puisse contacter le conducteur
   driverEmail?: string;
   driverPhone?: string;
+  // Dénormalisé lors de l'acceptation pour calculer l'argent économisé
+  pricePerSeat?: number;
+  seatsBooked?: number;
+  distanceKm?: number;
 };
 
 export type VehicleType =

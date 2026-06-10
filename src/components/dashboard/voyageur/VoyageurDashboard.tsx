@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import type { Booking, Trip, UserProfile, Vehicle } from "@/types/db";
 
 const CO2_PER_TRIP_KG = 18;
+const COUT_PAR_KM = 0.2;
 
 const statusConfig = {
   pending: {
@@ -288,6 +289,22 @@ export function VoyageurDashboardHeader({
   const acceptedCount =
     bookings?.filter((b) => b.status === "accepted").length ?? 0;
   const co2Saved = acceptedCount * CO2_PER_TRIP_KG;
+  const moneySaved = (bookings ?? [])
+    .filter(
+      (b) =>
+        b.status === "accepted" &&
+        b.pricePerSeat != null &&
+        b.distanceKm != null,
+    )
+    .reduce(
+      (acc, b) =>
+        acc +
+        Math.max(
+          0,
+          b.distanceKm! * COUT_PAR_KM - b.pricePerSeat! * (b.seatsBooked ?? 1),
+        ),
+      0,
+    );
 
   return (
     <div className="space-y-4">
@@ -304,8 +321,18 @@ export function VoyageurDashboardHeader({
         <StatCard
           icon={DollarSign}
           label="Argent économisé"
-          value="—"
-          subtitle="Phase 2"
+          value={
+            isLoading
+              ? "…"
+              : moneySaved > 0
+                ? `${moneySaved.toFixed(0)} $`
+                : "—"
+          }
+          subtitle={
+            isLoading || moneySaved === 0
+              ? "Aucune réservation confirmée"
+              : "vs. voiture solo"
+          }
           iconClassName="text-green-400"
           accentClassName="bg-green-400/10"
         />
