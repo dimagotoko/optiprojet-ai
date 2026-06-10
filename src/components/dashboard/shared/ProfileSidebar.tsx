@@ -1,20 +1,35 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Link from 'next/link';
-import { CheckCircle, Info } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { UserProfile, UserProfilePrivate } from '@/types/db';
+import * as React from "react";
+import Link from "next/link";
+import { Car, CheckCircle, Info } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  useFirestore,
+  useDoc,
+  useCollection,
+  useMemoFirebase,
+} from "@/firebase";
+import { doc, collection } from "firebase/firestore";
+import type { UserProfile, UserProfilePrivate, Vehicle } from "@/types/db";
 
 const getInitials = (name: string) =>
-  name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
 interface Criterion {
   key: string;
@@ -22,27 +37,30 @@ interface Criterion {
   label: string;
 }
 
-function buildCriteria(role: string | undefined, priv: UserProfilePrivate | undefined | null): Criterion[] {
-  const isTransporteur = role === 'transporteur';
+function buildCriteria(
+  role: string | undefined,
+  priv: UserProfilePrivate | undefined | null,
+): Criterion[] {
+  const isTransporteur = role === "transporteur";
 
   const criteria: Criterion[] = [
     {
-      key: 'phone',
+      key: "phone",
       met: !!priv?.phoneNumber,
-      label: 'Ajoute ton numéro de téléphone',
+      label: "Ajoute ton numéro de téléphone",
     },
   ];
 
   if (isTransporteur) {
     criteria.push({
-      key: 'license',
+      key: "license",
       met: !!priv?.driverLicense,
-      label: 'Renseigne ton numéro de permis de conduire',
+      label: "Renseigne ton numéro de permis de conduire",
     });
   }
 
   criteria.push({
-    key: 'protocol',
+    key: "protocol",
     met: !!priv?.protocolSignedAt,
     label: "Signe le protocole d'accord",
   });
@@ -56,23 +74,36 @@ interface ProfileSidebarProps {
   photoURL?: string | null;
 }
 
-export function ProfileSidebar({ userId, userData, photoURL }: ProfileSidebarProps) {
+export function ProfileSidebar({
+  userId,
+  userData,
+  photoURL,
+}: ProfileSidebarProps) {
   const firestore = useFirestore();
-  const isTransporteur = userData.role === 'transporteur';
-  const verifiedLabel = isTransporteur ? 'Conducteur vérifié' : 'Profil vérifié';
+  const isTransporteur = userData.role === "transporteur";
+  const verifiedLabel = isTransporteur
+    ? "Conducteur vérifié"
+    : "Profil vérifié";
 
-  // Lecture du profil privé (owner lit son propre doc → autorisé, aucun nouvel index)
   const privateRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return doc(firestore, 'users', userId, 'private', 'profile');
+    return doc(firestore, "users", userId, "private", "profile");
   }, [firestore, userId]);
-  const { data: privateProfile, isLoading: privateLoading } = useDoc<UserProfilePrivate>(privateRef);
+  const { data: privateProfile, isLoading: privateLoading } =
+    useDoc<UserProfilePrivate>(privateRef);
+
+  const vehiclesRef = useMemoFirebase(() => {
+    if (!firestore || !isTransporteur) return null;
+    return collection(firestore, "users", userId, "vehicles");
+  }, [firestore, userId, isTransporteur]);
+  const { data: vehicles } = useCollection<Vehicle>(vehiclesRef);
+  const firstVehicle = vehicles?.[0] ?? null;
 
   const criteria = buildCriteria(userData.role, privateProfile);
-  const metCount = criteria.filter(c => c.met).length;
+  const metCount = criteria.filter((c) => c.met).length;
   const completeness = Math.round((metCount / criteria.length) * 100);
   const isVerified = metCount === criteria.length;
-  const missing = criteria.filter(c => !c.met);
+  const missing = criteria.filter((c) => !c.met);
 
   const avatarSrc = userData.profilePictureUrl || photoURL || undefined;
   const rating = userData.averageRating;
@@ -82,7 +113,11 @@ export function ProfileSidebar({ userId, userData, photoURL }: ProfileSidebarPro
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="w-full cursor-help" role="group" aria-label="Avancement du profil">
+          <div
+            className="w-full cursor-help"
+            role="group"
+            aria-label="Avancement du profil"
+          >
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span className="flex items-center gap-1">
                 Profil complété
@@ -101,7 +136,9 @@ export function ProfileSidebar({ userId, userData, photoURL }: ProfileSidebarPro
             <p className="text-xs">Profil complet !</p>
           ) : (
             <ul className="text-xs space-y-1">
-              {missing.map(c => <li key={c.key}>· {c.label}</li>)}
+              {missing.map((c) => (
+                <li key={c.key}>· {c.label}</li>
+              ))}
             </ul>
           )}
         </TooltipContent>
@@ -115,16 +152,27 @@ export function ProfileSidebar({ userId, userData, photoURL }: ProfileSidebarPro
       <div className="lg:hidden flex items-center gap-3 p-4">
         <Avatar className="h-14 w-14 shrink-0">
           <AvatarImage src={avatarSrc} alt={userData.name} />
-          <AvatarFallback className="text-lg font-bold">{getInitials(userData.name)}</AvatarFallback>
+          <AvatarFallback className="text-lg font-bold">
+            {getInitials(userData.name)}
+          </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <p className="font-bold leading-tight truncate">{userData.name}</p>
-          <p className="text-sm text-muted-foreground capitalize">{userData.role ?? 'Voyageur'}</p>
+          <p className="text-sm text-muted-foreground capitalize">
+            {userData.role ?? "Voyageur"}
+          </p>
+          {isTransporteur && firstVehicle && (
+            <p className="text-xs text-muted-foreground truncate">
+              {firstVehicle.make} {firstVehicle.model}
+            </p>
+          )}
           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
             {ratingCount > 0 && (
               <span className="text-sm">
                 <span className="text-yellow-400">★</span>
-                <span className="font-semibold ml-0.5">{rating?.toFixed(1)}</span>
+                <span className="font-semibold ml-0.5">
+                  {rating?.toFixed(1)}
+                </span>
               </span>
             )}
             {isVerified && (
@@ -144,26 +192,30 @@ export function ProfileSidebar({ userId, userData, photoURL }: ProfileSidebarPro
       </div>
       {/* Barre complétion mobile */}
       <div className="lg:hidden px-4 pb-3">
-        {privateLoading ? (
-          <Skeleton className="h-5 w-full" />
-        ) : (
-          CompletenessBar
-        )}
+        {privateLoading ? <Skeleton className="h-5 w-full" /> : CompletenessBar}
       </div>
 
       {/* ── DESKTOP : carte verticale (masquée < lg) ── */}
       <div className="hidden lg:flex flex-col items-center gap-0 p-6 text-center">
         <Avatar className="h-24 w-24 mb-3">
           <AvatarImage src={avatarSrc} alt={userData.name} />
-          <AvatarFallback className="text-3xl font-bold">{getInitials(userData.name)}</AvatarFallback>
+          <AvatarFallback className="text-3xl font-bold">
+            {getInitials(userData.name)}
+          </AvatarFallback>
         </Avatar>
         <p className="font-bold text-xl leading-tight">{userData.name}</p>
-        <p className="text-sm text-muted-foreground capitalize mb-2">{userData.role ?? 'Voyageur'}</p>
+        <p className="text-sm text-muted-foreground capitalize mb-2">
+          {userData.role ?? "Voyageur"}
+        </p>
         {ratingCount > 0 && (
           <div className="flex items-center justify-center gap-1 text-sm mb-2">
-            <span className="text-yellow-400 text-base" aria-hidden="true">★</span>
+            <span className="text-yellow-400 text-base" aria-hidden="true">
+              ★
+            </span>
             <span className="font-semibold">{rating?.toFixed(1)}</span>
-            <span className="text-muted-foreground text-xs">({ratingCount} avis)</span>
+            <span className="text-muted-foreground text-xs">
+              ({ratingCount} avis)
+            </span>
           </div>
         )}
         {isVerified && (
@@ -173,9 +225,25 @@ export function ProfileSidebar({ userId, userData, photoURL }: ProfileSidebarPro
           </Badge>
         )}
 
-        {/* TODO Phase 2 : afficher le véhicule du transporteur
-            (query /users/{uid}/vehicles — règle owner-only, aucun index requis,
-             mais introduit une nouvelle requête live → reporté Phase 2) */}
+        {/* Véhicule du transporteur */}
+        {isTransporteur && firstVehicle && (
+          <div className="w-full rounded-lg border bg-muted/40 px-3 py-2.5 mb-3 text-left">
+            <div className="flex items-center gap-2">
+              <Car
+                className="h-4 w-4 text-muted-foreground shrink-0"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate">
+                  {firstVehicle.make} {firstVehicle.model} {firstVehicle.year}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {firstVehicle.color} · {firstVehicle.licensePlate}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="w-full mb-4">
           {privateLoading ? (

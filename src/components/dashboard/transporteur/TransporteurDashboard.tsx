@@ -1,16 +1,28 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Car, DollarSign, TrendingUp, Star, Plus, Phone, Mail, ShieldCheck } from 'lucide-react';
-import { StatCard } from '../shared/StatCard';
-import { DemandesEnAttente } from './DemandesEnAttente';
-import { TripPublieRow } from './TripPublieRow';
-import { ProchainVersement } from './ProchainVersement';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import * as React from "react";
+import {
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+  useDoc,
+} from "@/firebase";
+import {
+  collection,
+  query,
+  where,
+  doc,
+  deleteDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { Car, DollarSign, TrendingUp, Star } from "lucide-react";
+import { StatCard } from "../shared/StatCard";
+import { DemandesEnAttente } from "./DemandesEnAttente";
+import { TripPublieRow } from "./TripPublieRow";
+import { ProchainVersement } from "./ProchainVersement";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,18 +32,104 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import type { Trip, UserProfile, Vehicle, UserProfilePrivate } from '@/types/db';
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { Trip, UserProfile, Vehicle } from "@/types/db";
 
 interface TransporteurDashboardProps {
   userId: string;
   userData: UserProfile;
 }
 
-export function TransporteurDashboard({ userId, userData }: TransporteurDashboardProps) {
+/* ── En-tête pleine largeur : 4 stats ── */
+export function TransporteurDashboardHeader({
+  userId,
+  userData,
+}: TransporteurDashboardProps) {
+  const firestore = useFirestore();
+
+  const tripsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, "trips"),
+      where("offeredBy", "==", userId),
+    );
+  }, [firestore, userId]);
+
+  const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
+
+  const upcomingCount = React.useMemo(() => {
+    if (!allTrips) return 0;
+    const now = new Date();
+    return allTrips.filter((t) => t.departureTime.toDate() >= now).length;
+  }, [allTrips]);
+
+  const totalBookings = (allTrips ?? []).reduce(
+    (acc, t) => acc + (t.totalBookings ?? 0),
+    0,
+  );
+  const totalCapacity = (allTrips ?? []).reduce(
+    (acc, t) => acc + t.availableSeats + (t.totalBookings ?? 0),
+    0,
+  );
+  const fillRate =
+    totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
+  const totalGains = (allTrips ?? []).reduce(
+    (acc, t) => acc + t.pricePerSeat * (t.totalBookings ?? 0),
+    0,
+  );
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <StatCard
+        icon={Car}
+        label="Trajets offerts"
+        value={isLoading ? "…" : (allTrips?.length ?? 0)}
+        subtitle={`${upcomingCount} à venir`}
+        iconClassName="text-primary"
+        accentClassName="bg-primary/10"
+      />
+      <StatCard
+        icon={DollarSign}
+        label="Gains cumulés"
+        value={isLoading ? "…" : `${totalGains.toLocaleString("fr-CA")} $`}
+        subtitle="basé sur les places réservées"
+        iconClassName="text-green-400"
+        accentClassName="bg-green-400/10"
+      />
+      <StatCard
+        icon={TrendingUp}
+        label="Taux de remplissage"
+        value={isLoading ? "…" : `${fillRate} %`}
+        subtitle={`${totalBookings} passagers au total`}
+        iconClassName="text-violet-400"
+        accentClassName="bg-violet-400/10"
+      />
+      <StatCard
+        icon={Star}
+        label="Note moyenne"
+        value={
+          userData.averageRating ? userData.averageRating.toFixed(1) : "N/A"
+        }
+        subtitle={
+          userData.totalRatings
+            ? `${userData.totalRatings} avis`
+            : "Pas encore noté"
+        }
+        iconClassName="text-yellow-400"
+        accentClassName="bg-yellow-400/10"
+      />
+    </div>
+  );
+}
+
+/* ── Corps : demandes en attente + trajets publiés + prochain versement ── */
+export function TransporteurDashboard({
+  userId,
+  userData: _userData,
+}: TransporteurDashboardProps) {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -39,68 +137,76 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
 
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'trips'), where('offeredBy', '==', userId));
+    return query(
+      collection(firestore, "trips"),
+      where("offeredBy", "==", userId),
+    );
   }, [firestore, userId]);
 
   const vehiclesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'users', userId, 'vehicles');
+    return collection(firestore, "users", userId, "vehicles");
   }, [firestore, userId]);
-
-  const privateRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'users', userId, 'private', 'profile');
-  }, [firestore, userId]);
-  const { data: privateProfile } = useDoc<UserProfilePrivate>(privateRef);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
   const { data: vehicles } = useCollection<Vehicle>(vehiclesQuery);
 
   const vehicleMap = React.useMemo(() => {
     if (!vehicles) return {};
-    return Object.fromEntries(vehicles.map(v => [v.id, v]));
+    return Object.fromEntries(vehicles.map((v) => [v.id, v]));
   }, [vehicles]);
 
-  const { upcomingTrips, pastTrips } = React.useMemo(() => {
+  const { upcomingTrips, pastTrips: _pastTrips } = React.useMemo(() => {
     if (!allTrips) return { upcomingTrips: [], pastTrips: [] };
     const now = new Date();
     const upcoming = allTrips
-      .filter(t => t.departureTime.toDate() >= now)
+      .filter((t) => t.departureTime.toDate() >= now)
       .sort((a, b) => a.departureTime.toMillis() - b.departureTime.toMillis());
     const past = allTrips
-      .filter(t => t.departureTime.toDate() < now)
+      .filter((t) => t.departureTime.toDate() < now)
       .sort((a, b) => b.departureTime.toMillis() - a.departureTime.toMillis());
     return { upcomingTrips: upcoming, pastTrips: past };
   }, [allTrips]);
 
-  const totalBookings = (allTrips ?? []).reduce((acc, t) => acc + (t.totalBookings ?? 0), 0);
-  const totalCapacity = (allTrips ?? []).reduce(
-    (acc, t) => acc + t.availableSeats + (t.totalBookings ?? 0), 0,
-  );
-  const fillRate = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
-  const totalGains = (allTrips ?? []).reduce(
-    (acc, t) => acc + t.pricePerSeat * (t.totalBookings ?? 0), 0,
-  );
+  const handleEditClick = (tripId: string) =>
+    router.push(`/edit-trip/${tripId}`);
 
-  const handleEditClick = (tripId: string) => router.push(`/edit-trip/${tripId}`);
-
-  const handleToggleCloseTrip = async (tripId: string, currentState: boolean) => {
+  const handleToggleCloseTrip = async (
+    tripId: string,
+    currentState: boolean,
+  ) => {
     if (!firestore) return;
     try {
-      await updateDoc(doc(firestore, 'trips', tripId), { isClosed: !currentState });
-      toast({ title: 'Mise à jour réussie', description: `Réservations ${!currentState ? 'fermées' : 'rouvertes'}.` });
+      await updateDoc(doc(firestore, "trips", tripId), {
+        isClosed: !currentState,
+      });
+      toast({
+        title: "Mise à jour réussie",
+        description: `Réservations ${!currentState ? "fermées" : "rouvertes"}.`,
+      });
     } catch {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour le statut.' });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut.",
+      });
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!tripToDelete || !firestore) return;
     try {
-      await deleteDoc(doc(firestore, 'trips', tripToDelete));
-      toast({ title: 'Trajet annulé', description: 'Votre trajet a été supprimé.' });
+      await deleteDoc(doc(firestore, "trips", tripToDelete));
+      toast({
+        title: "Trajet annulé",
+        description: "Votre trajet a été supprimé.",
+      });
     } catch {
-      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'annuler le trajet." });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'annuler le trajet.",
+      });
     } finally {
       setTripToDelete(null);
     }
@@ -109,77 +215,7 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
   return (
     <>
       <div className="space-y-6">
-        {/* CTA */}
-        <div className="flex justify-end">
-          <Button asChild className="gap-2">
-            <Link href="/post-trip">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Publier un départ
-            </Link>
-          </Button>
-        </div>
-
-        {/* Vignette conducteur — coordonnées partagées avec les voyageurs acceptés */}
-        {(userData.isVerified || privateProfile?.email || privateProfile?.phoneNumber) && (
-          <div className="rounded-xl border bg-card p-4 flex items-center gap-4 flex-wrap">
-            {userData.isVerified && (
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                Chauffeur vérifié
-              </span>
-            )}
-            {privateProfile?.phoneNumber && (
-              <a href={`tel:${privateProfile.phoneNumber}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <Phone className="h-4 w-4 text-primary shrink-0" />
-                {privateProfile.phoneNumber}
-              </a>
-            )}
-            {privateProfile?.email && (
-              <a href={`mailto:${privateProfile.email}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <Mail className="h-4 w-4 text-primary shrink-0" />
-                {privateProfile.email}
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* Stats — 4 cartes, 2 col mobile / 4 col desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            icon={Car}
-            label="Trajets offerts"
-            value={isLoading ? '…' : (allTrips?.length ?? 0)}
-            subtitle={`${upcomingTrips.length} à venir`}
-            iconClassName="text-primary"
-            accentClassName="bg-primary/10"
-          />
-          <StatCard
-            icon={DollarSign}
-            label="Gains cumulés"
-            value={isLoading ? '…' : `${totalGains.toLocaleString('fr-CA')} $`}
-            subtitle="basé sur les places réservées"
-            iconClassName="text-green-400"
-            accentClassName="bg-green-400/10"
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Taux de remplissage"
-            value={isLoading ? '…' : `${fillRate} %`}
-            subtitle={`${totalBookings} passagers au total`}
-            iconClassName="text-violet-400"
-            accentClassName="bg-violet-400/10"
-          />
-          <StatCard
-            icon={Star}
-            label="Note moyenne"
-            value={userData.averageRating ? userData.averageRating.toFixed(1) : 'N/A'}
-            subtitle={userData.totalRatings ? `${userData.totalRatings} avis` : 'Pas encore noté'}
-            iconClassName="text-yellow-400"
-            accentClassName="bg-yellow-400/10"
-          />
-        </div>
-
-        {/* Demandes en attente — Option B : N queries COLLECTION par trajet, zéro nouvel index */}
+        {/* Demandes en attente */}
         <DemandesEnAttente userId={userId} trips={upcomingTrips} />
 
         {/* Vos trajets publiés */}
@@ -193,14 +229,16 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
           ) : upcomingTrips.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground text-sm mb-3">Aucun trajet programmé.</p>
+                <p className="text-muted-foreground text-sm mb-3">
+                  Aucun trajet programmé.
+                </p>
                 <Button asChild size="sm">
                   <Link href="/post-trip">Proposer un trajet</Link>
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            upcomingTrips.map(trip => (
+            upcomingTrips.map((trip) => (
               <TripPublieRow
                 key={trip.id}
                 trip={trip}
@@ -217,17 +255,23 @@ export function TransporteurDashboard({ userId, userData }: TransporteurDashboar
         {!isLoading && <ProchainVersement upcomingTrips={upcomingTrips} />}
       </div>
 
-      <AlertDialog open={!!tripToDelete} onOpenChange={(open) => !open && setTripToDelete(null)}>
+      <AlertDialog
+        open={!!tripToDelete}
+        onOpenChange={(open) => !open && setTripToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Annuler ce trajet ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Voulez-vous vraiment annuler ce trajet ?
+              Cette action est irréversible. Voulez-vous vraiment annuler ce
+              trajet ?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Non</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Oui, annuler le trajet</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Oui, annuler le trajet
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

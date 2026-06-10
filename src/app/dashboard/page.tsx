@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { UserPlus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Chatbot } from "@/components/Chatbot";
@@ -14,7 +14,10 @@ import {
   VoyageurDashboard,
   VoyageurDashboardHeader,
 } from "@/components/dashboard/voyageur/VoyageurDashboard";
-import { TransporteurDashboard } from "@/components/dashboard/transporteur/TransporteurDashboard";
+import {
+  TransporteurDashboard,
+  TransporteurDashboardHeader,
+} from "@/components/dashboard/transporteur/TransporteurDashboard";
 import type { UserProfile } from "@/types/db";
 
 export default function DashboardPage() {
@@ -79,27 +82,51 @@ export default function DashboardPage() {
     <>
       <div className="container py-8 px-4 md:px-6">
         {isTransporteur ? (
-          /* ── Layout transporteur : sidebar + colonne contenu ── */
-          <div className="flex flex-col lg:flex-row gap-6 lg:items-start min-w-0">
-            <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
-              {userData && (
-                <ProfileSidebar
-                  userId={user.uid}
-                  userData={userData}
-                  photoURL={user.photoURL}
-                />
-              )}
-            </aside>
-            <div className="flex-1 min-w-0 space-y-6">
+          /* ── Layout transporteur : en-tête pleine largeur + 2 colonnes ── */
+          <div className="space-y-6">
+            {/* 1. Accueil + bouton Publier — même rangée, pleine largeur */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                   {greeting}, {firstName} !
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
               </div>
-              {userData && (
-                <TransporteurDashboard userId={user.uid} userData={userData} />
-              )}
+              <Button asChild className="gap-2 shrink-0">
+                <Link href="/post-trip">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Publier un départ
+                </Link>
+              </Button>
+            </div>
+
+            {/* 2. Stats — pleine largeur */}
+            {userData && (
+              <TransporteurDashboardHeader
+                userId={user.uid}
+                userData={userData}
+              />
+            )}
+
+            {/* 3. Sidebar profil (gauche) + corps (droite) */}
+            <div className="flex flex-col lg:flex-row gap-6 lg:items-start min-w-0">
+              <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
+                {userData && (
+                  <ProfileSidebar
+                    userId={user.uid}
+                    userData={userData}
+                    photoURL={user.photoURL}
+                  />
+                )}
+              </aside>
+              <div className="flex-1 min-w-0">
+                {userData && (
+                  <TransporteurDashboard
+                    userId={user.uid}
+                    userData={userData}
+                  />
+                )}
+              </div>
             </div>
           </div>
         ) : (
