@@ -26,6 +26,7 @@ import { TripDetailSkeleton } from "@/components/skeletons/TripDetailSkeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  ArrowLeft,
   Star,
   Calendar,
   Users,
@@ -45,6 +46,7 @@ import {
   Mail,
   Phone,
 } from "lucide-react";
+import Link from "next/link";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -467,6 +469,19 @@ function TripDetailsPageContent() {
 
   return (
     <>
+      <div className="container pt-4 px-4 md:px-6">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="-ml-2 gap-1 text-muted-foreground"
+        >
+          <Link href="/dashboard">
+            <ArrowLeft className="h-4 w-4" />
+            Tableau de bord
+          </Link>
+        </Button>
+      </div>
       <div className="container py-12 px-4 md:px-6">
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="md:col-span-2 space-y-8">
