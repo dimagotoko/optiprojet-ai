@@ -10,7 +10,10 @@ import Link from "next/link";
 import { Chatbot } from "@/components/Chatbot";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ProfileSidebar } from "@/components/dashboard/shared/ProfileSidebar";
-import { VoyageurDashboard } from "@/components/dashboard/voyageur/VoyageurDashboard";
+import {
+  VoyageurDashboard,
+  VoyageurDashboardHeader,
+} from "@/components/dashboard/voyageur/VoyageurDashboard";
 import { TransporteurDashboard } from "@/components/dashboard/transporteur/TransporteurDashboard";
 import type { UserProfile } from "@/types/db";
 
@@ -75,34 +78,65 @@ export default function DashboardPage() {
   return (
     <>
       <div className="container py-8 px-4 md:px-6">
-        <div className="flex flex-col lg:flex-row gap-6 lg:items-start min-w-0">
-          {/* Sidebar : bannière horizontale < lg, carte verticale lg+ */}
-          <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
-            {userData && (
-              <ProfileSidebar
-                userId={user.uid}
-                userData={userData}
-                photoURL={user.photoURL}
-              />
-            )}
-          </aside>
-
-          {/* Contenu principal */}
-          <div className="flex-1 min-w-0 space-y-6">
+        {isTransporteur ? (
+          /* ── Layout transporteur : sidebar + colonne contenu ── */
+          <div className="flex flex-col lg:flex-row gap-6 lg:items-start min-w-0">
+            <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
+              {userData && (
+                <ProfileSidebar
+                  userId={user.uid}
+                  userData={userData}
+                  photoURL={user.photoURL}
+                />
+              )}
+            </aside>
+            <div className="flex-1 min-w-0 space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {greeting}, {firstName} !
+                </h1>
+                <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
+              </div>
+              {userData && (
+                <TransporteurDashboard userId={user.uid} userData={userData} />
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ── Layout voyageur : en-tête pleine largeur + 2 colonnes ── */
+          <div className="space-y-6">
+            {/* 1. Accueil — pleine largeur */}
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
                 {greeting}, {firstName} !
               </h1>
               <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
             </div>
-            {userData &&
-              (isTransporteur ? (
-                <TransporteurDashboard userId={user.uid} userData={userData} />
-              ) : (
-                <VoyageurDashboard userId={user.uid} userData={userData} />
-              ))}
+
+            {/* 2. Stats + recherche — pleine largeur */}
+            {userData && (
+              <VoyageurDashboardHeader userId={user.uid} userData={userData} />
+            )}
+
+            {/* 3. Sidebar profil (gauche) + contenu (droite) */}
+            <div className="flex flex-col lg:flex-row gap-6 lg:items-start min-w-0">
+              <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20">
+                {userData && (
+                  <ProfileSidebar
+                    userId={user.uid}
+                    userData={userData}
+                    photoURL={user.photoURL}
+                  />
+                )}
+              </aside>
+              <div className="flex-1 min-w-0">
+                {userData && (
+                  <VoyageurDashboard userId={user.uid} userData={userData} />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <Chatbot

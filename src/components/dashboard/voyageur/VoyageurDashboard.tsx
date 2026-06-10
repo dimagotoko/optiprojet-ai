@@ -268,7 +268,8 @@ interface VoyageurDashboardProps {
   userData: UserProfile;
 }
 
-export function VoyageurDashboard({
+/* ── En-tête pleine largeur : stats + barre de recherche ── */
+export function VoyageurDashboardHeader({
   userId,
   userData,
 }: VoyageurDashboardProps) {
@@ -288,18 +289,9 @@ export function VoyageurDashboard({
     bookings?.filter((b) => b.status === "accepted").length ?? 0;
   const co2Saved = acceptedCount * CO2_PER_TRIP_KG;
 
-  const activeBookings =
-    bookings?.filter(
-      (b) => b.status === "pending" || b.status === "accepted",
-    ) ?? [];
-  const pastBookings =
-    bookings?.filter(
-      (b) => b.status === "rejected" || b.status === "cancelled",
-    ) ?? [];
-
   return (
-    <div className="space-y-6">
-      {/* Stats — 4 cartes, 2 col mobile / 4 col desktop */}
+    <div className="space-y-4">
+      {/* Stats — 2 col mobile / 4 col desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           icon={Car}
@@ -343,7 +335,38 @@ export function VoyageurDashboard({
 
       {/* Recherche rapide */}
       <QuickSearchBar />
+    </div>
+  );
+}
 
+/* ── Corps : suggestions IA + onglets trajets + favoris ── */
+export function VoyageurDashboard({
+  userId,
+  userData: _userData,
+}: VoyageurDashboardProps) {
+  const firestore = useFirestore();
+
+  const bookingsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collectionGroup(firestore, "bookings"),
+      where("travelerId", "==", userId),
+    );
+  }, [firestore, userId]);
+
+  const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
+
+  const activeBookings =
+    bookings?.filter(
+      (b) => b.status === "pending" || b.status === "accepted",
+    ) ?? [];
+  const pastBookings =
+    bookings?.filter(
+      (b) => b.status === "rejected" || b.status === "cancelled",
+    ) ?? [];
+
+  return (
+    <div className="space-y-6">
       {/* Suggestions IA + Tabs trajets */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
