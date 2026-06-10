@@ -511,3 +511,50 @@ describe("AVIS – /users/{userId}/reviews", () => {
     );
   });
 });
+
+// ─── FAVORITES – /users/{userId}/favorites/{favId} ───────────────────────────
+
+describe("FAVORITES – /users/{userId}/favorites", () => {
+  const FAV = "fav1";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", USER, "favorites", FAV), {
+        origin: "Montréal, QC, Canada",
+        destination: "Sherbrooke, QC, Canada",
+        originCoords: { lat: 45.5017, lng: -73.5673 },
+        destinationCoords: { lat: 45.4015, lng: -71.8883 },
+      });
+    });
+  });
+
+  test("propriétaire lit ses propres favoris → succès", async () => {
+    await assertSucceeds(
+      getDoc(doc(asUser(USER), "users", USER, "favorites", FAV)),
+    );
+  });
+
+  test("autre utilisateur lit les favoris d'autrui → échec", async () => {
+    await assertFails(
+      getDoc(doc(asUser(OTHER), "users", USER, "favorites", FAV)),
+    );
+  });
+
+  test("propriétaire crée un favori → succès", async () => {
+    await assertSucceeds(
+      setDoc(doc(asUser(USER), "users", USER, "favorites", "fav2"), {
+        origin: "Québec, QC, Canada",
+        destination: "Drummondville, QC, Canada",
+      }),
+    );
+  });
+
+  test("autre utilisateur crée un favori pour un autre → échec", async () => {
+    await assertFails(
+      setDoc(doc(asUser(OTHER), "users", USER, "favorites", "fav3"), {
+        origin: "Québec, QC, Canada",
+        destination: "Drummondville, QC, Canada",
+      }),
+    );
+  });
+});

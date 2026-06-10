@@ -71,6 +71,14 @@ service cloud.firestore {
      * @deny User 'user456' cannot access vehicles belonging to 'user123'.
      * @principle Path-based ownership for subcollections.
      */
+    /**
+     * @description Owner-only access to favorite routes.
+     * @path /users/{userId}/favorites/{favId}
+     */
+    match /users/{userId}/favorites/{favId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
     match /users/{userId}/vehicles/{vehicleId} {
         function isOwner(userId) {
             return request.auth.uid == userId;

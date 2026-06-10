@@ -7,7 +7,16 @@ import {
   useMemoFirebase,
   useDoc,
 } from "@/firebase";
-import { collectionGroup, query, where, doc } from "firebase/firestore";
+import {
+  collection,
+  collectionGroup,
+  query,
+  where,
+  doc,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import {
   Car,
   DollarSign,
@@ -22,6 +31,7 @@ import {
   Phone,
   Mail,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { StatCard } from "../shared/StatCard";
@@ -36,7 +46,13 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Booking, Trip, UserProfile, Vehicle } from "@/types/db";
+import type {
+  Booking,
+  FavoriteRoute,
+  Trip,
+  UserProfile,
+  Vehicle,
+} from "@/types/db";
 
 const CO2_PER_TRIP_KG = 18;
 // Coût moyen de conduite au Canada (~taux ARC 2026 : carburant, entretien,
@@ -260,12 +276,6 @@ function BookedTripItem({ booking }: { booking: Booking }) {
   );
 }
 
-// Phase 2 : charger depuis userData.favoriteRoutes
-const PLACEHOLDER_FAVORITES = [
-  { id: "1", label: "Montréal → Sherbrooke" },
-  { id: "2", label: "Drummondville → Québec" },
-];
-
 interface VoyageurDashboardProps {
   userId: string;
   userData: UserProfile;
@@ -307,6 +317,41 @@ export function VoyageurDashboardHeader({
         ),
       0,
     );
+
+  const favoritesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, "users", userId, "favorites");
+  }, [firestore, userId]);
+
+  const { data: favorites, isLoading: favLoading } =
+    useCollection<FavoriteRoute>(favoritesRef);
+
+  const [prefill, setPrefill] = React.useState<{
+    departure: string;
+    destination: string;
+  } | null>(null);
+
+  const handleSaveFavorite = async (fav: {
+    origin: string;
+    destination: string;
+    originCoords?: { lat: number; lng: number };
+    destinationCoords?: { lat: number; lng: number };
+  }) => {
+    if (!firestore) return;
+    await addDoc(collection(firestore, "users", userId, "favorites"), {
+      ...fav,
+      createdAt: serverTimestamp(),
+    });
+  };
+
+  const handleDeleteFavorite = async (favId: string) => {
+    if (!firestore) return;
+    await deleteDoc(doc(firestore, "users", userId, "favorites", favId));
+  };
+
+  const handleFavoriteClick = (fav: FavoriteRoute) => {
+    setPrefill({ departure: fav.origin, destination: fav.destination });
+  };
 
   return (
     <div className="space-y-4">
@@ -362,8 +407,65 @@ export function VoyageurDashboardHeader({
         />
       </div>
 
-      {/* Recherche rapide */}
-      <QuickSearchBar />
+      {/* Recherche rapide + bouton Enregistrer */}
+      <QuickSearchBar
+        initialDeparture={prefill?.departure}
+        initialDestination={prefill?.destination}
+        onSaveFavorite={handleSaveFavorite}
+      />
+
+      {/* Itinéraires favoris */}
+      <div>
+        {favLoading && (
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-8 w-40 rounded-full" />
+            <Skeleton className="h-8 w-32 rounded-full" />
+          </div>
+        )}
+        {!favLoading && favorites && favorites.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Vos itinéraires favoris
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {favorites.map((fav) => (
+                <div
+                  key={fav.id}
+                  className="inline-flex items-center max-w-[260px] pl-3 pr-1 py-1.5 rounded-full border bg-card text-sm font-medium"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleFavoriteClick(fav)}
+                    className="flex items-center gap-0.5 min-w-0 hover:text-primary transition-colors"
+                    aria-label={`Pré-remplir ${fav.origin} → ${fav.destination}`}
+                  >
+                    <span className="truncate">{fav.origin}</span>
+                    <ArrowRight
+                      className="h-3 w-3 shrink-0 mx-0.5 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{fav.destination}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFavorite(fav.id)}
+                    className="shrink-0 ml-1 rounded-full p-0.5 hover:bg-muted transition-colors"
+                    aria-label={`Supprimer le favori ${fav.origin} → ${fav.destination}`}
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {!favLoading && favorites?.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">
+            Aucun itinéraire favori — enregistrez un trajet via la recherche
+            ci-dessus.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -460,26 +562,6 @@ export function VoyageurDashboard({
             )}
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* Itinéraires favoris — Phase 2 : charger userData.favoriteRoutes */}
-      <div>
-        <h2 className="text-lg font-bold mb-3">Vos itinéraires favoris</h2>
-        <div className="flex flex-wrap gap-2">
-          {PLACEHOLDER_FAVORITES.map((fav) => (
-            <button
-              key={fav.id}
-              type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-card text-sm font-medium hover:bg-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <Star
-                className="h-3.5 w-3.5 text-yellow-400"
-                aria-hidden="true"
-              />
-              {fav.label}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

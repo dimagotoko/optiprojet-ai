@@ -73,6 +73,15 @@ export type Booking = {
   distanceKm?: number;
 };
 
+export type FavoriteRoute = {
+  id: string;
+  origin: string;
+  destination: string;
+  originCoords?: { lat: number; lng: number };
+  destinationCoords?: { lat: number; lng: number };
+  createdAt: Timestamp;
+};
+
 export type VehicleType =
   | "berline"
   | "vus_compact"
