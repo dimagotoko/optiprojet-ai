@@ -63,7 +63,7 @@ export function TripCard({
       disabled={!onLocationClick}
       title={value}
     >
-      <span className="truncate block">{value}</span>
+      <span className="line-clamp-2 break-words">{value}</span>
     </Button>
   );
 

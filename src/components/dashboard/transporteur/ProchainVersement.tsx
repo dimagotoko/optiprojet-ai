@@ -16,9 +16,9 @@ export function ProchainVersement({ upcomingTrips }: ProchainVersementProps) {
 
   return (
     <div className="rounded-xl border bg-card p-4 flex items-center justify-between gap-4">
-      <div className="min-w-0">
+      <div className="shrink-0">
         <p className="text-xs text-muted-foreground mb-1">Prochain versement</p>
-        <p className="text-2xl font-bold truncate">
+        <p className="text-2xl font-bold whitespace-nowrap">
           {total.toLocaleString("fr-CA", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -26,9 +26,9 @@ export function ProchainVersement({ upcomingTrips }: ProchainVersementProps) {
           $
         </p>
       </div>
-      <div className="text-right text-xs text-muted-foreground shrink-0">
-        <p>Versé après chaque trajet</p>
-        <p className="text-primary font-medium mt-0.5">
+      <div className="text-right text-xs text-muted-foreground min-w-0">
+        <p className="truncate">Versé après chaque trajet</p>
+        <p className="text-primary font-medium mt-0.5 truncate">
           Virement · prochainement
         </p>
       </div>
