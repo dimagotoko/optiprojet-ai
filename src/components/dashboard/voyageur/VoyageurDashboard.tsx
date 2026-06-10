@@ -39,7 +39,9 @@ import { cn } from "@/lib/utils";
 import type { Booking, Trip, UserProfile, Vehicle } from "@/types/db";
 
 const CO2_PER_TRIP_KG = 18;
-const COUT_PAR_KM = 0.2;
+// Coût moyen de conduite au Canada (~taux ARC 2026 : carburant, entretien,
+// assurance, dépréciation). Sert au calcul "Argent économisé vs voiture solo".
+const COUT_PAR_KM = 0.7;
 
 const statusConfig = {
   pending: {
