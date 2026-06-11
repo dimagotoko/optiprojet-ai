@@ -87,6 +87,8 @@ import {
   serverTimestamp,
   Timestamp,
   getDocs,
+  getDoc,
+  doc,
   query,
   where,
 } from "firebase/firestore";
@@ -190,6 +192,10 @@ export default function PostTripPage() {
     useState(false);
   const [existingTripCount, setExistingTripCount] = useState(0);
   const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
+  // republier: ref pour garantir un seul pré-remplissage par tripId
+  const prefilledTripIdRef = React.useRef<string | null>(null);
+  // vehicleId source transmis à l'effet de guard (sans déclencher un reset)
+  const [sourceVehicleId, setSourceVehicleId] = useState<string | null>(null);
 
   // Fetch user's vehicles
   const vehiclesQuery = useMemoFirebase(() => {
@@ -273,6 +279,70 @@ export default function PostTripPage() {
       }
     }
   }, [searchParams, tripForm]);
+
+  // Effect 1 – Pre-fill form once per tripId (?republier=). No vehicles dep → no re-run on load.
+  useEffect(() => {
+    const tripId = searchParams.get("republier");
+    if (!tripId || !firestore || !user) return;
+    if (prefilledTripIdRef.current === tripId) return;
+    prefilledTripIdRef.current = tripId;
+
+    (async () => {
+      try {
+        const tripSnap = await getDoc(doc(firestore, "trips", tripId));
+        if (!tripSnap.exists()) return;
+        const t = tripSnap.data();
+
+        if (t.offeredBy !== user.uid) return;
+
+        tripForm.reset({
+          departure: {
+            description: t.origin,
+            coords: t.originCoords ?? null,
+          },
+          destination: {
+            description: t.destination,
+            coords: t.destinationCoords ?? null,
+          },
+          seats: t.availableSeats,
+          price: t.pricePerSeat,
+          vehicleId: t.vehicleId ?? "",
+          options: t.options ?? {
+            allowLargeBags: false,
+            allowSmallBags: true,
+            allowPets: false,
+            isNonSmoking: true,
+          },
+          paymentOptions: t.paymentOptions ?? { cash: true, interac: false },
+          details: t.details ?? "",
+          date: undefined,
+          time: "",
+          arrivalTime: "",
+        });
+
+        // Transmit source vehicleId to guard effect (vehicles may not be loaded yet)
+        if (t.vehicleId) setSourceVehicleId(t.vehicleId);
+      } catch (err) {
+        console.error("Failed to pre-fill republier data:", err);
+      }
+    })();
+  }, [searchParams, firestore, user, tripForm]);
+
+  // Effect 2 – Vehicle guard: runs once when both sourceVehicleId and vehicles are ready.
+  // Only clears vehicleId + toasts; never resets the whole form.
+  useEffect(() => {
+    if (!sourceVehicleId || !vehicles) return;
+    if (!vehicles.find((v) => v.id === sourceVehicleId)) {
+      tripForm.setValue("vehicleId", "");
+      toast({
+        title: "Véhicule introuvable",
+        description:
+          "Le véhicule du trajet original a été supprimé — veuillez en sélectionner un nouveau.",
+        variant: "destructive",
+      });
+    }
+    setSourceVehicleId(null);
+  }, [sourceVehicleId, vehicles, tripForm, toast]);
 
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
