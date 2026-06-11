@@ -53,6 +53,7 @@ export type UserProfilePrivate = {
   postalCode: string;
   driverLicense?: string;
   protocolSignedAt?: Timestamp;
+  protocolVersion?: string;
 };
 
 export type PassengerRelation =

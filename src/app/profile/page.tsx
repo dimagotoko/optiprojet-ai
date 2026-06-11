@@ -6,17 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useFirestore } from "@/firebase";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-  increment,
-} from "firebase/firestore";
+import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import type { Timestamp } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { signProtocol } from "@/lib/protocol";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,9 +36,66 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { LoadingLogo } from "@/components/LoadingLogo";
 import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
-import { CheckCircle, Shield } from "lucide-react";
+import { CheckCircle, FileText, Shield } from "lucide-react";
+
+function ProtocolText({ role }: { role: string }) {
+  if (role === "transporteur") {
+    return (
+      <ul className="text-sm text-muted-foreground space-y-1.5">
+        <li>
+          • Respecter les passagers : politesse, ponctualité et propreté du
+          véhicule
+        </li>
+        <li>
+          • Ne jamais conduire sous l&apos;influence de substances psychoactives
+        </li>
+        <li>
+          • Maintenir votre véhicule en bon état de fonctionnement et conforme
+          au code de la route
+        </li>
+        <li>
+          • Respecter les tarifs affichés et ne pas demander de paiements
+          supplémentaires non convenus
+        </li>
+        <li>
+          • Signaler tout incident ou problème dans les 24 h via le support
+        </li>
+      </ul>
+    );
+  }
+  return (
+    <ul className="text-sm text-muted-foreground space-y-1.5">
+      <li>
+        • Respecter le conducteur et les autres passagers : politesse et
+        ponctualité
+      </li>
+      <li>
+        • Ne pas transporter de bagages dangereux, illicites ou encombrants sans
+        accord préalable
+      </li>
+      <li>
+        • Honorer vos réservations confirmées ou annuler dans les délais prévus
+      </li>
+      <li>
+        • Ne pas partager les coordonnées personnelles des conducteurs en dehors
+        de la plateforme
+      </li>
+      <li>
+        • Signaler tout incident ou comportement inapproprié dans les 24 h via
+        le support
+      </li>
+    </ul>
+  );
+}
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "Le nom complet est requis."),
@@ -166,19 +218,6 @@ function ProfilePageInternal() {
         "profile",
       );
 
-      const isFirstProtocolSign =
-        values.protocolAccepted && !existingProtocolSignedAt;
-
-      // Construire les données privées ; protocolSignedAt uniquement si première signature
-      const privateData: Record<string, unknown> = {
-        email: values.email,
-        phoneNumber: values.phoneNumber,
-        postalCode: values.postalCode,
-        driverLicense: values.driverLicense ?? "",
-      };
-      if (isFirstProtocolSign) {
-        privateData.protocolSignedAt = serverTimestamp();
-      }
       await Promise.all([
         setDoc(
           userDocRef,
@@ -188,13 +227,25 @@ function ProfilePageInternal() {
             city: values.city,
             profilePictureUrl: values.profilePictureUrl,
             role: values.userType,
-            ...(isFirstProtocolSign ? { isVerified: true } : {}),
           },
           { merge: true },
         ),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setDoc(privateDocRef, privateData as any, { merge: true }),
+        setDoc(
+          privateDocRef,
+          {
+            email: values.email,
+            phoneNumber: values.phoneNumber,
+            postalCode: values.postalCode,
+            driverLicense: values.driverLicense ?? "",
+          },
+          { merge: true },
+        ),
       ]);
+
+      // Signature du protocole : idempotente (ne réécrit jamais la date originale)
+      if (values.protocolAccepted && !existingProtocolSignedAt) {
+        await signProtocol(firestore, user.uid);
+      }
 
       if (isNewProfileRef.current) {
         isNewProfileRef.current = false;
@@ -430,62 +481,50 @@ function ProfilePageInternal() {
                 </h3>
 
                 {existingProtocolSignedAt ? (
-                  <div className="flex items-center gap-2 text-sm text-green-400">
-                    <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                    Accepté le{" "}
-                    {format(existingProtocolSignedAt.toDate(), "d MMMM yyyy", {
-                      locale: fr,
-                    })}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-green-400">
+                      <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                      Accepté le{" "}
+                      {format(
+                        existingProtocolSignedAt.toDate(),
+                        "d MMMM yyyy",
+                        {
+                          locale: fr,
+                        },
+                      )}
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto px-0 py-0 text-xs text-muted-foreground underline-offset-2 hover:underline hover:bg-transparent"
+                        >
+                          <FileText
+                            className="h-3 w-3 mr-1"
+                            aria-hidden="true"
+                          />
+                          Revoir le protocole
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <Shield
+                              className="h-4 w-4 text-primary"
+                              aria-hidden="true"
+                            />
+                            Protocole d&apos;utilisation
+                          </DialogTitle>
+                        </DialogHeader>
+                        <ProtocolText role={watchedUserType} />
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 ) : (
                   <>
-                    {watchedUserType === "transporteur" ? (
-                      <ul className="text-sm text-muted-foreground space-y-1.5">
-                        <li>
-                          • Respecter les passagers : politesse, ponctualité et
-                          propreté du véhicule
-                        </li>
-                        <li>
-                          • Ne jamais conduire sous l'influence de substances
-                          psychoactives
-                        </li>
-                        <li>
-                          • Maintenir votre véhicule en bon état de
-                          fonctionnement et conforme au code de la route
-                        </li>
-                        <li>
-                          • Respecter les tarifs affichés et ne pas demander de
-                          paiements supplémentaires non convenus
-                        </li>
-                        <li>
-                          • Signaler tout incident ou problème dans les 24 h via
-                          le support
-                        </li>
-                      </ul>
-                    ) : (
-                      <ul className="text-sm text-muted-foreground space-y-1.5">
-                        <li>
-                          • Respecter le conducteur et les autres passagers :
-                          politesse et ponctualité
-                        </li>
-                        <li>
-                          • Ne pas transporter de bagages dangereux, illicites
-                          ou encombrants sans accord préalable
-                        </li>
-                        <li>
-                          • Honorer vos réservations confirmées ou annuler dans
-                          les délais prévus
-                        </li>
-                        <li>
-                          • Ne pas partager les coordonnées personnelles des
-                          conducteurs en dehors de la plateforme
-                        </li>
-                        <li>
-                          • Signaler tout incident ou comportement inapproprié
-                          dans les 24 h via le support
-                        </li>
-                      </ul>
-                    )}
+                    <ProtocolText role={watchedUserType} />
 
                     <FormField
                       control={form.control}

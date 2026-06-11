@@ -105,7 +105,9 @@ export function ProfileSidebar({
   const criteria = buildCriteria(userData.role, privateProfile);
   const metCount = criteria.filter((c) => c.met).length;
   const completeness = Math.round((metCount / criteria.length) * 100);
-  const isVerified = metCount === criteria.length;
+  // Source canonique : champ public users/{uid}.isVerified, écrit une seule fois
+  // lors de la signature du protocole et jamais remis à false.
+  const isVerified = !!userData.isVerified;
   const missing = criteria.filter((c) => !c.met);
 
   const avatarSrc = userData.profilePictureUrl || photoURL || undefined;

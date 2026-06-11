@@ -20,6 +20,7 @@ import {
   CigaretteOff,
   Landmark,
   Banknote,
+  Shield,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
@@ -74,6 +75,7 @@ import { AddressInput, type Address } from "@/components/AddressInput";
 import {
   useUser,
   useFirestore,
+  useDoc,
   useCollection,
   useMemoFirebase,
 } from "@/firebase";
@@ -98,7 +100,10 @@ import {
   type VehicleType,
   type ProvinceCode,
   type Vehicle,
+  type UserProfilePrivate,
 } from "@/types/db";
+import Link from "next/link";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -204,6 +209,15 @@ export default function PostTripPage() {
   }, [firestore, user]);
   const { data: vehicles, isLoading: vehiclesLoading } =
     useCollection(vehiclesQuery);
+
+  // Vérification du protocole d'accord
+  const privateProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid, "private", "profile");
+  }, [firestore, user]);
+  const { data: privateProfile, isLoading: isPrivateLoading } =
+    useDoc<UserProfilePrivate>(privateProfileRef);
+  const hasSignedProtocol = !!privateProfile?.protocolSignedAt;
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -597,8 +611,42 @@ export default function PostTripPage() {
     }
   };
 
-  if (isUserLoading || !user || vehiclesLoading) {
+  if (isUserLoading || !user || vehiclesLoading || isPrivateLoading) {
     return <PostTripSkeleton />;
+  }
+
+  if (!hasSignedProtocol) {
+    return (
+      <div className="container py-12 px-4 md:px-6">
+        <div className="w-full max-w-2xl mx-auto space-y-4">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="-ml-2 gap-1 text-muted-foreground"
+          >
+            <Link href="/dashboard">
+              <ArrowLeft className="h-4 w-4" />
+              Tableau de bord
+            </Link>
+          </Button>
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertTitle>Protocole d&apos;utilisation requis</AlertTitle>
+            <AlertDescription>
+              Vous devez accepter le protocole d&apos;utilisation OptiTrajet AI
+              avant de publier un trajet.{" "}
+              <Link
+                href="/profile"
+                className="font-medium underline underline-offset-2"
+              >
+                Compléter mon profil
+              </Link>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -26,6 +26,7 @@ let testEnv: RulesTestEnvironment;
 
 // ─── UIDs de test ─────────────────────────────────────────────────────────────
 const TRAVELER = "traveler1";
+const TRAVELER2 = "traveler2"; // voyageur sans protocole signé
 const DRIVER = "driver1";
 const OTHER = "other1";
 const USER = "user1";
@@ -142,6 +143,12 @@ describe("BOOKINGS – create", () => {
       // Rôles requis par requesterIsVoyageur()
       await setDoc(doc(db, "users", TRAVELER), { role: "voyageur" });
       await setDoc(doc(db, "users", TRANSPORTER), { role: "transporteur" });
+      // TRAVELER2 : voyageur sans protocole signé (pas de private/profile)
+      await setDoc(doc(db, "users", TRAVELER2), { role: "voyageur" });
+      // Protocole signé pour TRAVELER
+      await setDoc(doc(db, "users", TRAVELER, "private", "profile"), {
+        protocolSignedAt: new Date(),
+      });
     });
   });
 
@@ -202,6 +209,59 @@ describe("BOOKINGS – create", () => {
         departureTime: new Date("2026-07-01T10:00:00Z"),
       }),
     );
+  });
+
+  test("voyageur SANS protocole signé tente de créer un booking → échec", async () => {
+    const db = asUser(TRAVELER2);
+    await assertFails(
+      setDoc(doc(db, "trips", TRIP, "bookings", "newB6"), {
+        travelerId: TRAVELER2,
+        offeredBy: DRIVER,
+        status: "pending",
+        seatsBooked: 1,
+      }),
+    );
+  });
+});
+
+// ─── TRIPS – create (protocole requis) ───────────────────────────────────────
+
+describe("TRIPS – create (protocole requis)", () => {
+  const TRIP_NEW = "tripNew";
+  const VEHICLE = "vehicle1";
+
+  const validTripData = {
+    offeredBy: DRIVER,
+    pricePerSeat: 25,
+    availableSeats: 3,
+    origin: "Montréal",
+    destination: "Québec",
+    details: "",
+    vehicleId: VEHICLE,
+  };
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      // Véhicule requis par isValidTrip()
+      await setDoc(doc(db, "users", DRIVER, "vehicles", VEHICLE), {
+        make: "Toyota",
+      });
+    });
+  });
+
+  test("conducteur avec protocole signé crée un trajet → succès", async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", DRIVER, "private", "profile"), {
+        protocolSignedAt: new Date(),
+      });
+    });
+    const db = asUser(DRIVER);
+    await assertSucceeds(setDoc(doc(db, "trips", TRIP_NEW), validTripData));
+  });
+
+  test("conducteur SANS protocole signé tente de créer un trajet → échec", async () => {
+    const db = asUser(DRIVER);
+    await assertFails(setDoc(doc(db, "trips", TRIP_NEW), validTripData));
   });
 });
 

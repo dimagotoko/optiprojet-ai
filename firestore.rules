@@ -37,6 +37,13 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
+    // Vérifie que l'utilisateur a accepté le protocole d'accord.
+    // .data.get(..., null) renvoie null si le doc n'existe pas ou si le champ est absent.
+    function hasSignedProtocol() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)/private/profile)
+               .data.get('protocolSignedAt', null) != null;
+    }
+
     /**
      * @description Enforces user-ownership for user profiles. Only the user can update, or delete their own profile. Any authenticated user can read a profile. Admins can list all users.
      * @path /users/{userId}
@@ -133,7 +140,7 @@ service cloud.firestore {
         }
 
         allow get, list: if true;
-        allow create: if request.auth != null && isValidTrip();
+        allow create: if request.auth != null && isValidTrip() && hasSignedProtocol();
         allow update: if isExistingOwner(resource.data.offeredBy) || isAdmin()
                       // Voyageur qui réserve : seul totalBookings change, +1 à +8, sans dépasser availableSeats
                       || (request.auth != null
@@ -195,7 +202,8 @@ service cloud.firestore {
                     && request.resource.data.seatsBooked is int
                     && request.resource.data.seatsBooked >= 1
                     && request.resource.data.seatsBooked <= 8
-                    && requesterIsVoyageur();
+                    && requesterIsVoyageur()
+                    && hasSignedProtocol();
       allow update: if isAdmin()
                     || (isTripOwner(tripId)
                         && (!('pricePerSeat' in request.resource.data)

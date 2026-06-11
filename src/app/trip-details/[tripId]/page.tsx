@@ -513,6 +513,15 @@ function TripDetailsPageContent() {
     useDoc<UserProfile>(userProfileRef);
   const isTransporteur = userProfile?.role === "transporteur";
 
+  const userPrivateRef = useMemoFirebase(() => {
+    if (!firestore || !user || isOwner) return null;
+    return doc(firestore, "users", user.uid, "private", "profile");
+  }, [firestore, user, isOwner]);
+  const { data: userPrivate } =
+    useDoc<import("@/types/db").UserProfilePrivate>(userPrivateRef);
+  // Optimiste pendant le chargement (undefined) : on ne bloque pas tant qu'on ne sait pas
+  const hasSignedProtocol = !userPrivate || !!userPrivate.protocolSignedAt;
+
   const userBookingQuery = useMemoFirebase(() => {
     // Attendre que `trip` soit chargé pour que `isOwner` soit fiable.
     // Sans ce guard, la requête se déclenche brièvement avec isOwner=false même
@@ -1141,6 +1150,21 @@ function TripDetailsPageContent() {
                     En tant que transporteur, vous proposez des trajets — vous
                     ne pouvez pas en réserver.
                   </p>
+                ) : !hasSignedProtocol ? (
+                  <div className="space-y-2">
+                    <Button className="w-full" size="lg" disabled>
+                      Réserver ce trajet
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      <Link
+                        href="/profile"
+                        className="underline underline-offset-2"
+                      >
+                        Acceptez le protocole d&apos;utilisation
+                      </Link>{" "}
+                      pour réserver.
+                    </p>
+                  </div>
                 ) : (
                   <Button
                     className="w-full"
