@@ -93,6 +93,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RatingDialog } from "@/components/rating/RatingDialog";
+import { ProtocolDialog } from "@/components/ProtocolDialog";
 
 const GRADIENTS = [
   { from: "#3b82f6", to: "#8b5cf6" },
@@ -480,6 +481,8 @@ function TripDetailsPageContent() {
   const searchParams = useSearchParams();
   const autobook = searchParams.get("autobook") === "1";
   const [showBookingConfirm, setShowBookingConfirm] = React.useState(false);
+  const [showProtocolDialog, setShowProtocolDialog] = React.useState(false);
+  const [protocolReadOnly, setProtocolReadOnly] = React.useState(false);
   const [isBooking, setIsBooking] = React.useState(false);
   const [selectedSeats, setSelectedSeats] = React.useState(1);
   const [passengerStep, setPassengerStep] = React.useState(false);
@@ -1150,35 +1153,42 @@ function TripDetailsPageContent() {
                     En tant que transporteur, vous proposez des trajets — vous
                     ne pouvez pas en réserver.
                   </p>
-                ) : !hasSignedProtocol ? (
-                  <div className="space-y-2">
-                    <Button className="w-full" size="lg" disabled>
+                ) : (
+                  <>
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      onClick={() => {
+                        if (!user) {
+                          router.push(
+                            `/login?redirect=${encodeURIComponent(`/trip-details/${tripId}?autobook=1`)}`,
+                          );
+                          return;
+                        }
+                        if (!hasSignedProtocol) {
+                          setProtocolReadOnly(false);
+                          setShowProtocolDialog(true);
+                          return;
+                        }
+                        setShowBookingConfirm(true);
+                      }}
+                    >
                       Réserver ce trajet
                     </Button>
-                    <p className="text-xs text-center text-muted-foreground">
-                      <Link
-                        href="/profile"
-                        className="underline underline-offset-2"
+                    <p className="text-xs text-muted-foreground text-center">
+                      En réservant, vous acceptez le{" "}
+                      <button
+                        type="button"
+                        className="underline underline-offset-2 hover:text-foreground transition-colors"
+                        onClick={() => {
+                          setProtocolReadOnly(true);
+                          setShowProtocolDialog(true);
+                        }}
                       >
-                        Acceptez le protocole d&apos;utilisation
-                      </Link>{" "}
-                      pour réserver.
+                        protocole d&apos;utilisation
+                      </button>
                     </p>
-                  </div>
-                ) : (
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={() =>
-                      user
-                        ? setShowBookingConfirm(true)
-                        : router.push(
-                            `/login?redirect=${encodeURIComponent(`/trip-details/${tripId}?autobook=1`)}`,
-                          )
-                    }
-                  >
-                    Réserver ce trajet
-                  </Button>
+                  </>
                 )}
 
                 <p className="text-xs text-muted-foreground text-center mt-4">
@@ -1190,6 +1200,15 @@ function TripDetailsPageContent() {
           </div>
         </div>
       </div>
+
+      <ProtocolDialog
+        open={showProtocolDialog}
+        onOpenChange={setShowProtocolDialog}
+        role="voyageur"
+        onAccepted={
+          protocolReadOnly ? undefined : () => setShowBookingConfirm(true)
+        }
+      />
 
       <AlertDialog
         open={showBookingConfirm}

@@ -20,7 +20,6 @@ import {
   CigaretteOff,
   Landmark,
   Banknote,
-  Shield,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
@@ -102,9 +101,8 @@ import {
   type Vehicle,
   type UserProfilePrivate,
 } from "@/types/db";
-import Link from "next/link";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { ProtocolDialog } from "@/components/ProtocolDialog";
 import {
   Form,
   FormControl,
@@ -385,8 +383,14 @@ export default function PostTripPage() {
     }
   };
 
+  const [showProtocolDialog, setShowProtocolDialog] = React.useState(false);
+
   const onSubmitTrip = (data: TripFormValues) => {
     setSubmittedTripData(data);
+    if (!hasSignedProtocol) {
+      setShowProtocolDialog(true);
+      return;
+    }
     setShowConfirmationDialog(true);
   };
 
@@ -611,42 +615,8 @@ export default function PostTripPage() {
     }
   };
 
-  if (isUserLoading || !user || vehiclesLoading || isPrivateLoading) {
+  if (isUserLoading || !user || vehiclesLoading) {
     return <PostTripSkeleton />;
-  }
-
-  if (!hasSignedProtocol) {
-    return (
-      <div className="container py-12 px-4 md:px-6">
-        <div className="w-full max-w-2xl mx-auto space-y-4">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="-ml-2 gap-1 text-muted-foreground"
-          >
-            <Link href="/dashboard">
-              <ArrowLeft className="h-4 w-4" />
-              Tableau de bord
-            </Link>
-          </Button>
-          <Alert>
-            <Shield className="h-4 w-4" />
-            <AlertTitle>Protocole d&apos;utilisation requis</AlertTitle>
-            <AlertDescription>
-              Vous devez accepter le protocole d&apos;utilisation OptiTrajet AI
-              avant de publier un trajet.{" "}
-              <Link
-                href="/profile"
-                className="font-medium underline underline-offset-2"
-              >
-                Compléter mon profil
-              </Link>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -1371,6 +1341,13 @@ export default function PostTripPage() {
           </Card>
         </form>
       </Form>
+
+      <ProtocolDialog
+        open={showProtocolDialog}
+        onOpenChange={setShowProtocolDialog}
+        role="transporteur"
+        onAccepted={() => setShowConfirmationDialog(true)}
+      />
 
       {submittedTripData && (
         <AlertDialog
