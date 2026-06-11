@@ -64,6 +64,8 @@ export type Booking = {
   paymentIntentId?: string;
   paymentStatus?: string;
   createdAt: Timestamp;
+  // Dénormalisé à la création pour permettre le split date-based côté voyageur
+  departureTime?: Timestamp;
   // Dénormalisé lors de l'acceptation pour que le voyageur puisse contacter le conducteur
   driverEmail?: string;
   driverPhone?: string;
@@ -71,6 +73,8 @@ export type Booking = {
   pricePerSeat?: number;
   seatsBooked?: number;
   distanceKm?: number;
+  // Prénoms des co-passagers (hors réservant), renseignés après confirmation
+  passengers?: string[];
 };
 
 export type FavoriteRoute = {

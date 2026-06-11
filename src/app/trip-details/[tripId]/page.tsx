@@ -45,6 +45,8 @@ import {
   ShieldCheck,
   Mail,
   Phone,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -67,6 +69,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { RatingDialog } from "@/components/rating/RatingDialog";
 
 const GRADIENTS = [
   { from: "#3b82f6", to: "#8b5cf6" },
@@ -120,15 +132,18 @@ const BookingRow = ({
   tripId,
   isOwner,
   driverUserId,
+  tripIsPast,
 }: {
   booking: Booking;
   tripId: string;
   isOwner: boolean;
   driverUserId?: string;
+  tripIsPast: boolean;
 }) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const [ratingOpen, setRatingOpen] = React.useState(false);
 
   const travelerRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -200,48 +215,79 @@ const BookingRow = ({
     );
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={traveler.profilePictureUrl} alt={traveler.name} />
-          <AvatarFallback>{getInitials(traveler.name)}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          <p className="font-medium truncate">{traveler.name}</p>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium",
-              cfg.className,
+    <>
+      <div className="flex items-center justify-between p-3 rounded-lg border gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar className="h-10 w-10 shrink-0">
+            <AvatarImage src={traveler.profilePictureUrl} alt={traveler.name} />
+            <AvatarFallback>{getInitials(traveler.name)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="font-medium truncate">{traveler.name}</p>
+            {booking.passengers && booking.passengers.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {booking.passengers.map((name, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center text-xs bg-muted px-1.5 py-0.5 rounded"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
             )}
-          >
-            <StatusIcon className="h-3 w-3" />
-            {cfg.label}
-          </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium",
+                cfg.className,
+              )}
+            >
+              <StatusIcon className="h-3 w-3" />
+              {cfg.label}
+            </span>
+          </div>
         </div>
+        {isOwner && status === "pending" && (
+          <div className="flex gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
+              disabled={isUpdating}
+              onClick={() => updateStatus("accepted")}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" /> Accepter
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+              disabled={isUpdating}
+              onClick={() => updateStatus("rejected")}
+            >
+              <XCircle className="h-4 w-4 mr-1" /> Refuser
+            </Button>
+          </div>
+        )}
+        {isOwner && status === "accepted" && tripIsPast && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setRatingOpen(true)}
+          >
+            <Star className="h-4 w-4 mr-1" /> Évaluer
+          </Button>
+        )}
       </div>
-      {isOwner && status === "pending" && (
-        <div className="flex gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
-            disabled={isUpdating}
-            onClick={() => updateStatus("accepted")}
-          >
-            <CheckCircle className="h-4 w-4 mr-1" /> Accepter
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
-            disabled={isUpdating}
-            onClick={() => updateStatus("rejected")}
-          >
-            <XCircle className="h-4 w-4 mr-1" /> Refuser
-          </Button>
-        </div>
-      )}
-    </div>
+      <RatingDialog
+        open={ratingOpen}
+        onOpenChange={setRatingOpen}
+        driverId={booking.travelerId}
+        driverName={traveler.name}
+        tripId={tripId}
+      />
+    </>
   );
 };
 
@@ -249,10 +295,12 @@ const PassengersList = ({
   tripId,
   isOwner,
   driverUserId,
+  tripIsPast,
 }: {
   tripId: string;
   isOwner: boolean;
   driverUserId?: string;
+  tripIsPast: boolean;
 }) => {
   const firestore = useFirestore();
 
@@ -286,6 +334,7 @@ const PassengersList = ({
           tripId={tripId}
           isOwner={isOwner}
           driverUserId={driverUserId}
+          tripIsPast={tripIsPast}
         />
       ))}
     </div>
@@ -347,6 +396,10 @@ function TripDetailsPageContent() {
   const autobook = searchParams.get("autobook") === "1";
   const [showBookingConfirm, setShowBookingConfirm] = React.useState(false);
   const [isBooking, setIsBooking] = React.useState(false);
+  const [passengerStep, setPassengerStep] = React.useState(false);
+  const [newBookingId, setNewBookingId] = React.useState<string | null>(null);
+  const [passengerNames, setPassengerNames] = React.useState<string[]>([]);
+  const [isSavingPassengers, setIsSavingPassengers] = React.useState(false);
 
   const tripRef = useMemoFirebase(() => {
     if (!firestore || !tripId) return null;
@@ -406,6 +459,7 @@ function TripDetailsPageContent() {
         trip.id,
         "bookings",
       );
+      const bookingRef = doc(bookingsCollection);
 
       await runTransaction(firestore, async (transaction) => {
         const tripSnap = await transaction.get(tripRef);
@@ -416,13 +470,13 @@ function TripDetailsPageContent() {
         if (booked >= current.availableSeats)
           throw new Error("Plus de places disponibles.");
 
-        const bookingRef = doc(bookingsCollection);
         transaction.set(bookingRef, {
           tripId: trip.id,
           travelerId: user.uid,
           offeredBy: current.offeredBy,
           status: "pending",
           createdAt: serverTimestamp(),
+          departureTime: current.departureTime,
         });
         transaction.update(tripRef, { totalBookings: increment(1) });
       });
@@ -431,7 +485,9 @@ function TripDetailsPageContent() {
         title: "Réservation confirmée !",
         description: "Votre place est réservée. Bon voyage !",
       });
-      router.push("/dashboard");
+      setNewBookingId(bookingRef.id);
+      setShowBookingConfirm(false);
+      setPassengerStep(true);
     } catch (error: any) {
       console.error("Booking error: ", error);
       toast({
@@ -444,6 +500,33 @@ function TripDetailsPageContent() {
     } finally {
       setIsBooking(false);
       setShowBookingConfirm(false);
+    }
+  };
+
+  const handleSavePassengers = async () => {
+    if (!firestore || !newBookingId || !trip) return;
+    setIsSavingPassengers(true);
+    try {
+      const cleaned = passengerNames.filter((n) => n.trim() !== "");
+      if (cleaned.length > 0) {
+        const bookingRef = doc(
+          firestore,
+          "trips",
+          trip.id,
+          "bookings",
+          newBookingId,
+        );
+        await updateDoc(bookingRef, { passengers: cleaned });
+      }
+      router.push("/dashboard");
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'enregistrer les passagers.",
+      });
+    } finally {
+      setIsSavingPassengers(false);
     }
   };
 
@@ -468,6 +551,7 @@ function TripDetailsPageContent() {
   }
 
   const departureDate = trip.departureTime.toDate();
+  const tripIsPast = departureDate < new Date();
   const reservedSeats = trip.totalBookings || 0;
   const totalSeats = trip.availableSeats;
   const userBooking = userBookingResult?.[0];
@@ -900,6 +984,7 @@ function TripDetailsPageContent() {
                       tripId={trip.id}
                       isOwner={isOwner}
                       driverUserId={user?.uid}
+                      tripIsPast={tripIsPast}
                     />
                   </CardContent>
                 </Card>
@@ -1016,6 +1101,80 @@ function TripDetailsPageContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={passengerStep}
+        onOpenChange={(open) => {
+          if (!open) router.push("/dashboard");
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Qui voyagent avec vous ?</DialogTitle>
+            <DialogDescription>
+              Indiquez le prénom des co-passagers pour que le conducteur vous
+              identifie facilement. Passez cette étape si vous voyagez seul.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {passengerNames.map((name, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  placeholder={`Prénom passager ${index + 1}`}
+                  value={name}
+                  onChange={(e) => {
+                    const updated = [...passengerNames];
+                    updated[index] = e.target.value;
+                    setPassengerNames(updated);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setPassengerNames(
+                      passengerNames.filter((_, i) => i !== index),
+                    )
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {passengerNames.length < 7 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 mt-1"
+                onClick={() => setPassengerNames([...passengerNames, ""])}
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter un passager
+              </Button>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard")}
+              disabled={isSavingPassengers}
+            >
+              Passer
+            </Button>
+            <Button
+              onClick={handleSavePassengers}
+              disabled={
+                isSavingPassengers ||
+                passengerNames.every((n) => n.trim() === "")
+              }
+            >
+              {isSavingPassengers ? "Enregistrement…" : "Confirmer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

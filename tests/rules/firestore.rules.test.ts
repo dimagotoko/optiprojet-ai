@@ -188,6 +188,18 @@ describe("BOOKINGS – create", () => {
       }),
     );
   });
+
+  test("voyageur crée un booking avec departureTime dénormalisé → succès (règle ne rejette pas le champ)", async () => {
+    const db = asUser(TRAVELER);
+    await assertSucceeds(
+      setDoc(doc(db, "trips", TRIP, "bookings", "newB5"), {
+        travelerId: TRAVELER,
+        offeredBy: DRIVER,
+        status: "pending",
+        departureTime: new Date("2026-07-01T10:00:00Z"),
+      }),
+    );
+  });
 });
 
 // ─── BOOKINGS – update statut ─────────────────────────────────────────────────
@@ -533,6 +545,105 @@ describe("AVIS – /users/{userId}/reviews", () => {
         reviewerId: USER,
         rating: 5,
         comment: "Je suis génial",
+      }),
+    );
+  });
+});
+
+// ─── PROFIL – mise à jour des notes (RatingDialog) ───────────────────────────
+
+describe("PROFIL – mise à jour des notes (RatingDialog)", () => {
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", DRIVER), {
+        displayName: "Conducteur",
+        averageRating: 4.0,
+        totalRatings: 1,
+      });
+    });
+  });
+
+  test("évaluateur authentifié met à jour averageRating + totalRatings → succès", async () => {
+    const db = asUser(TRAVELER);
+    await assertSucceeds(
+      updateDoc(doc(db, "users", DRIVER), {
+        averageRating: 4.5,
+        totalRatings: 2,
+      }),
+    );
+  });
+
+  test("évaluateur tente de modifier un autre champ en même temps → échec", async () => {
+    const db = asUser(TRAVELER);
+    await assertFails(
+      updateDoc(doc(db, "users", DRIVER), {
+        averageRating: 4.5,
+        totalRatings: 2,
+        displayName: "Hacked",
+      }),
+    );
+  });
+
+  test("évaluateur met averageRating hors limites (>5) → échec", async () => {
+    const db = asUser(TRAVELER);
+    await assertFails(
+      updateDoc(doc(db, "users", DRIVER), {
+        averageRating: 6.0,
+        totalRatings: 2,
+      }),
+    );
+  });
+
+  test("non authentifié tente de mettre à jour les notes → échec", async () => {
+    const db = asAnon();
+    await assertFails(
+      updateDoc(doc(db, "users", DRIVER), {
+        averageRating: 5.0,
+        totalRatings: 2,
+      }),
+    );
+  });
+});
+
+// ─── BOOKINGS – champ passengers (multi-passagers) ───────────────────────────
+
+describe("BOOKINGS – mise à jour du champ passengers", () => {
+  const TRIP = "trip1";
+  const BOOKING = "booking1";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "trips", TRIP), {
+        offeredBy: DRIVER,
+        availableSeats: 3,
+        pricePerSeat: 10,
+        origin: "Montréal",
+        destination: "Québec",
+        details: "",
+      });
+      await setDoc(doc(db, "trips", TRIP, "bookings", BOOKING), {
+        travelerId: TRAVELER,
+        offeredBy: DRIVER,
+        status: "pending",
+      });
+    });
+  });
+
+  test("voyageur met à jour uniquement passengers → succès", async () => {
+    const db = asUser(TRAVELER);
+    await assertSucceeds(
+      updateDoc(doc(db, "trips", TRIP, "bookings", BOOKING), {
+        passengers: ["Alice", "Bob"],
+      }),
+    );
+  });
+
+  test("voyageur tente de modifier passengers + un autre champ → échec", async () => {
+    const db = asUser(TRAVELER);
+    await assertFails(
+      updateDoc(doc(db, "trips", TRIP, "bookings", BOOKING), {
+        passengers: ["Alice"],
+        status: "accepted",
       }),
     );
   });

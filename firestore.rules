@@ -60,7 +60,15 @@ service cloud.firestore {
       allow get: if true; // Public read access to profiles
       allow list: if isAdmin(); // Admin-only user listing.
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId)
+                    // Mise à jour des moyennes de notation par un évaluateur authentifié (RatingDialog)
+                    || (request.auth != null
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'totalRatings'])
+                        && request.resource.data.averageRating is number
+                        && request.resource.data.averageRating >= 0
+                        && request.resource.data.averageRating <= 5
+                        && request.resource.data.totalRatings is int
+                        && request.resource.data.totalRatings >= 0);
       allow delete: if isExistingOwner(userId);
     }
     
@@ -197,7 +205,11 @@ service cloud.firestore {
                                 && request.resource.data.distanceKm >= 0)))
                     || (isTraveler(resource.data.travelerId)
                         && request.resource.data.status == 'cancelled'
-                        && request.resource.data.travelerId == resource.data.travelerId);
+                        && request.resource.data.travelerId == resource.data.travelerId)
+                    // Voyageur met à jour la liste des passagers après réservation
+                    || (isTraveler(resource.data.travelerId)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['passengers'])
+                        && request.resource.data.passengers is list);
       allow delete: if isExistingAuthorized(tripId, resource.data.travelerId) || isAdmin();
     }
 
