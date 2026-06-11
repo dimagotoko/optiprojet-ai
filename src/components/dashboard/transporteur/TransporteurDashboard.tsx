@@ -23,6 +23,7 @@ import { ProchainVersement } from "./ProchainVersement";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -156,7 +157,7 @@ export function TransporteurDashboard({
     return Object.fromEntries(vehicles.map((v) => [v.id, v]));
   }, [vehicles]);
 
-  const { upcomingTrips, pastTrips: _pastTrips } = React.useMemo(() => {
+  const { upcomingTrips, pastTrips } = React.useMemo(() => {
     if (!allTrips) return { upcomingTrips: [], pastTrips: [] };
     const now = new Date();
     const upcoming = allTrips
@@ -170,6 +171,9 @@ export function TransporteurDashboard({
 
   const handleEditClick = (tripId: string) =>
     router.push(`/edit-trip/${tripId}`);
+
+  const handleRepublier = (tripId: string) =>
+    router.push(`/post-trip?republier=${tripId}`);
 
   const handleToggleCloseTrip = async (
     tripId: string,
@@ -226,28 +230,65 @@ export function TransporteurDashboard({
               <Skeleton className="h-24 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
             </div>
-          ) : upcomingTrips.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground text-sm mb-3">
-                  Aucun trajet programmé.
-                </p>
-                <Button asChild size="sm">
-                  <Link href="/post-trip">Proposer un trajet</Link>
-                </Button>
-              </CardContent>
-            </Card>
           ) : (
-            upcomingTrips.map((trip) => (
-              <TripPublieRow
-                key={trip.id}
-                trip={trip}
-                vehicle={vehicleMap[trip.vehicleId]}
-                onEditClick={handleEditClick}
-                onDeleteClick={setTripToDelete}
-                onToggleCloseTrip={handleToggleCloseTrip}
-              />
-            ))
+            <Tabs defaultValue="upcoming">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upcoming">À venir</TabsTrigger>
+                <TabsTrigger value="history">Historique</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="upcoming" className="mt-3 space-y-3">
+                {upcomingTrips.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-muted-foreground text-sm mb-3">
+                        Aucun trajet programmé.
+                      </p>
+                      <Button asChild size="sm">
+                        <Link href="/post-trip">Proposer un trajet</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  upcomingTrips.map((trip) => (
+                    <TripPublieRow
+                      key={trip.id}
+                      trip={trip}
+                      vehicle={vehicleMap[trip.vehicleId]}
+                      onEditClick={handleEditClick}
+                      onDeleteClick={setTripToDelete}
+                      onToggleCloseTrip={handleToggleCloseTrip}
+                      onRepublierClick={handleRepublier}
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="history" className="mt-3 space-y-3">
+                {pastTrips.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-muted-foreground text-sm">
+                        Aucun trajet passé.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  pastTrips.map((trip) => (
+                    <TripPublieRow
+                      key={trip.id}
+                      trip={trip}
+                      vehicle={vehicleMap[trip.vehicleId]}
+                      onEditClick={handleEditClick}
+                      onDeleteClick={setTripToDelete}
+                      onToggleCloseTrip={handleToggleCloseTrip}
+                      onRepublierClick={handleRepublier}
+                      isPast
+                    />
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </div>
 

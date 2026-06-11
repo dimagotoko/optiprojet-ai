@@ -1,19 +1,28 @@
-'use client';
+"use client";
 
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { ArrowRight, MoreVertical, Edit, Trash2, Lock, Unlock, Car } from 'lucide-react';
-import Image from 'next/image';
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import {
+  ArrowRight,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Lock,
+  Unlock,
+  Car,
+  Copy,
+} from "lucide-react";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import type { Trip, Vehicle } from '@/types/db';
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import type { Trip, Vehicle } from "@/types/db";
 
 interface TripPublieRowProps {
   trip: Trip;
@@ -21,9 +30,19 @@ interface TripPublieRowProps {
   onEditClick: (id: string) => void;
   onDeleteClick: (id: string) => void;
   onToggleCloseTrip: (id: string, currentState: boolean) => void;
+  onRepublierClick: (tripId: string) => void;
+  isPast?: boolean;
 }
 
-export function TripPublieRow({ trip, vehicle, onEditClick, onDeleteClick, onToggleCloseTrip }: TripPublieRowProps) {
+export function TripPublieRow({
+  trip,
+  vehicle,
+  onEditClick,
+  onDeleteClick,
+  onToggleCloseTrip,
+  onRepublierClick,
+  isPast = false,
+}: TripPublieRowProps) {
   const date = trip.departureTime.toDate();
   const booked = trip.totalBookings ?? 0;
   const total = booked + trip.availableSeats;
@@ -35,11 +54,14 @@ export function TripPublieRow({ trip, vehicle, onEditClick, onDeleteClick, onTog
         <div className="min-w-0 flex-1">
           <p className="font-semibold flex items-center gap-1 flex-wrap">
             <span>{trip.origin}</span>
-            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <ArrowRight
+              className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
             <span>{trip.destination}</span>
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {format(date, 'd MMM, HH:mm', { locale: fr })}
+            {format(date, "d MMM, HH:mm", { locale: fr })}
           </p>
 
           {/* Infos véhicule */}
@@ -47,11 +69,19 @@ export function TripPublieRow({ trip, vehicle, onEditClick, onDeleteClick, onTog
             <div className="mt-2 flex items-center gap-2">
               {vehicle.imageUrl ? (
                 <div className="relative h-8 w-14 rounded overflow-hidden shrink-0 border">
-                  <Image src={vehicle.imageUrl} alt={`${vehicle.make} ${vehicle.model}`} fill className="object-cover" />
+                  <Image
+                    src={vehicle.imageUrl}
+                    alt={`${vehicle.make} ${vehicle.model}`}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-8 w-8 rounded bg-muted shrink-0">
-                  <Car className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Car
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 </div>
               )}
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -65,7 +95,9 @@ export function TripPublieRow({ trip, vehicle, onEditClick, onDeleteClick, onTog
                 <span className="text-xs text-muted-foreground">
                   {vehicle.make} {vehicle.model} {vehicle.year}
                 </span>
-                <span className="text-xs text-muted-foreground">· {vehicle.color}</span>
+                <span className="text-xs text-muted-foreground">
+                  · {vehicle.color}
+                </span>
               </div>
             </div>
           )}
@@ -78,28 +110,53 @@ export function TripPublieRow({ trip, vehicle, onEditClick, onDeleteClick, onTog
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Options du trajet">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Options du trajet"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onToggleCloseTrip(trip.id, !!trip.isClosed)}>
-                {trip.isClosed
-                  ? <><Unlock className="mr-2 h-4 w-4" />Rouvrir les réservations</>
-                  : <><Lock className="mr-2 h-4 w-4" />Fermer les réservations</>
-                }
+              <DropdownMenuItem onClick={() => onRepublierClick(trip.id)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Republier ce trajet
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onEditClick(trip.id)}>
-                <Edit className="mr-2 h-4 w-4" />Modifier
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onDeleteClick(trip.id)}
-                className="text-destructive focus:text-destructive"
-                disabled={booked > 0}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />Annuler
-              </DropdownMenuItem>
+              {!isPast && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onToggleCloseTrip(trip.id, !!trip.isClosed)}
+                  >
+                    {trip.isClosed ? (
+                      <>
+                        <Unlock className="mr-2 h-4 w-4" />
+                        Rouvrir les réservations
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="mr-2 h-4 w-4" />
+                        Fermer les réservations
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onEditClick(trip.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Modifier
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onDeleteClick(trip.id)}
+                    className="text-destructive focus:text-destructive"
+                    disabled={booked > 0}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Annuler
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -110,7 +167,9 @@ export function TripPublieRow({ trip, vehicle, onEditClick, onDeleteClick, onTog
           className="h-1.5"
           aria-label={`${booked} sur ${total} places réservées`}
         />
-        <p className="text-xs text-muted-foreground">{booked} / {total} places</p>
+        <p className="text-xs text-muted-foreground">
+          {booked} / {total} places
+        </p>
       </div>
     </div>
   );
