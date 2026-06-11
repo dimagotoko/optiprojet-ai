@@ -222,82 +222,143 @@ const BookingRow = ({
   const cfg = statusConfig[status] ?? statusConfig.pending;
   const StatusIcon = cfg.icon;
 
-  if (isLoading) return <Skeleton className="h-14 w-full rounded-md" />;
+  if (isLoading) return <Skeleton className="h-20 w-full rounded-md" />;
   if (!traveler)
     return (
       <div className="p-3 text-sm text-muted-foreground">Voyageur inconnu</div>
     );
 
+  const seats = booking.seatsBooked ?? 1;
+
   return (
     <>
-      <div className="flex items-center justify-between p-3 rounded-lg border gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Avatar className="h-10 w-10 shrink-0">
-            <AvatarImage src={traveler.profilePictureUrl} alt={traveler.name} />
-            <AvatarFallback>{getInitials(traveler.name)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <p className="font-medium truncate">{traveler.name}</p>
-            {booking.passengers && booking.passengers.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {booking.passengers.map((p, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center text-xs bg-muted px-1.5 py-0.5 rounded gap-1"
-                  >
-                    {p.name}
-                    {p.relation && (
-                      <span className="text-muted-foreground">
-                        · {RELATION_LABELS[p.relation] ?? p.relation}
-                      </span>
-                    )}
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        {/* Ligne principale : avatar + infos + boutons */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <Avatar className="h-12 w-12 shrink-0 mt-0.5">
+              <AvatarImage
+                src={traveler.profilePictureUrl}
+                alt={traveler.name}
+              />
+              <AvatarFallback>{getInitials(traveler.name)}</AvatarFallback>
+            </Avatar>
+
+            <div className="min-w-0 flex-1">
+              {/* Nom + badge vérifié */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="font-semibold leading-tight">{traveler.name}</p>
+                {traveler.isVerified && (
+                  <span className="inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                    Vérifié
                   </span>
-                ))}
+                )}
               </div>
+
+              {/* Note + ville + places */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                {traveler.averageRating != null ? (
+                  <span className="flex items-center gap-0.5">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    <span className="font-medium text-foreground">
+                      {traveler.averageRating.toFixed(1)}
+                    </span>
+                    <span>({traveler.totalRatings ?? 0} avis)</span>
+                  </span>
+                ) : (
+                  <span>Pas encore évalué</span>
+                )}
+                {traveler.city && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="flex items-center gap-0.5">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {traveler.city}
+                    </span>
+                  </>
+                )}
+                <span aria-hidden="true">·</span>
+                <span className="flex items-center gap-0.5 font-medium text-foreground">
+                  <Users className="h-3 w-3 shrink-0" />
+                  {seats} place{seats > 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Boutons d'action */}
+          <div className="flex gap-2 shrink-0">
+            {isOwner && status === "pending" && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
+                  disabled={isUpdating}
+                  onClick={() => updateStatus("accepted")}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" /> Accepter
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  disabled={isUpdating}
+                  onClick={() => updateStatus("rejected")}
+                >
+                  <XCircle className="h-4 w-4 mr-1" /> Refuser
+                </Button>
+              </>
             )}
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium",
-                cfg.className,
-              )}
-            >
-              <StatusIcon className="h-3 w-3" />
-              {cfg.label}
-            </span>
+            {isOwner && status === "accepted" && tripIsPast && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRatingOpen(true)}
+              >
+                <Star className="h-4 w-4 mr-1" /> Évaluer
+              </Button>
+            )}
           </div>
         </div>
-        {isOwner && status === "pending" && (
-          <div className="flex gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
-              disabled={isUpdating}
-              onClick={() => updateStatus("accepted")}
-            >
-              <CheckCircle className="h-4 w-4 mr-1" /> Accepter
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
-              disabled={isUpdating}
-              onClick={() => updateStatus("rejected")}
-            >
-              <XCircle className="h-4 w-4 mr-1" /> Refuser
-            </Button>
+
+        {/* Co-passagers */}
+        {booking.passengers && booking.passengers.length > 0 && (
+          <div className="border-t pt-2.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+              Co-passagers ({booking.passengers.length})
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {booking.passengers.map((p, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-full"
+                >
+                  <span className="font-medium">{p.name}</span>
+                  {p.relation && (
+                    <span className="text-muted-foreground">
+                      · {RELATION_LABELS[p.relation] ?? p.relation}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
           </div>
         )}
-        {isOwner && status === "accepted" && tripIsPast && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0"
-            onClick={() => setRatingOpen(true)}
+
+        {/* Statut */}
+        <div className="flex items-center justify-between">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium",
+              cfg.className,
+            )}
           >
-            <Star className="h-4 w-4 mr-1" /> Évaluer
-          </Button>
-        )}
+            <StatusIcon className="h-3 w-3" />
+            {cfg.label}
+          </span>
+        </div>
       </div>
       <RatingDialog
         open={ratingOpen}
@@ -324,9 +385,14 @@ const PassengersList = ({
   const firestore = useFirestore();
 
   const bookingsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, "trips", tripId, "bookings");
-  }, [firestore, tripId]);
+    if (!firestore || !driverUserId) return null;
+    // Filtre explicite sur offeredBy pour que Firestore puisse vérifier
+    // statiquement la règle `list: if offeredBy == auth.uid`.
+    return query(
+      collection(firestore, "trips", tripId, "bookings"),
+      where("offeredBy", "==", driverUserId),
+    );
+  }, [firestore, tripId, driverUserId]);
 
   const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
@@ -448,10 +514,13 @@ function TripDetailsPageContent() {
   const isTransporteur = userProfile?.role === "transporteur";
 
   const userBookingQuery = useMemoFirebase(() => {
-    if (!firestore || !tripId || !user || isOwner) return null;
+    // Attendre que `trip` soit chargé pour que `isOwner` soit fiable.
+    // Sans ce guard, la requête se déclenche brièvement avec isOwner=false même
+    // pour le conducteur, causant un PERMISSION_DENIED sur la collection bookings.
+    if (!firestore || !tripId || !user || !trip || isOwner) return null;
     const bookingsRef = collection(firestore, "trips", tripId, "bookings");
     return query(bookingsRef, where("travelerId", "==", user.uid));
-  }, [firestore, tripId, user, isOwner]);
+  }, [firestore, tripId, user, trip, isOwner]);
 
   const { data: userBookingResult, isLoading: isUserBookingLoading } =
     useCollection<Booking>(userBookingQuery);

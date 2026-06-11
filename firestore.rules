@@ -185,8 +185,9 @@ service cloud.firestore {
       allow get: if isAuthorized(tripId, resource.data.travelerId) || isAdmin();
       // allow list sans get()/exists() — requis pour que collectionGroup('bookings') fonctionne.
       // isTripOwner (get) et isAdmin (exists) sont interdits dans les règles list évaluées
-      // lors d'une requête collection group. offeredBy est dénormalisé dans le booking.
-      allow list: if resource.data.offeredBy == request.auth.uid;
+      // lors d'une requête collection group. offeredBy et travelerId sont dénormalisés.
+      allow list: if resource.data.offeredBy == request.auth.uid
+                  || resource.data.travelerId == request.auth.uid;
       allow create: if request.auth != null
                     && request.resource.data.travelerId == request.auth.uid
                     && request.resource.data.status == 'pending'
