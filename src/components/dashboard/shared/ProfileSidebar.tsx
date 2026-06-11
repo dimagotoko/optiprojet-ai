@@ -20,7 +20,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from "@/firebase";
-import { doc, collection } from "firebase/firestore";
+import { doc, collection, query, orderBy } from "firebase/firestore";
 import type { UserProfile, UserProfilePrivate, Vehicle } from "@/types/db";
 
 const getInitials = (name: string) =>
@@ -94,7 +94,10 @@ export function ProfileSidebar({
 
   const vehiclesRef = useMemoFirebase(() => {
     if (!firestore || !isTransporteur) return null;
-    return collection(firestore, "users", userId, "vehicles");
+    return query(
+      collection(firestore, "users", userId, "vehicles"),
+      orderBy("createdAt", "asc"),
+    );
   }, [firestore, userId, isTransporteur]);
   const { data: vehicles } = useCollection<Vehicle>(vehiclesRef);
   const firstVehicle = vehicles?.[0] ?? null;

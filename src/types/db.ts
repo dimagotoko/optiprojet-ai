@@ -172,4 +172,6 @@ export type Vehicle = {
   type: VehicleType;
   maxSeats: number;
   imageUrl?: string;
+  createdAt?: Timestamp;
+  isPrimary?: boolean;
 };

@@ -75,6 +75,7 @@ import {
   doc,
   Timestamp,
   updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -245,7 +246,11 @@ export default function EditTripPage() {
     if (!firestore || !user) return;
     try {
       const vehicleRef = collection(firestore, `users/${user.uid}/vehicles`);
-      await addDoc(vehicleRef, { ...values, ownerId: user.uid });
+      await addDoc(vehicleRef, {
+        ...values,
+        ownerId: user.uid,
+        createdAt: serverTimestamp(),
+      });
       toast({ title: "Succès", description: "Votre véhicule a été ajouté." });
       vehicleForm.reset();
       setShowAddVehicleDialog(false);

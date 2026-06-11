@@ -286,6 +286,7 @@ export default function PostTripPage() {
         licensePlate: plateFormatted,
         ownerId: user.uid,
         maxSeats,
+        createdAt: serverTimestamp(),
       });
       toast({ title: "Succès", description: "Votre véhicule a été ajouté." });
       vehicleForm.reset();
