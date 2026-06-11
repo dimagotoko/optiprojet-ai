@@ -194,7 +194,6 @@ export default function OnboardingPage() {
                 <div
                   key={key}
                   className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-secondary/40"
-                  onClick={() => togglePref(key)}
                 >
                   <Checkbox
                     id={key}
