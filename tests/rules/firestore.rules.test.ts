@@ -152,6 +152,7 @@ describe("BOOKINGS – create", () => {
         travelerId: TRAVELER,
         offeredBy: DRIVER,
         status: "pending",
+        seatsBooked: 1,
       }),
     );
   });
@@ -185,6 +186,7 @@ describe("BOOKINGS – create", () => {
         travelerId: TRAVELER,
         offeredBy: DRIVER,
         status: "pending",
+        seatsBooked: 1,
       }),
     );
   });
@@ -196,6 +198,7 @@ describe("BOOKINGS – create", () => {
         travelerId: TRAVELER,
         offeredBy: DRIVER,
         status: "pending",
+        seatsBooked: 1,
         departureTime: new Date("2026-07-01T10:00:00Z"),
       }),
     );

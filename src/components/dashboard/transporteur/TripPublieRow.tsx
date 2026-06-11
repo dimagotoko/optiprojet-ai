@@ -11,8 +11,10 @@ import {
   Unlock,
   Car,
   Copy,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -167,9 +169,18 @@ export function TripPublieRow({
           className="h-1.5"
           aria-label={`${booked} sur ${total} places réservées`}
         />
-        <p className="text-xs text-muted-foreground">
-          {booked} / {total} places
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {booked} / {total} places
+          </p>
+          <Link
+            href={`/trip-details/${trip.id}`}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+          >
+            <Users className="h-3 w-3" />
+            Passagers
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import type {
   UserProfile,
   UserProfilePrivate,
 } from "@/types/db";
+import { RELATION_LABELS } from "@/types/db";
 
 const getInitials = (name: string) =>
   name
@@ -72,12 +73,13 @@ function DemandeCard({
   const handleAccept = async () => {
     if (!firestore || loading) return;
     setLoading("accept");
+    const seats = booking.seatsBooked ?? 1;
     try {
       const batch = writeBatch(firestore);
       batch.update(doc(firestore, "trips", trip.id, "bookings", booking.id), {
         status: "accepted",
         pricePerSeat: trip.pricePerSeat,
-        seatsBooked: 1,
+        seatsBooked: seats,
         distanceKm: Math.round(
           haversineKm(
             trip.originCoords.lat,
@@ -93,9 +95,9 @@ function DemandeCard({
             }
           : {}),
       });
+      // totalBookings déjà incrémenté à la création — on décrémente seulement availableSeats
       batch.update(doc(firestore, "trips", trip.id), {
-        availableSeats: increment(-1),
-        totalBookings: increment(1),
+        availableSeats: increment(-seats),
       });
       await batch.commit();
       toast({
@@ -156,8 +158,27 @@ function DemandeCard({
             <Skeleton className="h-4 w-32 mb-1" />
           ) : (
             <p className="font-semibold text-sm leading-tight">
-              {traveler?.name ?? "Voyageur"} — demande 1 place
+              {traveler?.name ?? "Voyageur"} — demande{" "}
+              {booking.seatsBooked ?? 1} place
+              {(booking.seatsBooked ?? 1) > 1 ? "s" : ""}
             </p>
+          )}
+          {booking.passengers && booking.passengers.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {booking.passengers.map((p, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 text-xs bg-muted px-1.5 py-0.5 rounded"
+                >
+                  {p.name}
+                  {p.relation && (
+                    <span className="text-muted-foreground">
+                      · {RELATION_LABELS[p.relation] ?? p.relation}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
           )}
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 min-w-0">
             <span className="truncate min-w-0 flex-1">{trip.origin}</span>
@@ -225,24 +246,27 @@ function TripPendingBookings({
 }: TripPendingProps) {
   const firestore = useFirestore();
 
-  const pendingQuery = useMemoFirebase(() => {
+  // Requête simple (1 filtre) : pas d'index composite requis.
+  // Le filtre status === "pending" est appliqué côté client.
+  const bookingsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, "trips", trip.id, "bookings"),
       where("offeredBy", "==", userId),
-      where("status", "==", "pending"),
     );
   }, [firestore, trip.id, userId]);
 
-  const { data: pending, isLoading } = useCollection<Booking>(pendingQuery);
+  const { data: allBookings, isLoading } =
+    useCollection<Booking>(bookingsQuery);
+  const pending = allBookings?.filter((b) => b.status === "pending") ?? [];
 
   React.useEffect(() => {
     if (!isLoading) {
-      onCountChange(trip.id, pending?.length ?? 0);
+      onCountChange(trip.id, pending.length);
     }
-  }, [isLoading, pending?.length, trip.id, onCountChange]);
+  }, [isLoading, pending.length, trip.id, onCountChange]);
 
-  if (isLoading || !pending?.length) return null;
+  if (isLoading || !pending.length) return null;
 
   return (
     <>

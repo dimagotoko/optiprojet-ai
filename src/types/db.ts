@@ -55,6 +55,30 @@ export type UserProfilePrivate = {
   protocolSignedAt?: Timestamp;
 };
 
+export type PassengerRelation =
+  | "ami"
+  | "conjoint"
+  | "parent"
+  | "enfant"
+  | "cousin"
+  | "collegue"
+  | "autre";
+
+export type PassengerEntry = {
+  name: string;
+  relation: PassengerRelation;
+};
+
+export const RELATION_LABELS: Record<PassengerRelation, string> = {
+  ami: "Ami(e)",
+  conjoint: "Conjoint(e)",
+  parent: "Père / Mère",
+  enfant: "Enfant",
+  cousin: "Cousin(e)",
+  collegue: "Collègue",
+  autre: "Autre",
+};
+
 export type Booking = {
   id: string;
   tripId: string;
@@ -66,15 +90,16 @@ export type Booking = {
   createdAt: Timestamp;
   // Dénormalisé à la création pour permettre le split date-based côté voyageur
   departureTime?: Timestamp;
+  // Nombre de places réservées (1 = réservant seul, 2+ = avec co-passagers)
+  seatsBooked?: number;
   // Dénormalisé lors de l'acceptation pour que le voyageur puisse contacter le conducteur
   driverEmail?: string;
   driverPhone?: string;
   // Dénormalisé lors de l'acceptation pour calculer l'argent économisé
   pricePerSeat?: number;
-  seatsBooked?: number;
   distanceKm?: number;
-  // Prénoms des co-passagers (hors réservant), renseignés après confirmation
-  passengers?: string[];
+  // Co-passagers renseignés après confirmation (hors réservant)
+  passengers?: PassengerEntry[];
 };
 
 export type FavoriteRoute = {

@@ -135,12 +135,12 @@ service cloud.firestore {
         allow get, list: if true;
         allow create: if request.auth != null && isValidTrip();
         allow update: if isExistingOwner(resource.data.offeredBy) || isAdmin()
-                      // Voyageur qui réserve : seul totalBookings change, +1, et une place est dispo
-                      // get('totalBookings', 0) gère le cas où le champ n'existe pas encore sur le trip
+                      // Voyageur qui réserve : seul totalBookings change, +1 à +8, sans dépasser availableSeats
                       || (request.auth != null
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalBookings'])
-                          && request.resource.data.totalBookings == resource.data.get('totalBookings', 0) + 1
-                          && resource.data.get('totalBookings', 0) < resource.data.availableSeats);
+                          && request.resource.data.totalBookings > resource.data.get('totalBookings', 0)
+                          && (request.resource.data.totalBookings - resource.data.get('totalBookings', 0)) <= 8
+                          && request.resource.data.totalBookings <= resource.data.availableSeats);
         allow delete: if isExistingOwner(resource.data.offeredBy) || isAdmin();
     }
 
@@ -191,6 +191,9 @@ service cloud.firestore {
                     && request.resource.data.travelerId == request.auth.uid
                     && request.resource.data.status == 'pending'
                     && request.resource.data.offeredBy == getTripData(tripId).offeredBy
+                    && request.resource.data.seatsBooked is int
+                    && request.resource.data.seatsBooked >= 1
+                    && request.resource.data.seatsBooked <= 8
                     && requesterIsVoyageur();
       allow update: if isAdmin()
                     || (isTripOwner(tripId)

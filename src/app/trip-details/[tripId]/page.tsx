@@ -47,6 +47,7 @@ import {
   Phone,
   Plus,
   Trash2,
+  Minus,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -54,8 +55,14 @@ import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Trip, UserProfile, Booking, Vehicle } from "@/types/db";
-import { CANADIAN_PROVINCES } from "@/types/db";
+import type {
+  Trip,
+  UserProfile,
+  Booking,
+  Vehicle,
+  PassengerEntry,
+} from "@/types/db";
+import { CANADIAN_PROVINCES, RELATION_LABELS } from "@/types/db";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -78,6 +85,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RatingDialog } from "@/components/rating/RatingDialog";
 
 const GRADIENTS = [
@@ -226,12 +240,17 @@ const BookingRow = ({
             <p className="font-medium truncate">{traveler.name}</p>
             {booking.passengers && booking.passengers.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-0.5">
-                {booking.passengers.map((name, i) => (
+                {booking.passengers.map((p, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center text-xs bg-muted px-1.5 py-0.5 rounded"
+                    className="inline-flex items-center text-xs bg-muted px-1.5 py-0.5 rounded gap-1"
                   >
-                    {name}
+                    {p.name}
+                    {p.relation && (
+                      <span className="text-muted-foreground">
+                        · {RELATION_LABELS[p.relation] ?? p.relation}
+                      </span>
+                    )}
                   </span>
                 ))}
               </div>
@@ -396,9 +415,12 @@ function TripDetailsPageContent() {
   const autobook = searchParams.get("autobook") === "1";
   const [showBookingConfirm, setShowBookingConfirm] = React.useState(false);
   const [isBooking, setIsBooking] = React.useState(false);
+  const [selectedSeats, setSelectedSeats] = React.useState(1);
   const [passengerStep, setPassengerStep] = React.useState(false);
   const [newBookingId, setNewBookingId] = React.useState<string | null>(null);
-  const [passengerNames, setPassengerNames] = React.useState<string[]>([]);
+  const [passengerEntries, setPassengerEntries] = React.useState<
+    PassengerEntry[]
+  >([]);
   const [isSavingPassengers, setIsSavingPassengers] = React.useState(false);
 
   const tripRef = useMemoFirebase(() => {
@@ -467,27 +489,40 @@ function TripDetailsPageContent() {
 
         const current = tripSnap.data() as Trip;
         const booked = current.totalBookings ?? 0;
-        if (booked >= current.availableSeats)
-          throw new Error("Plus de places disponibles.");
+        if (booked + selectedSeats > current.availableSeats)
+          throw new Error("Plus assez de places disponibles.");
 
         transaction.set(bookingRef, {
           tripId: trip.id,
           travelerId: user.uid,
           offeredBy: current.offeredBy,
           status: "pending",
+          seatsBooked: selectedSeats,
           createdAt: serverTimestamp(),
           departureTime: current.departureTime,
         });
-        transaction.update(tripRef, { totalBookings: increment(1) });
+        transaction.update(tripRef, {
+          totalBookings: increment(selectedSeats),
+        });
       });
 
       toast({
         title: "Réservation confirmée !",
-        description: "Votre place est réservée. Bon voyage !",
+        description: `${selectedSeats} place${selectedSeats > 1 ? "s" : ""} réservée${selectedSeats > 1 ? "s" : ""}. Bon voyage !`,
       });
       setNewBookingId(bookingRef.id);
       setShowBookingConfirm(false);
-      setPassengerStep(true);
+      if (selectedSeats > 1) {
+        setPassengerEntries(
+          Array.from({ length: selectedSeats - 1 }, () => ({
+            name: "",
+            relation: "ami" as const,
+          })),
+        );
+        setPassengerStep(true);
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error: any) {
       console.error("Booking error: ", error);
       toast({
@@ -507,7 +542,7 @@ function TripDetailsPageContent() {
     if (!firestore || !newBookingId || !trip) return;
     setIsSavingPassengers(true);
     try {
-      const cleaned = passengerNames.filter((n) => n.trim() !== "");
+      const cleaned = passengerEntries.filter((p) => p.name.trim() !== "");
       if (cleaned.length > 0) {
         const bookingRef = doc(
           firestore,
@@ -1071,32 +1106,78 @@ function TripDetailsPageContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la réservation ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vous êtes sur le point de réserver une place pour le trajet de{" "}
-              <strong>{trip.origin}</strong> à{" "}
-              <strong>{trip.destination}</strong> pour{" "}
-              <strong>{trip.pricePerSeat}$</strong>. Le conducteur accepte les
-              paiements par :
+              {trip.origin} → {trip.destination} · Paiement :{" "}
               <span className="font-semibold">
                 {trip.paymentOptions?.cash && "Argent comptant"}
                 {trip.paymentOptions?.cash &&
                   trip.paymentOptions?.interac &&
-                  " et "}
-                {trip.paymentOptions?.interac && "Virement Interac"}
+                  " / "}
+                {trip.paymentOptions?.interac && "Interac"}
               </span>
-              .
-              <br />
-              <br />
-              Une fois la réservation confirmée, vous pourrez discuter des
-              détails avec le conducteur.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {/* Sélecteur de places */}
+          <div className="py-2 space-y-3">
+            <p className="text-sm font-medium">Nombre de places</p>
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => setSelectedSeats((s) => Math.max(1, s - 1))}
+                disabled={selectedSeats <= 1 || isBooking}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <div className="flex-1 text-center">
+                <span className="text-2xl font-bold">{selectedSeats}</span>
+                <span className="text-muted-foreground ml-1 text-sm">
+                  place{selectedSeats > 1 ? "s" : ""}
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() =>
+                  setSelectedSeats((s) =>
+                    Math.min(Math.min(remainingSeats, 8), s + 1),
+                  )
+                }
+                disabled={
+                  selectedSeats >= Math.min(remainingSeats, 8) || isBooking
+                }
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="rounded-lg bg-muted/50 px-4 py-2.5 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Total estimé</span>
+              <span className="font-bold text-base">
+                {selectedSeats * trip.pricePerSeat} $
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              {remainingSeats} place{remainingSeats > 1 ? "s" : ""} disponible
+              {remainingSeats > 1 ? "s" : ""}
+            </p>
+          </div>
+
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBooking}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel
+              disabled={isBooking}
+              onClick={() => setSelectedSeats(1)}
+            >
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleBookTrip} disabled={isBooking}>
               {isBooking && (
                 <LoadingLogo className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Confirmer la réservation
+              Confirmer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1108,52 +1189,58 @@ function TripDetailsPageContent() {
           if (!open) router.push("/dashboard");
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Qui voyagent avec vous ?</DialogTitle>
             <DialogDescription>
-              Indiquez le prénom des co-passagers pour que le conducteur vous
-              identifie facilement. Passez cette étape si vous voyagez seul.
+              Indiquez le prénom et le lien de chaque co-passager. Le conducteur
+              pourra ainsi identifier tout le monde à bord.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            {passengerNames.map((name, index) => (
-              <div key={index} className="flex items-center gap-2">
+          <div className="space-y-3 py-2">
+            {passengerEntries.map((entry, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-[1fr_160px] gap-2 items-center"
+              >
                 <Input
                   placeholder={`Prénom passager ${index + 1}`}
-                  value={name}
+                  value={entry.name}
                   onChange={(e) => {
-                    const updated = [...passengerNames];
-                    updated[index] = e.target.value;
-                    setPassengerNames(updated);
+                    const updated = [...passengerEntries];
+                    updated[index] = {
+                      ...updated[index],
+                      name: e.target.value,
+                    };
+                    setPassengerEntries(updated);
                   }}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setPassengerNames(
-                      passengerNames.filter((_, i) => i !== index),
-                    )
-                  }
+                <Select
+                  value={entry.relation}
+                  onValueChange={(val) => {
+                    const updated = [...passengerEntries];
+                    updated[index] = {
+                      ...updated[index],
+                      relation: val as PassengerEntry["relation"],
+                    };
+                    setPassengerEntries(updated);
+                  }}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Lien" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ami">Ami(e)</SelectItem>
+                    <SelectItem value="conjoint">Conjoint(e)</SelectItem>
+                    <SelectItem value="parent">Père / Mère</SelectItem>
+                    <SelectItem value="enfant">Enfant</SelectItem>
+                    <SelectItem value="cousin">Cousin(e)</SelectItem>
+                    <SelectItem value="collegue">Collègue</SelectItem>
+                    <SelectItem value="autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             ))}
-            {passengerNames.length < 7 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 mt-1"
-                onClick={() => setPassengerNames([...passengerNames, ""])}
-              >
-                <Plus className="h-4 w-4" />
-                Ajouter un passager
-              </Button>
-            )}
           </div>
           <DialogFooter>
             <Button
@@ -1167,7 +1254,7 @@ function TripDetailsPageContent() {
               onClick={handleSavePassengers}
               disabled={
                 isSavingPassengers ||
-                passengerNames.every((n) => n.trim() === "")
+                passengerEntries.every((p) => p.name.trim() === "")
               }
             >
               {isSavingPassengers ? "Enregistrement…" : "Confirmer"}
