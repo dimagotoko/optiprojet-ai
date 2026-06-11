@@ -1127,9 +1127,18 @@ function TripDetailsPageContent() {
                 </div>
 
                 {isOwner ? (
-                  <Button className="w-full" disabled>
-                    Vous êtes le conducteur
-                  </Button>
+                  <>
+                    <Button
+                      className="w-full"
+                      onClick={() => router.push("/dashboard")}
+                    >
+                      Gérer ce trajet
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      C&apos;est votre trajet — gérez les demandes et les
+                      passagers depuis votre tableau de bord.
+                    </p>
+                  </>
                 ) : isAccepted ? (
                   <div className="w-full flex items-center justify-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 py-2.5 text-green-700 dark:text-green-400 font-semibold text-sm">
                     <CheckCircle className="h-4 w-4" />
@@ -1188,13 +1197,12 @@ function TripDetailsPageContent() {
                         protocole d&apos;utilisation
                       </button>
                     </p>
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      Une fois la réservation confirmée, vous pourrez vous
+                      arranger avec le conducteur pour le paiement.
+                    </p>
                   </>
                 )}
-
-                <p className="text-xs text-muted-foreground text-center mt-4">
-                  Une fois la réservation confirmée, vous pourrez vous arranger
-                  avec le conducteur pour le paiement.
-                </p>
               </CardContent>
             </Card>
           </div>
