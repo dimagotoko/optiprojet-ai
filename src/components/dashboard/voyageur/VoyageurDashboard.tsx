@@ -85,7 +85,13 @@ const statusConfig = {
   },
 };
 
-function BookedTripItem({ booking }: { booking: Booking }) {
+function BookedTripItem({
+  booking,
+  showWhenPast,
+}: {
+  booking: Booking;
+  showWhenPast: boolean;
+}) {
   const firestore = useFirestore();
   const [ratingOpen, setRatingOpen] = React.useState(false);
 
@@ -121,6 +127,9 @@ function BookedTripItem({ booking }: { booking: Booking }) {
 
   const date = trip.departureTime.toDate();
   const isPast = date < new Date();
+  // Renvoie null si ce booking n'appartient pas à l'onglet demandé.
+  // Gère les anciens bookings sans departureTime dénormalisé.
+  if (isPast !== showWhenPast) return null;
   const canRate = booking.status === "accepted" && isPast && trip.offeredBy;
 
   return (
@@ -487,15 +496,6 @@ export function VoyageurDashboard({
 
   const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
-  const activeBookings =
-    bookings?.filter(
-      (b) => b.status === "pending" || b.status === "accepted",
-    ) ?? [];
-  const pastBookings =
-    bookings?.filter(
-      (b) => b.status === "rejected" || b.status === "cancelled",
-    ) ?? [];
-
   return (
     <div className="space-y-6">
       {/* Suggestions IA + Tabs trajets */}
@@ -529,7 +529,7 @@ export function VoyageurDashboard({
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />
               </>
-            ) : activeBookings.length === 0 ? (
+            ) : !bookings?.length ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <p className="text-muted-foreground mb-4 text-sm">
@@ -541,15 +541,15 @@ export function VoyageurDashboard({
                 </CardContent>
               </Card>
             ) : (
-              activeBookings.map((b) => (
-                <BookedTripItem key={b.id} booking={b} />
+              bookings.map((b) => (
+                <BookedTripItem key={b.id} booking={b} showWhenPast={false} />
               ))
             )}
           </TabsContent>
           <TabsContent value="history" className="mt-4 space-y-2">
             {isLoading ? (
               <Skeleton className="h-20 w-full" />
-            ) : pastBookings.length === 0 ? (
+            ) : !bookings?.length ? (
               <Card>
                 <CardContent className="p-6 text-center">
                   <p className="text-muted-foreground text-sm">
@@ -558,7 +558,9 @@ export function VoyageurDashboard({
                 </CardContent>
               </Card>
             ) : (
-              pastBookings.map((b) => <BookedTripItem key={b.id} booking={b} />)
+              bookings.map((b) => (
+                <BookedTripItem key={b.id} booking={b} showWhenPast={true} />
+              ))
             )}
           </TabsContent>
         </Tabs>
