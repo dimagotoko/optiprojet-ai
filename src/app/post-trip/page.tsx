@@ -6,6 +6,7 @@ import { fr } from "date-fns/locale";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { vehicleSchema, type VehicleFormValues } from "@/lib/vehicle-schema";
 import {
   ArrowLeft,
   Calendar as CalendarIcon,
@@ -107,51 +108,6 @@ import {
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const vehicleSchema = z.object({
-  make: z.string().min(1, "La marque est requise"),
-  model: z.string().min(1, "Le modèle est requis"),
-  year: z.coerce
-    .number()
-    .min(1900, "Année invalide")
-    .max(new Date().getFullYear() + 1, "Année invalide"),
-  color: z.string().min(1, "La couleur est requise"),
-  province: z.enum(
-    [
-      "QC",
-      "ON",
-      "BC",
-      "AB",
-      "MB",
-      "SK",
-      "NS",
-      "NB",
-      "PE",
-      "NL",
-      "YT",
-      "NT",
-      "NU",
-    ] as const,
-    {
-      required_error: "La province est requise",
-    },
-  ),
-  licensePlate: z.string().min(1, "La plaque est requise"),
-  type: z.enum(
-    [
-      "berline",
-      "vus_compact",
-      "vus",
-      "minifourgonnette",
-      "camionnette",
-      "autre",
-    ] as const,
-    {
-      required_error: "Le type de véhicule est requis",
-    },
-  ),
-  imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
-});
-
 const addressSchema = z.object({
   description: z
     .string({
@@ -214,7 +170,6 @@ const tripSchema = z
     },
   );
 
-type VehicleFormValues = z.infer<typeof vehicleSchema>;
 type TripFormValues = z.infer<typeof tripSchema>;
 
 export default function PostTripPage() {

@@ -1,113 +1,180 @@
-
-'use client';
-import { Suspense, useMemo, useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { TripCard } from '@/components/TripCard';
-import { TripSearchForm } from '@/components/TripSearchForm';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, Timestamp, query, where, QueryConstraint } from 'firebase/firestore';
-import { TripGridSkeleton } from '@/components/skeletons/TripCardSkeleton';
-import { format, startOfDay, endOfDay } from 'date-fns';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dog, CigaretteOff, Luggage, Sunrise, Sun, Sunset } from 'lucide-react';
-import Link from 'next/link';
-import { Slider } from '@/components/ui/slider';
-import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import type { Trip } from '@/types/db';
-
+"use client";
+import { Suspense, useMemo, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { TripCard } from "@/components/TripCard";
+import { TripSearchForm } from "@/components/TripSearchForm";
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  useUser,
+  useDoc,
+} from "@/firebase";
+import {
+  collection,
+  doc,
+  Timestamp,
+  query,
+  where,
+  QueryConstraint,
+} from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import type { UserProfile } from "@/types/db";
+import { TripGridSkeleton } from "@/components/skeletons/TripCardSkeleton";
+import { format, startOfDay, endOfDay } from "date-fns";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dog, CigaretteOff, Luggage, Sunrise, Sun, Sunset } from "lucide-react";
+import Link from "next/link";
+import { Slider } from "@/components/ui/slider";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { Trip } from "@/types/db";
 
 // Simplified Wrapper: It no longer fetches driver data.
-const TripCardWrapper = ({ trip, onLocationClick }: { trip: Trip, onLocationClick: (type: 'departure' | 'destination', value: string) => void }) => {
-    return (
-        <TripCard
-            id={trip.id}
-            from={trip.origin}
-            to={trip.destination}
-            date={format(trip.departureTime.toDate(), 'd MMM')}
-            price={`${trip.pricePerSeat}$`}
-            onLocationClick={onLocationClick}
-        />
-    );
+const TripCardWrapper = ({
+  trip,
+  onLocationClick,
+}: {
+  trip: Trip;
+  onLocationClick: (type: "departure" | "destination", value: string) => void;
+}) => {
+  return (
+    <TripCard
+      id={trip.id}
+      from={trip.origin}
+      to={trip.destination}
+      date={format(trip.departureTime.toDate(), "d MMM")}
+      price={`${trip.pricePerSeat}$`}
+      onLocationClick={onLocationClick}
+    />
+  );
 };
-
 
 function TripsPageContent() {
   const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useUser();
+  const { toast } = useToast();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+  const { data: userData } = useDoc<UserProfile>(userDocRef);
+
+  useEffect(() => {
+    if (userData?.role === "transporteur") {
+      toast({
+        title: "Accès réservé aux voyageurs",
+        description:
+          "En tant que transporteur, vous proposez des trajets depuis le tableau de bord.",
+      });
+      router.replace("/dashboard");
+    }
+  }, [userData?.role, router, toast]);
 
   // Filter states
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
-  const [departureTime, setDepartureTime] = useState<string>('all');
+  const [departureTime, setDepartureTime] = useState<string>("all");
   const [showNonSmoking, setShowNonSmoking] = useState(false);
   const [showPetsAllowed, setShowPetsAllowed] = useState(false);
   const [showLargeBagsAllowed, setShowLargeBagsAllowed] = useState(false);
 
-
   // Get search params from URL
-  const departure = searchParams.get('departure')?.toLowerCase();
-  const destination = searchParams.get('destination')?.toLowerCase();
-  const dateStr = searchParams.get('date');
-  
+  const departure = searchParams.get("departure")?.toLowerCase();
+  const destination = searchParams.get("destination")?.toLowerCase();
+  const dateStr = searchParams.get("date");
+
   // Correctly parse the date only if it's a valid string
   const searchDate = useMemo(() => {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
-      return date instanceof Date && !isNaN(date.getTime()) ? date : null;
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    return date instanceof Date && !isNaN(date.getTime()) ? date : null;
   }, [dateStr]);
-  
+
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
 
-    const constraints: QueryConstraint[] = [where('departureTime', '>=', startOfDay(new Date()))];
+    const constraints: QueryConstraint[] = [
+      where("departureTime", ">=", startOfDay(new Date())),
+    ];
 
     if (searchDate) {
-        constraints.push(where('departureTime', '>=', startOfDay(searchDate)));
-        constraints.push(where('departureTime', '<=', endOfDay(searchDate)));
+      constraints.push(where("departureTime", ">=", startOfDay(searchDate)));
+      constraints.push(where("departureTime", "<=", endOfDay(searchDate)));
     }
-    
-    return query(collection(firestore, 'trips'), ...constraints);
+
+    return query(collection(firestore, "trips"), ...constraints);
   }, [firestore, searchDate]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
-  
+
   const filteredTrips = useMemo(() => {
     if (!allTrips) return [];
-    
+
     return allTrips.filter((trip: Trip) => {
-        const tripDepartureTime = trip.departureTime.toDate();
-        const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
-        const matchesNonSmoking = showNonSmoking ? trip.options?.isNonSmoking === true : true;
-        const matchesPetsAllowed = showPetsAllowed ? trip.options?.allowPets === true : true;
-        const matchesLargeBags = showLargeBagsAllowed ? trip.options?.allowLargeBags === true : true;
-        const hour = tripDepartureTime.getHours();
-        const matchesTime = departureTime === 'all' ||
-            (departureTime === 'morning' && hour >= 6 && hour < 12) ||
-            (departureTime === 'afternoon' && hour >= 12 && hour < 18) ||
-            (departureTime === 'evening' && hour >= 18);
-        return matchesPrice && matchesTime && matchesNonSmoking && matchesPetsAllowed && matchesLargeBags;
+      const tripDepartureTime = trip.departureTime.toDate();
+      const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
+      const matchesNonSmoking = showNonSmoking
+        ? trip.options?.isNonSmoking === true
+        : true;
+      const matchesPetsAllowed = showPetsAllowed
+        ? trip.options?.allowPets === true
+        : true;
+      const matchesLargeBags = showLargeBagsAllowed
+        ? trip.options?.allowLargeBags === true
+        : true;
+      const hour = tripDepartureTime.getHours();
+      const matchesTime =
+        departureTime === "all" ||
+        (departureTime === "morning" && hour >= 6 && hour < 12) ||
+        (departureTime === "afternoon" && hour >= 12 && hour < 18) ||
+        (departureTime === "evening" && hour >= 18);
+      return (
+        matchesPrice &&
+        matchesTime &&
+        matchesNonSmoking &&
+        matchesPetsAllowed &&
+        matchesLargeBags
+      );
     });
-    
-  }, [allTrips, maxPrice, departureTime, showNonSmoking, showPetsAllowed, showLargeBagsAllowed]);
+  }, [
+    allTrips,
+    maxPrice,
+    departureTime,
+    showNonSmoking,
+    showPetsAllowed,
+    showLargeBagsAllowed,
+  ]);
 
   const { exactMatches, suggestedMatches } = useMemo(() => {
     const exact: Trip[] = [];
     const suggested: Trip[] = [];
-    if (!filteredTrips) return { exactMatches: exact, suggestedMatches: suggested };
+    if (!filteredTrips)
+      return { exactMatches: exact, suggestedMatches: suggested };
 
     const hasDeparture = !!departure;
     const hasDestination = !!destination;
-    
+
     for (const trip of filteredTrips) {
       const tripOrigin = trip.origin.toLowerCase();
       const tripDestination = trip.destination.toLowerCase();
-      const matchesDeparture = hasDeparture ? tripOrigin.includes(departure) : false;
-      const matchesDestination = hasDestination ? tripDestination.includes(destination) : false;
-      
+      const matchesDeparture = hasDeparture
+        ? tripOrigin.includes(departure)
+        : false;
+      const matchesDestination = hasDestination
+        ? tripDestination.includes(destination)
+        : false;
+
       if (hasDeparture && hasDestination) {
         if (matchesDeparture && matchesDestination) {
           exact.push(trip);
@@ -116,35 +183,48 @@ function TripsPageContent() {
         }
       } else if (hasDeparture) {
         if (matchesDeparture) {
-            exact.push(trip);
+          exact.push(trip);
         }
       } else if (hasDestination) {
         if (matchesDestination) {
-            exact.push(trip);
+          exact.push(trip);
         }
       }
     }
     return { exactMatches: exact, suggestedMatches: suggested };
   }, [filteredTrips, departure, destination]);
 
-  const handleSearch = (search: { departure?: string; destination?: string; date?: Date }) => {
+  const handleSearch = (search: {
+    departure?: string;
+    destination?: string;
+    date?: Date;
+  }) => {
     const params = new URLSearchParams();
-    if (search.departure) params.set('departure', search.departure);
-    if (search.destination) params.set('destination', search.destination);
-    if (search.date) params.set('date', search.date.toISOString());
-    
+    if (search.departure) params.set("departure", search.departure);
+    if (search.destination) params.set("destination", search.destination);
+    if (search.date) params.set("date", search.date.toISOString());
+
     router.push(`/trips?${params.toString()}`);
   };
 
-  const initialDate = searchDate instanceof Date && !isNaN(searchDate.getTime()) ? searchDate : undefined;
+  const initialDate =
+    searchDate instanceof Date && !isNaN(searchDate.getTime())
+      ? searchDate
+      : undefined;
 
   const maxPriceInResults = useMemo(() => {
-      if (!allTrips) return 100;
-      const max = allTrips.reduce((max, trip) => Math.max(max, trip.pricePerSeat), 0);
-      return max > 0 ? Math.ceil(max / 5) * 5 : 100; // Round up to nearest 5
+    if (!allTrips) return 100;
+    const max = allTrips.reduce(
+      (max, trip) => Math.max(max, trip.pricePerSeat),
+      0,
+    );
+    return max > 0 ? Math.ceil(max / 5) * 5 : 100; // Round up to nearest 5
   }, [allTrips]);
 
-  const handleLocationClick = (type: 'departure' | 'destination', value: string) => {
+  const handleLocationClick = (
+    type: "departure" | "destination",
+    value: string,
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(type, value);
     router.push(`/trips?${params.toString()}`);
@@ -159,7 +239,9 @@ function TripsPageContent() {
   const hasMore = visibleCount < resultsToShow.length;
 
   // Réinitialise la pagination quand les filtres/recherche changent
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [departure, destination, dateStr]);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [departure, destination, dateStr]);
 
   const renderResults = () => {
     if (isLoading) {
@@ -171,12 +253,19 @@ function TripsPageContent() {
         <div className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {visibleTrips.map((trip) => (
-              <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
+              <TripCardWrapper
+                key={trip.id}
+                trip={trip}
+                onLocationClick={handleLocationClick}
+              />
             ))}
           </div>
           {hasMore && (
             <div className="flex justify-center pt-4">
-              <Button variant="outline" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+              >
                 Charger plus ({resultsToShow.length - visibleCount} restants)
               </Button>
             </div>
@@ -184,116 +273,217 @@ function TripsPageContent() {
         </div>
       );
     }
-  
+
     if (hasActiveSearch && suggestedMatches.length > 0) {
       return (
         <div className="space-y-8">
           <div className="text-center py-6 bg-secondary/30 rounded-lg">
-            <h3 className="text-lg font-semibold">Aucun trajet direct trouvé pour vos critères.</h3>
-            <p className="text-muted-foreground mt-1">Voici des suggestions de trajets pour la date sélectionnée :</p>
+            <h3 className="text-lg font-semibold">
+              Aucun trajet direct trouvé pour vos critères.
+            </h3>
+            <p className="text-muted-foreground mt-1">
+              Voici des suggestions de trajets pour la date sélectionnée :
+            </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {suggestedMatches.map((trip) => (
-              <TripCardWrapper key={trip.id} trip={trip} onLocationClick={handleLocationClick} />
+              <TripCardWrapper
+                key={trip.id}
+                trip={trip}
+                onLocationClick={handleLocationClick}
+              />
             ))}
           </div>
         </div>
       );
     }
 
-    if(!allTrips || allTrips.length === 0) {
-        return (
-            <div className="text-center py-16 border border-dashed rounded-xl space-y-4">
-                <p className="text-4xl">🚗</p>
-                <p className="text-lg font-semibold">Aucun trajet disponible pour le moment.</p>
-                <p className="text-sm text-muted-foreground">Soyez le premier à proposer un trajet et aidez la communauté à voyager !</p>
-                <Button asChild className="mt-2">
-                    <Link href="/post-trip">Proposer un trajet</Link>
-                </Button>
-            </div>
-        )
+    if (!allTrips || allTrips.length === 0) {
+      return (
+        <div className="text-center py-16 border border-dashed rounded-xl space-y-4">
+          <p className="text-4xl">🚗</p>
+          <p className="text-lg font-semibold">
+            Aucun trajet disponible pour le moment.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Soyez le premier à proposer un trajet et aidez la communauté à
+            voyager !
+          </p>
+          <Button asChild className="mt-2">
+            <Link href="/post-trip">Proposer un trajet</Link>
+          </Button>
+        </div>
+      );
     }
 
     return (
       <div className="text-center py-16 border border-dashed rounded-xl space-y-3">
         <p className="text-3xl">🔍</p>
         <p className="text-lg font-semibold">Aucun trajet pour ces critères.</p>
-        <p className="text-sm text-muted-foreground">Essayez de modifier votre recherche ou de supprimer certains filtres.</p>
+        <p className="text-sm text-muted-foreground">
+          Essayez de modifier votre recherche ou de supprimer certains filtres.
+        </p>
       </div>
     );
   };
-
 
   return (
     <div className="container py-12 px-4 md:px-6">
       <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Tous les trajets</h1>
+          <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+            Tous les trajets
+          </h1>
           <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
             Trouvez le covoiturage parfait pour votre prochaine destination.
           </p>
         </div>
       </div>
       <div className="mb-8">
-        <TripSearchForm 
-            initialSearch={{ departure: searchParams.get('departure') || '', destination: searchParams.get('destination') || '', date: initialDate }}
-            onSearch={handleSearch}
+        <TripSearchForm
+          initialSearch={{
+            departure: searchParams.get("departure") || "",
+            destination: searchParams.get("destination") || "",
+            date: initialDate,
+          }}
+          onSearch={handleSearch}
         />
       </div>
 
-       <Accordion type="single" collapsible className="w-full mb-8">
+      <Accordion type="single" collapsible className="w-full mb-8">
         <AccordionItem value="item-1">
-          <AccordionTrigger className={cn(buttonVariants({ variant: "outline" }), "no-underline hover:no-underline")}>
-            <span>Filtres avancés ({isLoading ? '...' : (hasActiveSearch ? exactMatches.length + suggestedMatches.length : filteredTrips.length)} résultats)</span>
+          <AccordionTrigger
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "no-underline hover:no-underline",
+            )}
+          >
+            <span>
+              Filtres avancés (
+              {isLoading
+                ? "..."
+                : hasActiveSearch
+                  ? exactMatches.length + suggestedMatches.length
+                  : filteredTrips.length}{" "}
+              résultats)
+            </span>
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-               {/* Heure de départ */}
+              {/* Heure de départ */}
               <div className="space-y-2">
                 <Label>Heure de départ</Label>
                 <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant={departureTime === 'all' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('all')} aria-label="Toutes les heures">
-                        Tous
-                    </Button>
-                    <Button size="sm" variant={departureTime === 'morning' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('morning')} aria-label="Filtrer : Matin (6h–12h)" className="flex items-center gap-2">
-                        <Sunrise className="h-4 w-4" /> Matin
-                    </Button>
-                    <Button size="sm" variant={departureTime === 'afternoon' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('afternoon')} aria-label="Filtrer : Après-midi (12h–18h)" className="flex items-center gap-2">
-                        <Sun className="h-4 w-4" /> Après-midi
-                    </Button>
-                    <Button size="sm" variant={departureTime === 'evening' ? 'secondary' : 'outline'} onClick={() => setDepartureTime('evening')} aria-label="Filtrer : Soir (18h+)" className="flex items-center gap-2">
-                        <Sunset className="h-4 w-4" /> Soir
-                    </Button>
+                  <Button
+                    size="sm"
+                    variant={departureTime === "all" ? "secondary" : "outline"}
+                    onClick={() => setDepartureTime("all")}
+                    aria-label="Toutes les heures"
+                  >
+                    Tous
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={
+                      departureTime === "morning" ? "secondary" : "outline"
+                    }
+                    onClick={() => setDepartureTime("morning")}
+                    aria-label="Filtrer : Matin (6h–12h)"
+                    className="flex items-center gap-2"
+                  >
+                    <Sunrise className="h-4 w-4" /> Matin
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={
+                      departureTime === "afternoon" ? "secondary" : "outline"
+                    }
+                    onClick={() => setDepartureTime("afternoon")}
+                    aria-label="Filtrer : Après-midi (12h–18h)"
+                    className="flex items-center gap-2"
+                  >
+                    <Sun className="h-4 w-4" /> Après-midi
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={
+                      departureTime === "evening" ? "secondary" : "outline"
+                    }
+                    onClick={() => setDepartureTime("evening")}
+                    aria-label="Filtrer : Soir (18h+)"
+                    className="flex items-center gap-2"
+                  >
+                    <Sunset className="h-4 w-4" /> Soir
+                  </Button>
                 </div>
               </div>
               {/* Prix */}
               <div className="space-y-2">
-                <Label htmlFor="price">Prix maximum: {maxPrice ? `${maxPrice}$` : 'Aucun'}</Label>
+                <Label htmlFor="price">
+                  Prix maximum: {maxPrice ? `${maxPrice}$` : "Aucun"}
+                </Label>
                 <Slider
-                    id="price"
-                    max={maxPriceInResults}
-                    step={5}
-                    value={[maxPrice || maxPriceInResults]}
-                    onValueChange={(value) => setMaxPrice(value[0] === maxPriceInResults ? undefined : value[0])}
+                  id="price"
+                  max={maxPriceInResults}
+                  step={5}
+                  value={[maxPrice || maxPriceInResults]}
+                  onValueChange={(value) =>
+                    setMaxPrice(
+                      value[0] === maxPriceInResults ? undefined : value[0],
+                    )
+                  }
                 />
               </div>
               {/* Options */}
               <div className="space-y-2">
-                 <Label>Options du trajet</Label>
-                 <div className="flex flex-wrap gap-4 pt-2">
-                    <div className="flex items-center space-x-2">
-                        <Checkbox id="non-smoking" checked={showNonSmoking} onCheckedChange={(checked) => setShowNonSmoking(!!checked)} />
-                        <Label htmlFor="non-smoking" className="flex items-center gap-2 font-normal"><CigaretteOff className="h-4 w-4" /> Non-fumeur</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Checkbox id="pets" checked={showPetsAllowed} onCheckedChange={(checked) => setShowPetsAllowed(!!checked)} />
-                        <Label htmlFor="pets" className="flex items-center gap-2 font-normal"><Dog className="h-4 w-4" /> Animaux permis</Label>
-                    </div>
-                     <div className="flex items-center space-x-2">
-                        <Checkbox id="large-bags" checked={showLargeBagsAllowed} onCheckedChange={(checked) => setShowLargeBagsAllowed(!!checked)} />
-                        <Label htmlFor="large-bags" className="flex items-center gap-2 font-normal"><Luggage className="h-4 w-4" /> Grands bagages</Label>
-                    </div>
-                 </div>
+                <Label>Options du trajet</Label>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="non-smoking"
+                      checked={showNonSmoking}
+                      onCheckedChange={(checked) =>
+                        setShowNonSmoking(!!checked)
+                      }
+                    />
+                    <Label
+                      htmlFor="non-smoking"
+                      className="flex items-center gap-2 font-normal"
+                    >
+                      <CigaretteOff className="h-4 w-4" /> Non-fumeur
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pets"
+                      checked={showPetsAllowed}
+                      onCheckedChange={(checked) =>
+                        setShowPetsAllowed(!!checked)
+                      }
+                    />
+                    <Label
+                      htmlFor="pets"
+                      className="flex items-center gap-2 font-normal"
+                    >
+                      <Dog className="h-4 w-4" /> Animaux permis
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="large-bags"
+                      checked={showLargeBagsAllowed}
+                      onCheckedChange={(checked) =>
+                        setShowLargeBagsAllowed(!!checked)
+                      }
+                    />
+                    <Label
+                      htmlFor="large-bags"
+                      className="flex items-center gap-2 font-normal"
+                    >
+                      <Luggage className="h-4 w-4" /> Grands bagages
+                    </Label>
+                  </div>
+                </div>
               </div>
             </div>
           </AccordionContent>
@@ -305,13 +495,10 @@ function TripsPageContent() {
   );
 }
 
-
 export default function TripsPage() {
   return (
     <Suspense fallback={<TripGridSkeleton count={6} />}>
       <TripsPageContent />
     </Suspense>
-  )
+  );
 }
-
-    

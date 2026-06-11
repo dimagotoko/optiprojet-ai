@@ -168,6 +168,12 @@ service cloud.firestore {
         return isAuthorized(tripId, travelerId) && resource != null;
       }
 
+      // Vérifie que le demandeur a le rôle "voyageur" dans users/{uid}.
+      // Si le doc n'existe pas ou si le champ role est absent, renvoie false (défaut sûr).
+      function requesterIsVoyageur() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == "voyageur";
+      }
+
       allow get: if isAuthorized(tripId, resource.data.travelerId) || isAdmin();
       // allow list sans get()/exists() — requis pour que collectionGroup('bookings') fonctionne.
       // isTripOwner (get) et isAdmin (exists) sont interdits dans les règles list évaluées
@@ -176,7 +182,8 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.resource.data.travelerId == request.auth.uid
                     && request.resource.data.status == 'pending'
-                    && request.resource.data.offeredBy == getTripData(tripId).offeredBy;
+                    && request.resource.data.offeredBy == getTripData(tripId).offeredBy
+                    && requesterIsVoyageur();
       allow update: if isAdmin()
                     || (isTripOwner(tripId)
                         && (!('pricePerSeat' in request.resource.data)

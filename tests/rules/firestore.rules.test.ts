@@ -29,6 +29,7 @@ const TRAVELER = "traveler1";
 const DRIVER = "driver1";
 const OTHER = "other1";
 const USER = "user1";
+const TRANSPORTER = "transporter1";
 const REVIEWER = "reviewer1";
 
 // ─── Setup / Teardown ─────────────────────────────────────────────────────────
@@ -138,6 +139,9 @@ describe("BOOKINGS – create", () => {
         destination: "Lyon",
         details: "",
       });
+      // Rôles requis par requesterIsVoyageur()
+      await setDoc(doc(db, "users", TRAVELER), { role: "voyageur" });
+      await setDoc(doc(db, "users", TRANSPORTER), { role: "transporteur" });
     });
   });
 
@@ -159,6 +163,28 @@ describe("BOOKINGS – create", () => {
         travelerId: TRAVELER,
         offeredBy: DRIVER,
         status: "accepted",
+      }),
+    );
+  });
+
+  test("transporteur tente de créer un booking → REFUS", async () => {
+    const db = asUser(TRANSPORTER);
+    await assertFails(
+      setDoc(doc(db, "trips", TRIP, "bookings", "newB3"), {
+        travelerId: TRANSPORTER,
+        offeredBy: DRIVER,
+        status: "pending",
+      }),
+    );
+  });
+
+  test("voyageur crée un booking → succès (régression post-règle rôle)", async () => {
+    const db = asUser(TRAVELER);
+    await assertSucceeds(
+      setDoc(doc(db, "trips", TRIP, "bookings", "newB4"), {
+        travelerId: TRAVELER,
+        offeredBy: DRIVER,
+        status: "pending",
       }),
     );
   });

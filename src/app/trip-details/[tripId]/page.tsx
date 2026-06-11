@@ -364,6 +364,14 @@ function TripDetailsPageContent() {
 
   const isOwner = user?.uid === driverId;
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user || isOwner) return null;
+    return doc(firestore, "users", user.uid);
+  }, [firestore, user, isOwner]);
+  const { data: userProfile, isLoading: isUserProfileLoading } =
+    useDoc<UserProfile>(userProfileRef);
+  const isTransporteur = userProfile?.role === "transporteur";
+
   const userBookingQuery = useMemoFirebase(() => {
     if (!firestore || !tripId || !user || isOwner) return null;
     const bookingsRef = collection(firestore, "trips", tripId, "bookings");
@@ -380,7 +388,11 @@ function TripDetailsPageContent() {
   const { data: vehicle } = useDoc<Vehicle>(vehicleRef);
 
   const isLoading =
-    isUserLoading || isTripLoading || isDriverLoading || isUserBookingLoading;
+    isUserLoading ||
+    isTripLoading ||
+    isDriverLoading ||
+    isUserBookingLoading ||
+    isUserProfileLoading;
 
   const handleBookTrip = async () => {
     if (!firestore || !user || !trip) return;
@@ -437,7 +449,7 @@ function TripDetailsPageContent() {
 
   // Auto-ouvre la modal après retour d'authentification
   React.useEffect(() => {
-    if (!isLoading && autobook && user && !isOwner) {
+    if (!isLoading && autobook && user && !isOwner && !isTransporteur) {
       setShowBookingConfirm(true);
       router.replace(`/trip-details/${tripId}`, { scroll: false });
     }
@@ -615,7 +627,7 @@ function TripDetailsPageContent() {
                           <p className="font-semibold">
                             {vehicle.make} {vehicle.model} {vehicle.year}
                           </p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5 flex-wrap">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                             <span
                               className="inline-block h-3 w-3 rounded-full border border-border shrink-0"
                               style={{
@@ -624,21 +636,54 @@ function TripDetailsPageContent() {
                               title={vehicle.color}
                             />
                             <span>{vehicle.color}</span>
-                            {/* Plaque + province — visible seulement pour le voyageur accepté ou le conducteur */}
-                            {(isAccepted || isOwner) && vehicle.province && (
-                              <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5">
-                                <span className="text-xs font-bold text-primary">
-                                  {vehicle.province}
-                                </span>
-                                <span className="text-muted-foreground">·</span>
-                                <span className="font-mono font-semibold tracking-widest text-foreground text-xs">
-                                  {vehicle.licensePlate}
-                                </span>
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
+
+                      {/* Encadré d'identification — voyageur accepté ou conducteur */}
+                      {(isAccepted || isOwner) && (
+                        <div className="mt-3 rounded-lg border bg-muted/40 px-3 py-2.5 space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Identifier le véhicule
+                          </p>
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
+                            <span
+                              className="inline-block h-3 w-3 rounded-full border border-border shrink-0"
+                              style={{
+                                backgroundColor: vehicle.color.toLowerCase(),
+                              }}
+                            />
+                            <span className="font-medium">
+                              {vehicle.make} {vehicle.model}
+                            </span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-muted-foreground">
+                              {vehicle.color}
+                            </span>
+                            {vehicle.province && (
+                              <span className="text-muted-foreground">
+                                · {vehicle.province}
+                              </span>
+                            )}
+                          </div>
+                          {vehicle.province && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                Plaque :
+                              </span>
+                              <span className="inline-flex items-center gap-1.5 rounded border bg-background px-2 py-1">
+                                <span className="text-xs font-semibold text-primary">
+                                  {vehicle.province}
+                                </span>
+                                <span className="text-muted-foreground">·</span>
+                                <span className="font-mono font-bold tracking-widest text-foreground text-sm">
+                                  {vehicle.licensePlate}
+                                </span>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -902,6 +947,11 @@ function TripDetailsPageContent() {
                   <Button className="w-full" disabled>
                     Vous avez déjà réservé
                   </Button>
+                ) : isTransporteur ? (
+                  <p className="text-sm text-center text-muted-foreground py-2">
+                    En tant que transporteur, vous proposez des trajets — vous
+                    ne pouvez pas en réserver.
+                  </p>
                 ) : (
                   <Button
                     className="w-full"

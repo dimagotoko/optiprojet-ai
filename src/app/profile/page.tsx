@@ -1,18 +1,24 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
-import type { Timestamp } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useUser, useFirestore } from "@/firebase";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  increment,
+} from "firebase/firestore";
+import type { Timestamp } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,7 +26,7 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -28,27 +34,31 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { LoadingLogo } from '@/components/LoadingLogo';
-import { ProfileSkeleton } from '@/components/skeletons/ProfileSkeleton';
-import { CheckCircle, Shield } from 'lucide-react';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { LoadingLogo } from "@/components/LoadingLogo";
+import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
+import { CheckCircle, Shield } from "lucide-react";
 
 const profileSchema = z.object({
-  fullName:          z.string().min(1, 'Le nom complet est requis.'),
-  email:             z.string().email('Veuillez entrer une adresse email valide.'),
-  phoneNumber:       z.string().min(10, 'Le numéro de téléphone est requis.'),
-  city:              z.string().min(1, 'La ville est requise.'),
-  postalCode:        z.string().min(1, 'Le code postal est requis.'),
-  profilePictureUrl: z.string().url('Veuillez entrer une URL valide.').optional().or(z.literal('')),
-  userType:          z.enum(['voyageur', 'transporteur']),
-  driverLicense:     z.string().optional(),
-  protocolAccepted:  z.boolean(),
+  fullName: z.string().min(1, "Le nom complet est requis."),
+  email: z.string().email("Veuillez entrer une adresse email valide."),
+  phoneNumber: z.string().min(10, "Le numéro de téléphone est requis."),
+  city: z.string().min(1, "La ville est requise."),
+  postalCode: z.string().min(1, "Le code postal est requis."),
+  profilePictureUrl: z
+    .string()
+    .url("Veuillez entrer une URL valide.")
+    .optional()
+    .or(z.literal("")),
+  userType: z.enum(["voyageur", "transporteur"]),
+  driverLicense: z.string().optional(),
+  protocolAccepted: z.boolean(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -59,30 +69,35 @@ function ProfilePageInternal() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const redirect = searchParams.get('redirect');
-  const redirectUrl = (redirect && redirect.startsWith('/')) ? redirect : '/dashboard';
+  const redirect = searchParams.get("redirect");
+  const redirectUrl =
+    redirect && redirect.startsWith("/") ? redirect : "/dashboard";
   const [isDataLoading, setIsDataLoading] = React.useState(false);
-  const [initialData, setInitialData] = React.useState<ProfileFormValues | null>(null);
-  const [existingProtocolSignedAt, setExistingProtocolSignedAt] = React.useState<Timestamp | null>(null);
+  const [initialData, setInitialData] =
+    React.useState<ProfileFormValues | null>(null);
+  const [existingProtocolSignedAt, setExistingProtocolSignedAt] =
+    React.useState<Timestamp | null>(null);
   const isNewProfileRef = React.useRef(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName:          '',
-      email:             '',
-      phoneNumber:       '',
-      city:              '',
-      postalCode:        '',
-      profilePictureUrl: '',
-      userType:          'voyageur',
-      driverLicense:     '',
-      protocolAccepted:  false,
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      city: "",
+      postalCode: "",
+      profilePictureUrl: "",
+      userType: "voyageur",
+      driverLicense: "",
+      protocolAccepted: false,
     },
   });
 
-  const { formState: { isSubmitting, isDirty } } = form;
-  const watchedUserType = form.watch('userType');
+  const {
+    formState: { isSubmitting, isDirty },
+  } = form;
+  const watchedUserType = form.watch("userType");
 
   React.useEffect(() => {
     if (isUserLoading || !user || !firestore) return;
@@ -90,8 +105,14 @@ function ProfilePageInternal() {
     const fetchUserData = async () => {
       try {
         setIsDataLoading(true);
-        const userRef    = doc(firestore, 'users', user.uid);
-        const privateRef = doc(firestore, 'users', user.uid, 'private', 'profile');
+        const userRef = doc(firestore, "users", user.uid);
+        const privateRef = doc(
+          firestore,
+          "users",
+          user.uid,
+          "private",
+          "profile",
+        );
 
         const [userSnap, privateSnap] = await Promise.all([
           getDoc(userRef),
@@ -100,26 +121,26 @@ function ProfilePageInternal() {
 
         isNewProfileRef.current = !userSnap.exists();
 
-        const pub  = userSnap.exists()    ? userSnap.data()    : {};
+        const pub = userSnap.exists() ? userSnap.data() : {};
         const priv = privateSnap.exists() ? privateSnap.data() : {};
 
         const signedAt = priv.protocolSignedAt as Timestamp | undefined;
         setExistingProtocolSignedAt(signedAt ?? null);
 
         form.reset({
-          fullName:          pub.name              || user.displayName || '',
-          email:             priv.email            || user.email       || '',
-          phoneNumber:       priv.phoneNumber      || '',
-          city:              pub.city              || '',
-          postalCode:        priv.postalCode       || '',
-          profilePictureUrl: pub.profilePictureUrl || user.photoURL   || '',
-          userType:          (pub.role as 'voyageur' | 'transporteur') || 'voyageur',
-          driverLicense:     priv.driverLicense    || '',
-          protocolAccepted:  !!signedAt,
+          fullName: pub.name || user.displayName || "",
+          email: priv.email || user.email || "",
+          phoneNumber: priv.phoneNumber || "",
+          city: pub.city || "",
+          postalCode: priv.postalCode || "",
+          profilePictureUrl: pub.profilePictureUrl || user.photoURL || "",
+          userType: (pub.role as "voyageur" | "transporteur") || "voyageur",
+          driverLicense: priv.driverLicense || "",
+          protocolAccepted: !!signedAt,
         });
         setInitialData(form.getValues());
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error("Error fetching profile:", error);
       } finally {
         setIsDataLoading(false);
       }
@@ -136,59 +157,76 @@ function ProfilePageInternal() {
     if (!user || !firestore) return;
 
     try {
-      const userDocRef    = doc(firestore, 'users', user.uid);
-      const privateDocRef = doc(firestore, 'users', user.uid, 'private', 'profile');
+      const userDocRef = doc(firestore, "users", user.uid);
+      const privateDocRef = doc(
+        firestore,
+        "users",
+        user.uid,
+        "private",
+        "profile",
+      );
 
-      const isFirstProtocolSign = values.protocolAccepted && !existingProtocolSignedAt;
+      const isFirstProtocolSign =
+        values.protocolAccepted && !existingProtocolSignedAt;
 
       // Construire les données privées ; protocolSignedAt uniquement si première signature
       const privateData: Record<string, unknown> = {
-        email:         values.email,
-        phoneNumber:   values.phoneNumber,
-        postalCode:    values.postalCode,
-        driverLicense: values.driverLicense ?? '',
+        email: values.email,
+        phoneNumber: values.phoneNumber,
+        postalCode: values.postalCode,
+        driverLicense: values.driverLicense ?? "",
       };
       if (isFirstProtocolSign) {
         privateData.protocolSignedAt = serverTimestamp();
       }
       await Promise.all([
-        setDoc(userDocRef, {
-          id:                user.uid,
-          name:              values.fullName,
-          city:              values.city,
-          profilePictureUrl: values.profilePictureUrl,
-          role:              values.userType,
-          ...(isFirstProtocolSign ? { isVerified: true } : {}),
-        }, { merge: true }),
+        setDoc(
+          userDocRef,
+          {
+            id: user.uid,
+            name: values.fullName,
+            city: values.city,
+            profilePictureUrl: values.profilePictureUrl,
+            role: values.userType,
+            ...(isFirstProtocolSign ? { isVerified: true } : {}),
+          },
+          { merge: true },
+        ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setDoc(privateDocRef, privateData as any, { merge: true }),
       ]);
 
       if (isNewProfileRef.current) {
         isNewProfileRef.current = false;
-        const statsRef = doc(firestore, 'stats', 'global');
-        setDoc(statsRef, { memberCount: increment(1) }, { merge: true }).catch(() => {});
+        const statsRef = doc(firestore, "stats", "global");
+        setDoc(statsRef, { memberCount: increment(1) }, { merge: true }).catch(
+          () => {},
+        );
       }
 
-      if (user.displayName !== values.fullName || user.photoURL !== values.profilePictureUrl) {
+      if (
+        user.displayName !== values.fullName ||
+        user.photoURL !== values.profilePictureUrl
+      ) {
         await updateProfile(user, {
           displayName: values.fullName,
-          photoURL:    values.profilePictureUrl || undefined,
+          photoURL: values.profilePictureUrl || undefined,
         });
       }
 
       toast({
-        title:       'Profil mis à jour',
-        description: 'Vos informations ont été sauvegardées avec succès.',
+        title: "Profil mis à jour",
+        description: "Vos informations ont été sauvegardées avec succès.",
       });
 
       window.location.href = redirectUrl;
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       toast({
-        variant:     'destructive',
-        title:       'Erreur',
-        description: 'Une erreur est survenue lors de la mise à jour de votre profil.',
+        variant: "destructive",
+        title: "Erreur",
+        description:
+          "Une erreur est survenue lors de la mise à jour de votre profil.",
       });
     }
   };
@@ -198,7 +236,7 @@ function ProfilePageInternal() {
   }
 
   if (!user) {
-    router.push('/login');
+    router.push("/login");
     return null;
   }
 
@@ -211,14 +249,20 @@ function ProfilePageInternal() {
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage
-                    src={form.watch('profilePictureUrl') || user.photoURL || undefined}
-                    alt={user.displayName || 'Avatar'}
+                    src={
+                      form.watch("profilePictureUrl") ||
+                      user.photoURL ||
+                      undefined
+                    }
+                    alt={user.displayName || "Avatar"}
                   />
-                  <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarFallback>
+                    {user.displayName?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <CardTitle className="text-xl sm:text-3xl font-bold">
-                    {form.watch('fullName') || user.displayName || 'Mon Profil'}
+                    {form.watch("fullName") || user.displayName || "Mon Profil"}
                   </CardTitle>
                   <CardDescription>{user.email}</CardDescription>
                 </div>
@@ -233,7 +277,9 @@ function ProfilePageInternal() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom complet</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -247,7 +293,10 @@ function ProfilePageInternal() {
                   <FormItem>
                     <FormLabel>URL de la photo de profil</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="https://example.com/photo.jpg" />
+                      <Input
+                        {...field}
+                        placeholder="https://example.com/photo.jpg"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -276,7 +325,11 @@ function ProfilePageInternal() {
                     <FormItem>
                       <FormLabel>Téléphone</FormLabel>
                       <FormControl>
-                        <Input type="tel" {...field} placeholder="+1 514 000 0000" />
+                        <Input
+                          type="tel"
+                          {...field}
+                          placeholder="+1 514 000 0000"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -292,7 +345,9 @@ function ProfilePageInternal() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Ville</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -303,7 +358,9 @@ function ProfilePageInternal() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Code Postal</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -324,12 +381,20 @@ function ProfilePageInternal() {
                         className="flex gap-4 pt-2"
                       >
                         <FormItem className="flex items-center space-x-2">
-                          <FormControl><RadioGroupItem value="voyageur" /></FormControl>
-                          <FormLabel className="font-normal">Voyageur</FormLabel>
+                          <FormControl>
+                            <RadioGroupItem value="voyageur" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Voyageur
+                          </FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2">
-                          <FormControl><RadioGroupItem value="transporteur" /></FormControl>
-                          <FormLabel className="font-normal">Transporteur</FormLabel>
+                          <FormControl>
+                            <RadioGroupItem value="transporteur" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Transporteur
+                          </FormLabel>
                         </FormItem>
                       </RadioGroup>
                     </FormControl>
@@ -339,7 +404,7 @@ function ProfilePageInternal() {
               />
 
               {/* Permis de conduire — transporteur uniquement */}
-              {watchedUserType === 'transporteur' && (
+              {watchedUserType === "transporteur" && (
                 <FormField
                   control={form.control}
                   name="driverLicense"
@@ -367,25 +432,58 @@ function ProfilePageInternal() {
                 {existingProtocolSignedAt ? (
                   <div className="flex items-center gap-2 text-sm text-green-400">
                     <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                    Accepté le {format(existingProtocolSignedAt.toDate(), 'd MMMM yyyy', { locale: fr })}
+                    Accepté le{" "}
+                    {format(existingProtocolSignedAt.toDate(), "d MMMM yyyy", {
+                      locale: fr,
+                    })}
                   </div>
                 ) : (
                   <>
-                    {watchedUserType === 'transporteur' ? (
+                    {watchedUserType === "transporteur" ? (
                       <ul className="text-sm text-muted-foreground space-y-1.5">
-                        <li>• Respecter les passagers : politesse, ponctualité et propreté du véhicule</li>
-                        <li>• Ne jamais conduire sous l'influence de substances psychoactives</li>
-                        <li>• Maintenir votre véhicule en bon état de fonctionnement et conforme au code de la route</li>
-                        <li>• Respecter les tarifs affichés et ne pas demander de paiements supplémentaires non convenus</li>
-                        <li>• Signaler tout incident ou problème dans les 24 h via le support</li>
+                        <li>
+                          • Respecter les passagers : politesse, ponctualité et
+                          propreté du véhicule
+                        </li>
+                        <li>
+                          • Ne jamais conduire sous l'influence de substances
+                          psychoactives
+                        </li>
+                        <li>
+                          • Maintenir votre véhicule en bon état de
+                          fonctionnement et conforme au code de la route
+                        </li>
+                        <li>
+                          • Respecter les tarifs affichés et ne pas demander de
+                          paiements supplémentaires non convenus
+                        </li>
+                        <li>
+                          • Signaler tout incident ou problème dans les 24 h via
+                          le support
+                        </li>
                       </ul>
                     ) : (
                       <ul className="text-sm text-muted-foreground space-y-1.5">
-                        <li>• Respecter le conducteur et les autres passagers : politesse et ponctualité</li>
-                        <li>• Ne pas transporter de bagages dangereux, illicites ou encombrants sans accord préalable</li>
-                        <li>• Honorer vos réservations confirmées ou annuler dans les délais prévus</li>
-                        <li>• Ne pas partager les coordonnées personnelles des conducteurs en dehors de la plateforme</li>
-                        <li>• Signaler tout incident ou comportement inapproprié dans les 24 h via le support</li>
+                        <li>
+                          • Respecter le conducteur et les autres passagers :
+                          politesse et ponctualité
+                        </li>
+                        <li>
+                          • Ne pas transporter de bagages dangereux, illicites
+                          ou encombrants sans accord préalable
+                        </li>
+                        <li>
+                          • Honorer vos réservations confirmées ou annuler dans
+                          les délais prévus
+                        </li>
+                        <li>
+                          • Ne pas partager les coordonnées personnelles des
+                          conducteurs en dehors de la plateforme
+                        </li>
+                        <li>
+                          • Signaler tout incident ou comportement inapproprié
+                          dans les 24 h via le support
+                        </li>
                       </ul>
                     )}
 
@@ -405,10 +503,9 @@ function ProfilePageInternal() {
                             htmlFor="protocol-accepted"
                             className="font-normal cursor-pointer text-sm leading-snug"
                           >
-                            {watchedUserType === 'transporteur'
-                            ? "J'ai lu et j'accepte le protocole des transporteurs OptiTrajet AI"
-                            : "J'ai lu et j'accepte le protocole des voyageurs OptiTrajet AI"
-                          }
+                            {watchedUserType === "transporteur"
+                              ? "J'ai lu et j'accepte le protocole des transporteurs OptiTrajet AI"
+                              : "J'ai lu et j'accepte le protocole des voyageurs OptiTrajet AI"}
                           </FormLabel>
                         </FormItem>
                       )}
@@ -423,14 +520,14 @@ function ProfilePageInternal() {
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={!isDirty}
+                  disabled={isSubmitting}
                   onClick={handleCancel}
                 >
                   Annuler les modifications
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <LoadingLogo className="mr-2 h-4 w-4" />}
-                  {initialData ? 'Mettre à jour le profil' : 'Créer mon profil'}
+                  {initialData ? "Mettre à jour le profil" : "Créer mon profil"}
                 </Button>
               </div>
             </CardFooter>
