@@ -189,7 +189,9 @@ const BookingRow = ({
       if (status === "rejected") {
         await runTransaction(firestore, async (tx) => {
           tx.update(bookingRef, { status });
-          tx.update(tripRef, { totalBookings: increment(-1) });
+          tx.update(tripRef, {
+            totalBookings: increment(-(booking.seatsBooked ?? 1)),
+          });
         });
       } else {
         await updateDoc(bookingRef, {
@@ -325,28 +327,29 @@ const BookingRow = ({
         </div>
 
         {/* Co-passagers */}
-        {booking.passengers && booking.passengers.length > 0 && (
-          <div className="border-t pt-2.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-              Co-passagers ({booking.passengers.length})
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {booking.passengers.map((p, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-full"
-                >
-                  <span className="font-medium">{p.name}</span>
-                  {p.relation && (
-                    <span className="text-muted-foreground">
-                      · {RELATION_LABELS[p.relation] ?? p.relation}
-                    </span>
-                  )}
-                </span>
-              ))}
+        {booking.passengers &&
+          booking.passengers.some((p) => p.name?.trim()) && (
+            <div className="border-t pt-2.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                Co-passagers ({booking.passengers.length})
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {booking.passengers.map((p, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-full"
+                  >
+                    <span className="font-medium">{p.name}</span>
+                    {p.relation && (
+                      <span className="text-muted-foreground">
+                        · {RELATION_LABELS[p.relation] ?? p.relation}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Statut */}
         <div className="flex items-center justify-between">
