@@ -111,6 +111,12 @@ function getGradient(seed: string) {
   return GRADIENTS[Math.abs(h) % GRADIENTS.length];
 }
 
+const toTitleCase = (s: string) =>
+  s.replace(
+    /\w\S*/g,
+    (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+  );
+
 const getInitials = (name: string | undefined) => {
   if (!name) return "";
   return name
@@ -541,7 +547,8 @@ function TripDetailsPageContent() {
     useCollection<Booking>(userBookingQuery);
 
   const vehicleRef = useMemoFirebase(() => {
-    if (!firestore || !trip?.vehicleId || !trip?.offeredBy) return null;
+    if (!firestore || !user || !trip?.vehicleId || !trip?.offeredBy)
+      return null;
     return doc(firestore, "users", trip.offeredBy, "vehicles", trip.vehicleId);
   }, [firestore, trip?.vehicleId, trip?.offeredBy]);
   const { data: vehicle } = useDoc<Vehicle>(vehicleRef);
@@ -717,13 +724,6 @@ function TripDetailsPageContent() {
                 <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/10" />
                 <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-white/10" />
                 <div className="absolute inset-0 flex flex-col justify-end p-5">
-                  <div className="flex items-center gap-2 text-white/80 text-sm mb-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span>{trip.origin}</span>
-                    <span>→</span>
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span>{trip.destination}</span>
-                  </div>
                   <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                     {trip.origin} → {trip.destination}
                   </h1>
@@ -756,7 +756,13 @@ function TripDetailsPageContent() {
 
             {/* ── Carte conducteur enrichie ── */}
             <div>
-              <h2 className="text-xl font-bold mb-3">Votre conducteur</h2>
+              <h2 className="text-xl font-bold mb-3">
+                {isOwner
+                  ? "Votre profil conducteur"
+                  : isTransporteur
+                    ? "Conducteur"
+                    : "Votre conducteur"}
+              </h2>
               <Card className="overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
                 <div
                   className="h-1"
@@ -834,7 +840,8 @@ function TripDetailsPageContent() {
                         )}
                         <div>
                           <p className="font-semibold">
-                            {vehicle.make} {vehicle.model} {vehicle.year}
+                            {toTitleCase(vehicle.make)}{" "}
+                            {toTitleCase(vehicle.model)} {vehicle.year}
                           </p>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                             <span
@@ -849,48 +856,32 @@ function TripDetailsPageContent() {
                         </div>
                       </div>
 
-                      {/* Encadré d'identification — voyageur accepté ou conducteur */}
-                      {(isAccepted || isOwner) && (
+                      {/* Encadré plaque — voyageur accepté ou conducteur, seulement si plaque connue */}
+                      {(isAccepted || isOwner) && vehicle.licensePlate && (
                         <div className="mt-3 rounded-lg border bg-muted/40 px-3 py-2.5 space-y-2">
                           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             Identifier le véhicule
                           </p>
-                          <div className="flex items-center gap-2 text-sm flex-wrap">
-                            <span
-                              className="inline-block h-3 w-3 rounded-full border border-border shrink-0"
-                              style={{
-                                backgroundColor: vehicle.color.toLowerCase(),
-                              }}
-                            />
-                            <span className="font-medium">
-                              {vehicle.make} {vehicle.model}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              Plaque :
                             </span>
-                            <span className="text-muted-foreground">·</span>
-                            <span className="text-muted-foreground">
-                              {vehicle.color}
-                            </span>
-                            {vehicle.province && (
-                              <span className="text-muted-foreground">
-                                · {vehicle.province}
+                            <span className="inline-flex items-center gap-1.5 rounded border bg-background px-2 py-1">
+                              {vehicle.province && (
+                                <>
+                                  <span className="text-xs font-semibold text-primary">
+                                    {vehicle.province}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    ·
+                                  </span>
+                                </>
+                              )}
+                              <span className="font-mono font-bold tracking-widest text-foreground text-sm">
+                                {vehicle.licensePlate}
                               </span>
-                            )}
+                            </span>
                           </div>
-                          {vehicle.province && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground shrink-0">
-                                Plaque :
-                              </span>
-                              <span className="inline-flex items-center gap-1.5 rounded border bg-background px-2 py-1">
-                                <span className="text-xs font-semibold text-primary">
-                                  {vehicle.province}
-                                </span>
-                                <span className="text-muted-foreground">·</span>
-                                <span className="font-mono font-bold tracking-widest text-foreground text-sm">
-                                  {vehicle.licensePlate}
-                                </span>
-                              </span>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>

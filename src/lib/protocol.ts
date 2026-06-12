@@ -25,17 +25,14 @@ export async function signProtocol(
 
   const userRef = doc(firestore, "users", uid);
 
-  await Promise.all([
-    setDoc(
-      privateRef,
-      {
-        protocolSignedAt: serverTimestamp(),
-        protocolVersion: PROTOCOL_VERSION,
-      },
-      { merge: true },
-    ),
-    setDoc(userRef, { isVerified: true }, { merge: true }),
-  ]);
+  // Écriture séquentielle : protocolSignedAt doit être committé avant que la règle
+  // hasSignedProtocol() soit évaluée sur le write isVerified.
+  await setDoc(
+    privateRef,
+    { protocolSignedAt: serverTimestamp(), protocolVersion: PROTOCOL_VERSION },
+    { merge: true },
+  );
+  await setDoc(userRef, { isVerified: true }, { merge: true });
 
   return { alreadySigned: false };
 }

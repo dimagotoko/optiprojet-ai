@@ -67,7 +67,11 @@ service cloud.firestore {
       allow get: if true; // Public read access to profiles
       allow list: if isAdmin(); // Admin-only user listing.
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId)
+      allow update: if (isExistingOwner(userId)
+                        // isVerified ne peut passer à true que si protocolSignedAt est présent
+                        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
+                            || (request.resource.data.get('isVerified', false) == true
+                                && hasSignedProtocol())))
                     // Mise à jour des moyennes de notation par un évaluateur authentifié (RatingDialog)
                     || (request.auth != null
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'totalRatings'])

@@ -20,7 +20,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from "@/firebase";
-import { doc, collection, query, orderBy } from "firebase/firestore";
+import { doc, collection, query, orderBy, setDoc } from "firebase/firestore";
 import type { UserProfile, UserProfilePrivate, Vehicle } from "@/types/db";
 
 const getInitials = (name: string) =>
@@ -101,6 +101,22 @@ export function ProfileSidebar({
   }, [firestore, userId, isTransporteur]);
   const { data: vehicles } = useCollection<Vehicle>(vehiclesRef);
   const firstVehicle = vehicles?.[0] ?? null;
+
+  // Backfill silencieux : comptes qui ont signé avant l'ajout du champ isVerified
+  React.useEffect(() => {
+    if (!firestore || !privateProfile?.protocolSignedAt || userData.isVerified)
+      return;
+    setDoc(
+      doc(firestore, "users", userId),
+      { isVerified: true },
+      { merge: true },
+    );
+  }, [
+    firestore,
+    userId,
+    privateProfile?.protocolSignedAt,
+    userData.isVerified,
+  ]);
 
   const criteria = buildCriteria(userData.role, privateProfile);
   const metCount = criteria.filter((c) => c.met).length;

@@ -758,3 +758,34 @@ describe("FAVORITES – /users/{userId}/favorites", () => {
     );
   });
 });
+
+// ─── PROFIL – mise à jour isVerified (anti-spoofing) ─────────────────────────
+
+describe("PROFIL – isVerified anti-spoofing", () => {
+  const SIGNED_USER = "signedUser1";
+  const UNSIGNED_USER = "unsignedUser1";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", SIGNED_USER), { name: "Signed User" });
+      await setDoc(doc(db, "users", SIGNED_USER, "private", "profile"), {
+        protocolSignedAt: new Date(),
+      });
+      await setDoc(doc(db, "users", UNSIGNED_USER), { name: "Unsigned User" });
+    });
+  });
+
+  test("propriétaire avec protocolSignedAt peut écrire isVerified:true → succès", async () => {
+    const db = asUser(SIGNED_USER);
+    await assertSucceeds(
+      updateDoc(doc(db, "users", SIGNED_USER), { isVerified: true }),
+    );
+  });
+
+  test("propriétaire SANS protocolSignedAt tente isVerified:true → échec", async () => {
+    const db = asUser(UNSIGNED_USER);
+    await assertFails(
+      updateDoc(doc(db, "users", UNSIGNED_USER), { isVerified: true }),
+    );
+  });
+});
