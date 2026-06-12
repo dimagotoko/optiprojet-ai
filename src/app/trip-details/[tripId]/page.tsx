@@ -678,6 +678,10 @@ function TripDetailsPageContent() {
     ? userBookingResult.length > 0
     : false;
   const isSoldOut = remainingSeats <= 0;
+  const fillPercent =
+    totalSeats > 0
+      ? Math.min(((trip.totalBookings ?? 1) / totalSeats) * 100, 100)
+      : 0;
 
   return (
     <>
@@ -694,13 +698,13 @@ function TripDetailsPageContent() {
           </Link>
         </Button>
       </div>
-      <div className="container py-12 px-4 md:px-6">
+      <div className="container py-12 px-4 md:px-6 max-md:pb-28">
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="md:col-span-2 space-y-8">
             <div>
               {/* Bannière gradient — zéro requête réseau, couleur déterministe */}
               <div
-                className="relative h-44 md:h-56 w-full rounded-xl overflow-hidden mb-4"
+                className="relative h-44 md:h-56 w-full rounded-xl overflow-hidden mb-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500"
                 style={{
                   background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`,
                 }}
@@ -750,7 +754,7 @@ function TripDetailsPageContent() {
             {/* ── Carte conducteur enrichie ── */}
             <div>
               <h2 className="text-xl font-bold mb-3">Votre conducteur</h2>
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
                 <div
                   className="h-1"
                   style={{
@@ -784,15 +788,17 @@ function TripDetailsPageContent() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
-                        <span className="font-semibold text-sm">
-                          {driver.averageRating?.toFixed(1) ?? "N/A"}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          ({driver.totalRatings ?? 0} avis)
-                        </span>
-                      </div>
+                      {!!driver.totalRatings && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
+                          <span className="font-semibold text-sm">
+                            {driver.averageRating?.toFixed(1)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            ({driver.totalRatings} avis)
+                          </span>
+                        </div>
+                      )}
                       {driver.city && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                           <MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -1109,7 +1115,7 @@ function TripDetailsPageContent() {
           </div>
 
           <div className="md:col-span-1">
-            <Card className="sticky top-24 overflow-hidden">
+            <Card className="sticky top-24 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-2 motion-safe:duration-500">
               <div
                 className="h-1"
                 style={{
@@ -1117,13 +1123,33 @@ function TripDetailsPageContent() {
                 }}
               />
               <CardContent className="p-6">
-                <div className="flex justify-between items-baseline mb-4">
+                <div className="flex justify-between items-baseline mb-3">
                   <span className="text-muted-foreground">
                     Prix par passager
                   </span>
                   <span className="text-2xl font-bold">
                     {trip.pricePerSeat}$
                   </span>
+                </div>
+
+                {/* Barre de remplissage */}
+                <div className="mb-4 space-y-1.5">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>
+                      {reservedSeats} / {totalSeats} place
+                      {totalSeats !== 1 ? "s" : ""}
+                    </span>
+                    <span>
+                      {remainingSeats} restante
+                      {remainingSeats !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary motion-safe:transition-[width] duration-500"
+                      style={{ width: `${fillPercent}%` }}
+                    />
+                  </div>
                 </div>
 
                 {isOwner ? (
@@ -1208,6 +1234,54 @@ function TripDetailsPageContent() {
           </div>
         </div>
       </div>
+
+      {/* CTA sticky mobile — voyageur non-propriétaire uniquement */}
+      {!isOwner && !isTransporteur && (
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur-sm p-4">
+          {isAccepted ? (
+            <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 py-2.5 text-green-700 dark:text-green-400 font-semibold text-sm">
+              <CheckCircle className="h-4 w-4" />
+              Réservation confirmée
+            </div>
+          ) : userBooking?.status === "pending" ? (
+            <Button className="w-full" size="lg" disabled variant="outline">
+              <Clock className="h-4 w-4 mr-2" />
+              En attente…
+            </Button>
+          ) : isSoldOut ? (
+            <Button className="w-full" size="lg" disabled>
+              Complet
+            </Button>
+          ) : hasAlreadyBooked ? (
+            <Button className="w-full" size="lg" disabled>
+              Vous avez déjà réservé
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={isBooking}
+              onClick={() => {
+                if (!user) {
+                  router.push(
+                    `/login?redirect=${encodeURIComponent(`/trip-details/${tripId}?autobook=1`)}`,
+                  );
+                  return;
+                }
+                if (!hasSignedProtocol) {
+                  setProtocolReadOnly(false);
+                  setShowProtocolDialog(true);
+                  return;
+                }
+                setShowBookingConfirm(true);
+              }}
+            >
+              {isBooking && <LoadingLogo className="mr-2 h-4 w-4" />}
+              Réserver ce trajet
+            </Button>
+          )}
+        </div>
+      )}
 
       <ProtocolDialog
         open={showProtocolDialog}
