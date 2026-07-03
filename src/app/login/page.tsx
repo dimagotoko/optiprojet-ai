@@ -216,7 +216,7 @@ function LoginPageInternal() {
               </span>
             </div>
             <p className="text-xs text-slate-400 italic">
-              Covoiturage intelligent au Québec
+              Covoiturage intelligent
             </p>
             <div className="w-full h-px bg-slate-100 my-1.5" />
             <p className="font-bold text-sm text-slate-800">Connexion</p>
