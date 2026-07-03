@@ -510,6 +510,7 @@ function TripDetailsPageContent() {
     PassengerEntry[]
   >([]);
   const [isSavingPassengers, setIsSavingPassengers] = React.useState(false);
+  const [ratingDriverOpen, setRatingDriverOpen] = React.useState(false);
 
   const tripRef = useMemoFirebase(() => {
     if (!firestore || !tripId) return null;
@@ -967,6 +968,17 @@ function TripDetailsPageContent() {
                         </div>
                       );
                     })()}
+                  {isAccepted && tripIsPast && (
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRatingDriverOpen(true)}
+                      >
+                        <Star className="h-4 w-4 mr-1" /> Évaluer le conducteur
+                      </Button>
+                    </div>
+                  )}
                   {userBooking?.status === "pending" && (
                     <div className="flex items-center gap-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
                       <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
@@ -986,6 +998,15 @@ function TripDetailsPageContent() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* RatingDialog sens voyageur → conducteur */}
+            <RatingDialog
+              open={ratingDriverOpen}
+              onOpenChange={setRatingDriverOpen}
+              driverId={trip.offeredBy}
+              driverName={driver.name}
+              tripId={tripId}
+            />
 
             <Separator />
 
