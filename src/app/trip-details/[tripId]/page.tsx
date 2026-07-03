@@ -200,14 +200,24 @@ const BookingRow = ({
           });
         });
       } else {
-        await updateDoc(bookingRef, {
-          status,
-          ...(driverPrivate
-            ? {
-                driverEmail: driverPrivate.email,
-                driverPhone: driverPrivate.phoneNumber,
-              }
-            : {}),
+        const participantRef = doc(
+          firestore,
+          "trips",
+          tripId,
+          "participants",
+          booking.travelerId,
+        );
+        await runTransaction(firestore, async (tx) => {
+          tx.update(bookingRef, {
+            status,
+            ...(driverPrivate
+              ? {
+                  driverEmail: driverPrivate.email,
+                  driverPhone: driverPrivate.phoneNumber,
+                }
+              : {}),
+          });
+          tx.set(participantRef, { acceptedAt: serverTimestamp() });
         });
       }
       toast({

@@ -565,27 +565,69 @@ describe("PROFIL – /users/{uid}", () => {
 // ─── AVIS – /users/{userId}/reviews/{reviewId} ────────────────────────────────
 
 describe("AVIS – /users/{userId}/reviews", () => {
+  // USER est le conducteur, REVIEWER est le voyageur accepté sur ce trajet
+  const AVIS_TRIP = "pastTripAvis";
+
   beforeEach(async () => {
     await seed(async (db) => {
       await setDoc(doc(db, "users", USER), { displayName: "Test User" });
-      await setDoc(doc(db, "users", USER, "reviews", "review0"), {
-        reviewerId: REVIEWER,
-        rating: 5,
-        comment: "Excellent trajet !",
+      // Trajet passé dont USER est le conducteur
+      await setDoc(doc(db, "trips", AVIS_TRIP), {
+        offeredBy: USER,
+        departureTime: new Date("2020-01-01T10:00:00Z"),
+        availableSeats: 3,
+        pricePerSeat: 10,
+        origin: "Montréal",
+        destination: "Québec",
+        details: "",
       });
+      // REVIEWER a participé (booking accepté)
+      await setDoc(doc(db, "trips", AVIS_TRIP, "participants", REVIEWER), {
+        acceptedAt: new Date("2020-01-01T08:00:00Z"),
+      });
+      // Avis existant (seeded hors règles) pour le test de lecture
+      await setDoc(
+        doc(db, "users", USER, "reviews", `${AVIS_TRIP}_${REVIEWER}`),
+        {
+          reviewerId: REVIEWER,
+          tripId: AVIS_TRIP,
+          rating: 5,
+          comment: "Excellent trajet !",
+        },
+      );
     });
   });
 
   test("lecture publique des avis (non authentifié) → succès", async () => {
     await assertSucceeds(
-      getDoc(doc(asAnon(), "users", USER, "reviews", "review0")),
+      getDoc(
+        doc(asAnon(), "users", USER, "reviews", `${AVIS_TRIP}_${REVIEWER}`),
+      ),
     );
   });
 
-  test("create avis avec reviewerId==auth.uid → succès", async () => {
+  test("voyageur légitime note le conducteur (format reviewId correct, trajet passé, participation) → succès", async () => {
+    // Nouvel avis sur un trip distinct pour éviter la collision avec le doc seeded
+    const TRIP2 = "pastTripAvis2";
+    await seed(async (db) => {
+      await setDoc(doc(db, "trips", TRIP2), {
+        offeredBy: USER,
+        departureTime: new Date("2021-06-01T10:00:00Z"),
+        availableSeats: 2,
+        pricePerSeat: 15,
+        origin: "Québec",
+        destination: "Montréal",
+        details: "",
+      });
+      await setDoc(doc(db, "trips", TRIP2, "participants", REVIEWER), {
+        acceptedAt: new Date("2021-06-01T08:00:00Z"),
+      });
+    });
+    const reviewId = `${TRIP2}_${REVIEWER}`;
     await assertSucceeds(
-      setDoc(doc(asUser(REVIEWER), "users", USER, "reviews", "review1"), {
+      setDoc(doc(asUser(REVIEWER), "users", USER, "reviews", reviewId), {
         reviewerId: REVIEWER,
+        tripId: TRIP2,
         rating: 4,
         comment: "Très bien",
       }),
@@ -843,6 +885,240 @@ describe("TRIPS – plafond légal covoiturage QC", () => {
       setDoc(doc(db, "trips", TRIP_CAP), {
         ...tripWithoutDistance,
         pricePerSeat: 50, // hors plafond si distanceKm connu, mais pas de champ → skip
+      }),
+    );
+  });
+});
+
+// ─── REVIEWS – vérification participation & anti-abus ─────────────────────────
+
+describe("REVIEWS – vérification participation & anti-abus", () => {
+  const PAST_TRIP = "pastTripSec";
+  const FUTURE_TRIP = "futureTripSec";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      // Trajet passé — DRIVER est conducteur, TRAVELER est voyageur accepté
+      await setDoc(doc(db, "trips", PAST_TRIP), {
+        offeredBy: DRIVER,
+        departureTime: new Date("2020-06-15T10:00:00Z"),
+        availableSeats: 3,
+        pricePerSeat: 10,
+        origin: "Montréal",
+        destination: "Québec",
+        details: "",
+      });
+      await setDoc(doc(db, "trips", PAST_TRIP, "participants", TRAVELER), {
+        acceptedAt: new Date("2020-06-15T08:00:00Z"),
+      });
+      // Trajet futur — mêmes acteurs, departure dans le futur
+      await setDoc(doc(db, "trips", FUTURE_TRIP), {
+        offeredBy: DRIVER,
+        departureTime: new Date("2099-01-01T10:00:00Z"),
+        availableSeats: 3,
+        pricePerSeat: 10,
+        origin: "Montréal",
+        destination: "Québec",
+        details: "",
+      });
+      await setDoc(doc(db, "trips", FUTURE_TRIP, "participants", TRAVELER), {
+        acceptedAt: new Date("2099-01-01T08:00:00Z"),
+      });
+      // Profils
+      await setDoc(doc(db, "users", DRIVER), { displayName: "Conducteur" });
+      await setDoc(doc(db, "users", TRAVELER), { displayName: "Voyageur" });
+    });
+  });
+
+  // T1 : voyageur légitime note le conducteur (sens A) → succès
+  test("T1 : voyageur légitime note le conducteur après trajet passé → succès", async () => {
+    const reviewId = `${PAST_TRIP}_${TRAVELER}`;
+    await assertSucceeds(
+      setDoc(doc(asUser(TRAVELER), "users", DRIVER, "reviews", reviewId), {
+        reviewerId: TRAVELER,
+        tripId: PAST_TRIP,
+        rating: 5,
+        comment: "Super conducteur !",
+      }),
+    );
+  });
+
+  // T2 : conducteur légitime note le voyageur (sens B) → succès
+  test("T2 : conducteur légitime note le voyageur après trajet passé → succès", async () => {
+    const reviewId = `${PAST_TRIP}_${DRIVER}`;
+    await assertSucceeds(
+      setDoc(doc(asUser(DRIVER), "users", TRAVELER, "reviews", reviewId), {
+        reviewerId: DRIVER,
+        tripId: PAST_TRIP,
+        rating: 4,
+        comment: "Bon voyageur.",
+      }),
+    );
+  });
+
+  // T3 : tiers sans participation tente de noter le conducteur → refus
+  test("T3 : tiers sans participation note le conducteur → refus", async () => {
+    const reviewId = `${PAST_TRIP}_${OTHER}`;
+    await assertFails(
+      setDoc(doc(asUser(OTHER), "users", DRIVER, "reviews", reviewId), {
+        reviewerId: OTHER,
+        tripId: PAST_TRIP,
+        rating: 1,
+        comment: "Je n'ai jamais voyagé avec lui",
+      }),
+    );
+  });
+
+  // T4 : tiers sans participation tente de noter le voyageur (sens B) → refus
+  test("T4 : tiers sans participation note le voyageur → refus", async () => {
+    const reviewId = `${PAST_TRIP}_${OTHER}`;
+    await assertFails(
+      setDoc(doc(asUser(OTHER), "users", TRAVELER, "reviews", reviewId), {
+        reviewerId: OTHER,
+        tripId: PAST_TRIP,
+        rating: 1,
+        comment: "Je n'ai pas voyagé avec ce voyageur",
+      }),
+    );
+  });
+
+  // T5 : doublon — 2ème avis même trajet/même auteur (reviewId déjà existant) → refus
+  test("T5 : doublon — avis déjà existant pour ce trajet et cet auteur → refus", async () => {
+    const reviewId = `${PAST_TRIP}_${TRAVELER}`;
+    // Pré-semer un premier avis
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", DRIVER, "reviews", reviewId), {
+        reviewerId: TRAVELER,
+        tripId: PAST_TRIP,
+        rating: 5,
+        comment: "Premier avis",
+      });
+    });
+    // Tenter de réécrire le même reviewId → update sur doc existant → refusé
+    await assertFails(
+      setDoc(doc(asUser(TRAVELER), "users", DRIVER, "reviews", reviewId), {
+        reviewerId: TRAVELER,
+        tripId: PAST_TRIP,
+        rating: 3,
+        comment: "Deuxième tentative",
+      }),
+    );
+  });
+
+  // T6 : avis sur trajet futur → refus
+  test("T6 : avis sur trajet futur (departureTime > now) → refus", async () => {
+    const reviewId = `${FUTURE_TRIP}_${TRAVELER}`;
+    await assertFails(
+      setDoc(doc(asUser(TRAVELER), "users", DRIVER, "reviews", reviewId), {
+        reviewerId: TRAVELER,
+        tripId: FUTURE_TRIP,
+        rating: 5,
+        comment: "Trajet pas encore eu lieu",
+      }),
+    );
+  });
+
+  // T7 : reviewId malformaté (pas tripId_uid) → refus
+  test("T7 : reviewId malformaté (format libre, pas tripId_uid) → refus", async () => {
+    await assertFails(
+      setDoc(
+        doc(asUser(TRAVELER), "users", DRIVER, "reviews", "un-id-quelconque"),
+        {
+          reviewerId: TRAVELER,
+          tripId: PAST_TRIP,
+          rating: 5,
+          comment: "ID libre",
+        },
+      ),
+    );
+  });
+
+  // T8 : tripId absent du document → refus
+  test("T8 : tripId absent du document review → refus", async () => {
+    await assertFails(
+      setDoc(doc(asUser(TRAVELER), "users", DRIVER, "reviews", "anyId"), {
+        reviewerId: TRAVELER,
+        rating: 5,
+        comment: "Pas de tripId",
+      }),
+    );
+  });
+
+  // T9 : auto-avis → refus
+  test("T9 : auto-avis (reviewer == cible) avec données par ailleurs valides → refus", async () => {
+    // DRIVER tente de se noter lui-même
+    const reviewId = `${PAST_TRIP}_${DRIVER}`;
+    await assertFails(
+      setDoc(doc(asUser(DRIVER), "users", DRIVER, "reviews", reviewId), {
+        reviewerId: DRIVER,
+        tripId: PAST_TRIP,
+        rating: 5,
+        comment: "Je suis super",
+      }),
+    );
+  });
+
+  // T10 : spoofing reviewerId → refus
+  test("T10 : spoofing reviewerId (reviewerId != auth.uid) → refus", async () => {
+    // OTHER authentifié mais usurpe l'identité de TRAVELER dans reviewerId
+    const reviewId = `${PAST_TRIP}_${OTHER}`;
+    await assertFails(
+      setDoc(doc(asUser(OTHER), "users", DRIVER, "reviews", reviewId), {
+        reviewerId: TRAVELER, // spoofing
+        tripId: PAST_TRIP,
+        rating: 5,
+        comment: "Usurpation",
+      }),
+    );
+  });
+});
+
+// ─── PARTICIPANTS – /trips/{tripId}/participants/{travelerId} ──────────────────
+
+describe("PARTICIPANTS – règle create (write-only conducteur)", () => {
+  const TRIP = "tripParticipants";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "trips", TRIP), {
+        offeredBy: DRIVER,
+        availableSeats: 3,
+        pricePerSeat: 10,
+        origin: "Montréal",
+        destination: "Québec",
+        details: "",
+      });
+    });
+  });
+
+  test("conducteur crée un doc participants pour son voyageur → succès", async () => {
+    await assertSucceeds(
+      setDoc(doc(asUser(DRIVER), "trips", TRIP, "participants", TRAVELER), {
+        acceptedAt: new Date(),
+      }),
+    );
+  });
+
+  test("voyageur tente de s'inscrire lui-même dans participants → refus", async () => {
+    await assertFails(
+      setDoc(doc(asUser(TRAVELER), "trips", TRIP, "participants", TRAVELER), {
+        acceptedAt: new Date(),
+      }),
+    );
+  });
+
+  test("tiers (non conducteur) tente de créer un doc participants → refus", async () => {
+    await assertFails(
+      setDoc(doc(asUser(OTHER), "trips", TRIP, "participants", TRAVELER), {
+        acceptedAt: new Date(),
+      }),
+    );
+  });
+
+  test("conducteur tente de s'inscrire lui-même dans participants → refus", async () => {
+    await assertFails(
+      setDoc(doc(asUser(DRIVER), "trips", TRIP, "participants", DRIVER), {
+        acceptedAt: new Date(),
       }),
     );
   });

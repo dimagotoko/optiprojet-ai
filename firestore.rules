@@ -14,6 +14,7 @@
  *   - `/chat_channels/{chatChannelId}`: Stores chat channels, secured with shared access based on participant IDs.
  *   - `/chat_channels/{chatChannelId}/messages/{messageId}`: Stores chat messages, access controlled by the parent chat channel.
  *   - `/users/{userId}/reviews/{reviewId}`: Stores reviews, secured with user-ownership.
+ *   - `/trips/{tripId}/participants/{travelerId}`: Presence indicates an accepted traveler; written by the driver on booking acceptance. Used by reviews rule via exists().
  *   - `/roles_admin/{userId}`: Presence indicates admin role, granting elevated privileges.
  *
  * @keySecurityDecisions
@@ -241,6 +242,22 @@ service cloud.firestore {
     }
 
     /**
+     * @description Document-presence collection marking accepted travelers.
+     *   Created by the driver when they accept a booking. Consumed via exists() in the reviews rule
+     *   to verify trip participation without requiring queryable bookings (non-deterministic IDs).
+     * @path /trips/{tripId}/participants/{travelerId}
+     * @allow (create) The trip's driver can add a traveler they accepted.
+     * @deny (read, update, delete) Client reads blocked — rule evaluation uses server-side exists().
+     */
+    match /trips/{tripId}/participants/{travelerId} {
+      allow read: if false;
+      allow create: if request.auth != null
+                    && get(/databases/$(database)/documents/trips/$(tripId)).data.offeredBy == request.auth.uid
+                    && travelerId != request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    /**
      * @description Controls access to chat channels, allowing only the participants to read and write messages.
      * @path /chat_channels/{chatChannelId}
      * @allow (create) User 'user123' can create a chat channel with `participant1Id` or `participant2Id` set to 'user123'.
@@ -317,8 +334,33 @@ service cloud.firestore {
 
       allow get, list: if true;
       allow create: if request.auth != null
+                    // ID déterministe tripId + '_' + uid — doublon rendu impossible par collision
+                    && reviewId == request.resource.data.tripId + '_' + request.auth.uid
+                    // reviewerId cohérent avec le token — pas de spoofing
                     && request.resource.data.reviewerId == request.auth.uid
-                    && request.resource.data.reviewerId != userId;
+                    // pas d'auto-avis
+                    && request.resource.data.reviewerId != userId
+                    // tripId obligatoire et non vide
+                    && request.resource.data.tripId is string
+                    && request.resource.data.tripId.size() > 0
+                    // trajet terminé (departureTime dans le passé)
+                    && get(/databases/$(database)/documents/trips/$(request.resource.data.tripId))
+                         .data.departureTime < request.time
+                    // participation vérifiée — deux sens
+                    && (
+                         // Sens A : voyageur note le conducteur
+                         (
+                           get(/databases/$(database)/documents/trips/$(request.resource.data.tripId))
+                             .data.offeredBy == userId
+                           && exists(/databases/$(database)/documents/trips/$(request.resource.data.tripId)/participants/$(request.auth.uid))
+                         )
+                         // Sens B : conducteur note le voyageur
+                         || (
+                           get(/databases/$(database)/documents/trips/$(request.resource.data.tripId))
+                             .data.offeredBy == request.auth.uid
+                           && exists(/databases/$(database)/documents/trips/$(request.resource.data.tripId)/participants/$(userId))
+                         )
+                       );
       allow update: if isExistingOwner(userId) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
     }
