@@ -42,11 +42,9 @@ const formSchema = z
     phoneNumber: z
       .string()
       .min(10, { message: "Le numéro de téléphone est requis." }),
-    password: z
-      .string()
-      .min(6, {
-        message: "Le mot de passe doit contenir au moins 6 caractères.",
-      }),
+    password: z.string().min(6, {
+      message: "Le mot de passe doit contenir au moins 6 caractères.",
+    }),
     confirmPassword: z.string(),
     city: z.string().min(1, { message: "La ville est requise." }),
     postalCode: z
@@ -455,7 +453,7 @@ function SignupPageInternal() {
                 </Link>
               </div>
             </CardContent>
-            <CardFooter className="flex-col items-stretch">
+            <CardFooter className="flex-col items-stretch gap-3">
               <Button
                 type="submit"
                 className="w-full"
@@ -470,6 +468,16 @@ function SignupPageInternal() {
                   "Créer mon compte"
                 )}
               </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                En créant votre compte, vous acceptez notre{" "}
+                <Link
+                  href="/confidentialite"
+                  className="underline hover:text-foreground"
+                >
+                  Politique de confidentialité
+                </Link>
+                .
+              </p>
             </CardFooter>
           </form>
         </Form>

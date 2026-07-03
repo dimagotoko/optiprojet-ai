@@ -319,6 +319,11 @@ function LoginPageInternal() {
               Inscrivez-vous
             </Link>
           </p>
+          <p className="mt-2 text-center text-xs text-slate-400">
+            <Link href="/confidentialite" className="hover:underline">
+              Politique de confidentialité
+            </Link>
+          </p>
         </div>
       </div>
 
