@@ -789,3 +789,61 @@ describe("PROFIL – isVerified anti-spoofing", () => {
     );
   });
 });
+
+// ─── TRIPS – plafond légal covoiturage QC ─────────────────────────────────────
+
+describe("TRIPS – plafond légal covoiturage QC", () => {
+  const TRIP_CAP = "tripCap";
+  const VEHICLE = "vehicle1";
+
+  // prix=10, places=4, distanceKm=100 → total 40 ≤ 0,54×100=54 ✅
+  const tripInCap = {
+    offeredBy: DRIVER,
+    pricePerSeat: 10,
+    availableSeats: 4,
+    distanceKm: 100,
+    origin: "Montréal",
+    destination: "Québec",
+    details: "",
+    vehicleId: VEHICLE,
+  };
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", DRIVER, "vehicles", VEHICLE), {
+        make: "Toyota",
+      });
+      await setDoc(doc(db, "users", DRIVER, "private", "profile"), {
+        protocolSignedAt: new Date(),
+      });
+    });
+  });
+
+  test("conducteur publie trajet dans le plafond légal (10 $/place × 4 = 40 ≤ 0.54×100=54) → succès", async () => {
+    const db = asUser(DRIVER);
+    await assertSucceeds(setDoc(doc(db, "trips", TRIP_CAP), tripInCap));
+  });
+
+  // prix=15, places=4, distanceKm=100 → total 60 > 0,54×100=54 ❌
+  test("conducteur publie trajet hors plafond légal (15 $/place × 4 = 60 > 0.54×100=54) → refus", async () => {
+    const db = asUser(DRIVER);
+    await assertFails(
+      setDoc(doc(db, "trips", TRIP_CAP), {
+        ...tripInCap,
+        pricePerSeat: 15,
+      }),
+    );
+  });
+
+  // Vieux trajet sans distanceKm — le plafond ne s'applique pas (rétrocompat)
+  test("vieux trajet sans distanceKm → plafond non enforçé (rétrocompatibilité) → succès", async () => {
+    const db = asUser(DRIVER);
+    const { distanceKm: _omit, ...tripWithoutDistance } = tripInCap;
+    await assertSucceeds(
+      setDoc(doc(db, "trips", TRIP_CAP), {
+        ...tripWithoutDistance,
+        pricePerSeat: 50, // hors plafond si distanceKm connu, mais pas de champ → skip
+      }),
+    );
+  });
+});

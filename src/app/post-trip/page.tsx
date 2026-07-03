@@ -70,6 +70,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { haversineKm } from "@/lib/geo";
+import { COVOITURAGE_PLAFOND_PAR_KM } from "@/lib/legal";
 import { AddressInput, type Address } from "@/components/AddressInput";
 import {
   useUser,
@@ -430,6 +431,17 @@ export default function PostTripPage() {
         lat: 0,
         lng: 0,
       };
+      const computedDistanceKm =
+        originCoords.lat !== 0 || destinationCoords.lat !== 0
+          ? Math.round(
+              haversineKm(
+                originCoords.lat,
+                originCoords.lng,
+                destinationCoords.lat,
+                destinationCoords.lng,
+              ),
+            )
+          : 0;
 
       await addDoc(collection(firestore, "trips"), {
         origin: submittedTripData.departure.description,
@@ -447,6 +459,7 @@ export default function PostTripPage() {
         offeredBy: user.uid,
         isClosed: false,
         createdAt: serverTimestamp(),
+        distanceKm: computedDistanceKm,
       });
 
       toast({
@@ -573,24 +586,32 @@ export default function PostTripPage() {
     }
     return null;
   })();
-  const suggestedMaxPrice = distanceKm
-    ? Math.min(200, Math.max(3, Math.round(distanceKm * 0.2)))
-    : null;
-  const hardCap =
-    suggestedMaxPrice !== null ? Math.min(200, suggestedMaxPrice + 25) : 200;
   const currentPrice = Number(tripForm.watch("price")) || 0;
+  const currentSeats = Number(tripForm.watch("seats")) || 1;
+  // Plafond légal QC art. 84 : prix/place × places ≤ 0,54 $/km
+  const legalMaxTotal = distanceKm
+    ? COVOITURAGE_PLAFOND_PAR_KM * distanceKm
+    : null;
+  const legalMaxPerSeat =
+    legalMaxTotal !== null && currentSeats > 0
+      ? Math.floor((legalMaxTotal / currentSeats) * 100) / 100
+      : null;
+  const sliderMax =
+    legalMaxPerSeat !== null ? Math.min(200, Math.floor(legalMaxPerSeat)) : 200;
+  const isOverLegalCap =
+    legalMaxTotal !== null && currentPrice * currentSeats > legalMaxTotal;
 
   useEffect(() => {
-    if (currentPrice > hardCap) {
+    if (isOverLegalCap && legalMaxPerSeat !== null) {
       tripForm.setError("price", {
         type: "manual",
-        message: `Prix trop élevé. Maximum autorisé : ${hardCap} $ (recommandé ${suggestedMaxPrice} $ + marge 25 $).`,
+        message: `Plafond légal dépassé. Maximum : ${legalMaxPerSeat.toFixed(2)} $/place pour ${currentSeats} place(s) sur ${distanceKm} km.`,
       });
     } else {
       tripForm.clearErrors("price");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPrice, hardCap]);
+  }, [currentPrice, currentSeats, isOverLegalCap, legalMaxPerSeat]);
 
   const selectedVehicle = vehicles?.find(
     (v) => v.id === tripForm.watch("vehicleId"),
@@ -833,34 +854,35 @@ export default function PostTripPage() {
                             <FormLabel>Prix par place</FormLabel>
                             <span className="flex items-center gap-1 text-2xl font-bold text-primary tabular-nums">
                               <DollarSign className="h-5 w-5" />
-                              {Math.min(currentPrice, hardCap)}
+                              {Math.min(currentPrice, sliderMax)}
                             </span>
                           </div>
                           <FormControl>
                             <Slider
                               min={0}
-                              max={hardCap}
+                              max={sliderMax}
                               step={1}
-                              value={[Math.min(currentPrice, hardCap)]}
+                              value={[Math.min(currentPrice, sliderMax)]}
                               onValueChange={(vals) => field.onChange(vals[0])}
                               className="my-1"
                             />
                           </FormControl>
                           <div className="flex justify-between text-xs text-muted-foreground">
                             <span>0 $</span>
-                            {suggestedMaxPrice && (
-                              <span className="font-medium text-primary">
-                                Recommandé : {suggestedMaxPrice} $
+                            {legalMaxPerSeat !== null && (
+                              <span className="font-medium text-amber-600">
+                                Max légal : {legalMaxPerSeat.toFixed(2)} $
                               </span>
                             )}
-                            <span>Max : {hardCap} $</span>
+                            <span>Max : {sliderMax} $</span>
                           </div>
-                          {distanceKm && (
+                          {distanceKm && legalMaxTotal !== null && (
                             <p className="text-xs text-muted-foreground">
-                              Trajet ~{distanceKm} km — maximum autorisé :{" "}
+                              Trajet ~{distanceKm} km — plafond légal QC :{" "}
                               <span className="font-medium text-foreground">
-                                {hardCap} $
-                              </span>
+                                {legalMaxTotal.toFixed(2)} $ total
+                              </span>{" "}
+                              (art. 84)
                             </p>
                           )}
                           <FormMessage />
@@ -1329,7 +1351,8 @@ export default function PostTripPage() {
                   className="w-full sm:flex-1"
                   disabled={
                     tripForm.formState.isSubmitting ||
-                    !tripForm.formState.isValid
+                    !tripForm.formState.isValid ||
+                    isOverLegalCap
                   }
                 >
                   {tripForm.formState.isSubmitting

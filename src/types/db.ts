@@ -25,6 +25,7 @@ export type Trip = {
     interac?: boolean;
   };
   details?: string;
+  distanceKm?: number;
 };
 
 // Champs stockés dans /users/{uid} — lisibles publiquement
@@ -57,13 +58,7 @@ export type UserProfilePrivate = {
 };
 
 export type PassengerRelation =
-  | "ami"
-  | "conjoint"
-  | "parent"
-  | "enfant"
-  | "cousin"
-  | "collegue"
-  | "autre";
+  "ami" | "conjoint" | "parent" | "enfant" | "cousin" | "collegue" | "autre";
 
 export type PassengerEntry = {
   name: string;

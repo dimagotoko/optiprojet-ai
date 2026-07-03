@@ -134,9 +134,20 @@ service cloud.firestore {
 
         function isValidTrip() {
           let d = request.resource.data;
+          // Plafond légal QC art. 84 : prix/place × places ≤ 0,54 $/km.
+          // ATTENTION : distanceKm est fourni par le client (haversine impossible
+          // en CEL). Cette règle bloque les erreurs UI et clients naïfs, PAS un
+          // attaquant qui forgerait distanceKm. Mitigation : exiger ]0, 15000].
+          // Durcissement futur : Cloud Function recalculant distanceKm côté serveur.
+          let legalCap = !('distanceKm' in d)  // tolérance vieux trajets pré-plafond
+            || (d.distanceKm is number
+                && d.distanceKm > 0
+                && d.distanceKm <= 15000
+                && d.pricePerSeat * d.availableSeats <= 0.54 * d.distanceKm);
           return d.offeredBy == request.auth.uid
             && d.pricePerSeat is number && d.pricePerSeat >= 0 && d.pricePerSeat <= 200
             && d.availableSeats is int && d.availableSeats >= 1 && d.availableSeats <= 8
+            && legalCap
             && d.origin is string && d.origin.size() > 0 && d.origin.size() <= 300
             && d.destination is string && d.destination.size() > 0 && d.destination.size() <= 300
             && (d.details == '' || (d.details is string && d.details.size() <= 500))

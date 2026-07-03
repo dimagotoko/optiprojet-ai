@@ -11,6 +11,23 @@ intentionnel.
 
 ---
 
+## Plafond légal QC — durcissement côté serveur (Cloud Function)
+
+La règle Firestore `isValidTrip()` vérifie `pricePerSeat × availableSeats ≤ 0,54 × distanceKm`,
+mais `distanceKm` est fourni par le client — un attaquant peut le falsifier.
+
+**Durcissement recommandé (v1.x) :** Cloud Function `onTripCreate` qui :
+
+1. Récupère `originCoords` et `destinationCoords` depuis le document créé.
+2. Recalcule `distanceKm` côté serveur (haversine).
+3. Compare au `distanceKm` écrit par le client.
+4. Si l'écart est > 5 % : supprime le document et rejette la création.
+
+Tant que cette Cloud Function n'existe pas, la vérification est défense en
+profondeur uniquement (bloque UI + clients naïfs, pas un attaquant déterminé).
+
+---
+
 ## Stat CO₂ évité — amélioration distance réelle
 
 La stat "CO₂ évité" (voyageur dashboard) utilise actuellement un forfait fixe de

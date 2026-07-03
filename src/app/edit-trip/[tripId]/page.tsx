@@ -58,6 +58,8 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { haversineKm } from "@/lib/geo";
+import { COVOITURAGE_PLAFOND_PAR_KM } from "@/lib/legal";
 import { AddressInput, type Address } from "@/components/AddressInput";
 import {
   useUser,
@@ -110,7 +112,7 @@ const tripSchema = z
     time: z.string().min(1, "L'heure de départ est requise."),
     arrivalTime: z.string().optional(),
     seats: z.coerce.number().min(1, "Il doit y avoir au moins une place."),
-    price: z.coerce.number().min(0, "Le prix doit être positif."),
+    price: z.coerce.number().min(0, "Le prix doit être positif.").max(200),
     vehicleId: z.string().min(1, "Veuillez sélectionner un véhicule."),
     options: z.object({
       allowLargeBags: z.boolean(),
@@ -264,6 +266,51 @@ export default function EditTripPage() {
     }
   };
 
+  const watchedDeparture = tripForm.watch("departure");
+  const watchedDestination = tripForm.watch("destination");
+  const distanceKm = (() => {
+    const depCoords = watchedDeparture?.coords;
+    const destCoords = watchedDestination?.coords;
+    if (
+      depCoords &&
+      destCoords &&
+      (depCoords.lat !== destCoords.lat || depCoords.lng !== destCoords.lng)
+    ) {
+      return Math.round(
+        haversineKm(
+          depCoords.lat,
+          depCoords.lng,
+          destCoords.lat,
+          destCoords.lng,
+        ),
+      );
+    }
+    return null;
+  })();
+  const currentPrice = Number(tripForm.watch("price")) || 0;
+  const currentSeats = Number(tripForm.watch("seats")) || 1;
+  const legalMaxTotal = distanceKm
+    ? COVOITURAGE_PLAFOND_PAR_KM * distanceKm
+    : null;
+  const legalMaxPerSeat =
+    legalMaxTotal !== null && currentSeats > 0
+      ? Math.floor((legalMaxTotal / currentSeats) * 100) / 100
+      : null;
+  const isOverLegalCap =
+    legalMaxTotal !== null && currentPrice * currentSeats > legalMaxTotal;
+
+  useEffect(() => {
+    if (isOverLegalCap && legalMaxPerSeat !== null) {
+      tripForm.setError("price", {
+        type: "manual",
+        message: `Plafond légal dépassé. Maximum : ${legalMaxPerSeat.toFixed(2)} $/place pour ${currentSeats} place(s) sur ${distanceKm} km.`,
+      });
+    } else {
+      tripForm.clearErrors("price");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPrice, currentSeats, isOverLegalCap, legalMaxPerSeat]);
+
   const onSubmitTrip = (data: TripFormValues) => {
     if (!tripRef || !user) return;
 
@@ -285,11 +332,25 @@ export default function EditTripPage() {
         arrivalTimestamp = Timestamp.fromDate(arrivalDateTime);
       }
 
+      const originCoords = data.departure.coords;
+      const destinationCoords = data.destination.coords;
+      const computedDistanceKm =
+        originCoords && destinationCoords
+          ? Math.round(
+              haversineKm(
+                originCoords.lat,
+                originCoords.lng,
+                destinationCoords.lat,
+                destinationCoords.lng,
+              ),
+            )
+          : 0;
+
       const payload = {
         origin: data.departure.description,
         destination: data.destination.description,
-        originCoords: data.departure.coords,
-        destinationCoords: data.destination.coords,
+        originCoords,
+        destinationCoords,
         departureTime: Timestamp.fromDate(departureDateTime),
         arrivalTime: arrivalTimestamp,
         availableSeats: data.seats,
@@ -298,6 +359,7 @@ export default function EditTripPage() {
         options: data.options,
         details: data.details,
         offeredBy: user.uid, // Ensure owner isn't changed
+        distanceKm: computedDistanceKm,
       };
 
       updateDocumentNonBlocking(tripRef, payload);
@@ -512,10 +574,21 @@ export default function EditTripPage() {
                                 placeholder="ex: 25"
                                 className="pl-10 h-11"
                                 min="0"
+                                max="200"
                                 {...field}
                               />
                             </FormControl>
                           </div>
+                          {legalMaxPerSeat !== null && (
+                            <p className="text-xs text-muted-foreground">
+                              Plafond légal QC :{" "}
+                              <span className="font-medium text-amber-600">
+                                {legalMaxPerSeat.toFixed(2)} $/place
+                              </span>{" "}
+                              ({currentSeats} place(s) × {distanceKm} km, art.
+                              84)
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -795,7 +868,8 @@ export default function EditTripPage() {
                   className="w-full md:w-auto"
                   disabled={
                     !tripForm.formState.isDirty ||
-                    tripForm.formState.isSubmitting
+                    tripForm.formState.isSubmitting ||
+                    isOverLegalCap
                   }
                 >
                   {tripForm.formState.isSubmitting && (
