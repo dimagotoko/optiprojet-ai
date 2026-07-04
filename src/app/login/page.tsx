@@ -196,6 +196,7 @@ function LoginPageInternal() {
           style={{
             boxShadow:
               "0 25px 80px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.3)",
+            color: "#0f172a",
           }}
         >
           {/* En-tête : logo + tagline + séparateur + titre */}
@@ -238,6 +239,7 @@ function LoginPageInternal() {
                         type="email"
                         placeholder="m@example.com"
                         className="h-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
+                        style={{ color: "#0f172a" }}
                         {...field}
                         autoComplete="email"
                       />
@@ -267,6 +269,7 @@ function LoginPageInternal() {
                         <Input
                           type={showPassword ? "text" : "password"}
                           className="h-10 pr-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
+                          style={{ color: "#0f172a" }}
                           {...field}
                           autoComplete="current-password"
                         />
