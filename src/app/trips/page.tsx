@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/types/db";
 import { TripGridSkeleton } from "@/components/skeletons/TripCardSkeleton";
 import { format, startOfDay, endOfDay } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   Accordion,
   AccordionContent,
@@ -31,7 +32,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dog, CigaretteOff, Luggage, Sunrise, Sun, Sunset } from "lucide-react";
+import {
+  Dog,
+  CigaretteOff,
+  Luggage,
+  Sunrise,
+  Sun,
+  Sunset,
+  Share2,
+  Check,
+} from "lucide-react";
 import Link from "next/link";
 import { Slider } from "@/components/ui/slider";
 import { buttonVariants } from "@/components/ui/button";
@@ -88,6 +98,21 @@ function TripsPageContent() {
   const [showNonSmoking, setShowNonSmoking] = useState(false);
   const [showPetsAllowed, setShowPetsAllowed] = useState(false);
   const [showLargeBagsAllowed, setShowLargeBagsAllowed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyInvite = async () => {
+    await navigator.clipboard.writeText(window.location.origin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const resetFilters = () => {
+    setMaxPrice(undefined);
+    setDepartureTime("all");
+    setShowNonSmoking(false);
+    setShowPetsAllowed(false);
+    setShowLargeBagsAllowed(false);
+  };
 
   // Get search params from URL
   const departure = searchParams.get("departure")?.toLowerCase();
@@ -301,28 +326,77 @@ function TripsPageContent() {
     if (!allTrips || allTrips.length === 0) {
       return (
         <div className="text-center py-16 border border-dashed rounded-xl space-y-4">
-          <p className="text-4xl">🚗</p>
-          <p className="text-lg font-semibold">
-            Aucun trajet disponible pour le moment.
+          <p className="text-4xl">🌱</p>
+          <p className="text-lg font-semibold">La communauté se construit !</p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            Aucun conducteur n&apos;a encore publié de trajet. Vous connaissez
+            quelqu&apos;un qui fait ce trajet régulièrement ? Invitez-le — ça
+            prend 2 minutes.
           </p>
-          <p className="text-sm text-muted-foreground">
-            Soyez le premier à proposer un trajet et aidez la communauté à
-            voyager !
-          </p>
-          <Button asChild className="mt-2">
-            <Link href="/post-trip">Proposer un trajet</Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Button asChild variant="outline">
+              <Link href="/">Retour à l&apos;accueil</Link>
+            </Button>
+            <Button onClick={handleCopyInvite}>
+              {copied ? (
+                <Check className="h-4 w-4 mr-2" />
+              ) : (
+                <Share2 className="h-4 w-4 mr-2" />
+              )}
+              {copied ? "Lien copié !" : "Copier le lien d'invitation"}
+            </Button>
+          </div>
         </div>
       );
     }
 
+    const searchLabel = [
+      departure && destination
+        ? `${departure} → ${destination}`
+        : departure
+          ? `depuis ${departure}`
+          : destination
+            ? `vers ${destination}`
+            : null,
+      dateStr
+        ? `le ${format(new Date(dateStr), "d MMM", { locale: fr })}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return (
-      <div className="text-center py-16 border border-dashed rounded-xl space-y-3">
+      <div className="text-center py-16 border border-dashed rounded-xl space-y-4">
         <p className="text-3xl">🔍</p>
-        <p className="text-lg font-semibold">Aucun trajet pour ces critères.</p>
-        <p className="text-sm text-muted-foreground">
-          Essayez de modifier votre recherche ou de supprimer certains filtres.
+        <p className="text-lg font-semibold">
+          {searchLabel
+            ? `Aucun trajet ${searchLabel}`
+            : "Aucun trajet pour ces critères"}
         </p>
+        <p className="text-sm text-muted-foreground">
+          Pas de conducteur disponible pour cet itinéraire pour le moment.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          {dateStr && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (departure) params.set("departure", departure);
+                if (destination) params.set("destination", destination);
+                router.push(`/trips?${params.toString()}`);
+              }}
+            >
+              Effacer la date
+            </Button>
+          )}
+          <Button variant="outline" onClick={resetFilters}>
+            Effacer les filtres
+          </Button>
+          <Button onClick={() => router.push("/trips")}>
+            Nouvelle recherche
+          </Button>
+        </div>
       </div>
     );
   };
