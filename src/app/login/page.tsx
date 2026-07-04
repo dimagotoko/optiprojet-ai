@@ -192,7 +192,7 @@ function LoginPageInternal() {
 
         {/* Card */}
         <div
-          className="relative z-10 w-full max-w-sm mx-auto bg-white rounded-2xl px-8 pt-8 pb-7"
+          className="relative z-10 w-full max-w-sm mx-auto bg-white rounded-2xl px-8 pt-8 pb-7 text-slate-900"
           style={{
             boxShadow:
               "0 25px 80px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.3)",
@@ -237,7 +237,7 @@ function LoginPageInternal() {
                       <Input
                         type="email"
                         placeholder="m@example.com"
-                        className="h-10 bg-slate-50 border-slate-200 rounded-lg focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white [&::placeholder]:text-slate-400"
+                        className="h-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
                         {...field}
                         autoComplete="email"
                       />
@@ -266,7 +266,7 @@ function LoginPageInternal() {
                       <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
-                          className="h-10 pr-10 bg-slate-50 border-slate-200 rounded-lg focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white [&::placeholder]:text-slate-400"
+                          className="h-10 pr-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
                           {...field}
                           autoComplete="current-password"
                         />
