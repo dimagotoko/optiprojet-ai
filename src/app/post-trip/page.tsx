@@ -405,6 +405,20 @@ export default function PostTripPage() {
       !submittedTripData.destination
     )
       return;
+
+    // Email guard: reload only when unverified to avoid extra req for verified users
+    if (!user.emailVerified) {
+      await user.reload();
+      if (!user.emailVerified) {
+        toast({
+          variant: "destructive",
+          title: "Email non vérifié",
+          description:
+            "Vérifiez votre email pour publier un trajet. Consultez votre boîte de réception.",
+        });
+        return;
+      }
+    }
     try {
       const { date, time, arrivalTime } = submittedTripData;
 

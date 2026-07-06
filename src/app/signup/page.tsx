@@ -5,7 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
@@ -29,7 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Logo } from "@/components/Logo";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, MailCheck } from "lucide-react";
 import React from "react";
 import { LoadingLogo } from "@/components/LoadingLogo";
 
@@ -94,6 +98,33 @@ function SignupPageInternal() {
   const firestore = useFirestore();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [verificationSent, setVerificationSent] = React.useState(false);
+  const [sentEmail, setSentEmail] = React.useState("");
+  const [resendCooldown, setResendCooldown] = React.useState(0);
+  const [resendError, setResendError] = React.useState<string | null>(null);
+
+  // Single source of truth for verification email settings — used by both initial send and resend.
+  const verificationSettings = {
+    url: `${window.location.origin}/dashboard`,
+    handleCodeInApp: false,
+  };
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (!auth?.currentUser || resendCooldown > 0) return;
+    setResendError(null);
+    try {
+      await sendEmailVerification(auth.currentUser, verificationSettings);
+      setResendCooldown(60);
+    } catch {
+      setResendError("Impossible de renvoyer. Vérifiez votre connexion.");
+    }
+  };
 
   const emailFromQuery = searchParams.get("email") || "";
   const redirect = searchParams.get("redirect");
@@ -143,6 +174,9 @@ function SignupPageInternal() {
         photoURL: values.profilePictureUrl || null,
       });
 
+      // 2b. Send verification email before Firestore writes
+      await sendEmailVerification(user, verificationSettings);
+
       // 3. Create user document in Firestore — champs publics + sous-doc privé
       const userDocRef = doc(firestore, "users", user.uid);
       const privateDocRef = doc(
@@ -171,15 +205,9 @@ function SignupPageInternal() {
         driverLicense: "",
       });
 
-      toast({
-        title: "Compte créé avec succès!",
-        description: "Bienvenue sur OptiTrajet AI.",
-      });
-
-      // Redirige vers le profil pour accepter le protocole, en conservant le redirect final
-      window.location.href = safeRedirectUrl
-        ? `/profile?redirect=${encodeURIComponent(safeRedirectUrl)}`
-        : "/dashboard";
+      setSentEmail(values.email);
+      setVerificationSent(true);
+      setResendCooldown(60);
     } catch (error: any) {
       console.error("Signup error:", error);
       let description = "Une erreur est survenue lors de l'inscription.";
@@ -193,6 +221,64 @@ function SignupPageInternal() {
       });
     }
   };
+
+  if (verificationSent) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] py-12 px-4">
+        <Card className="w-full max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <MailCheck className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">
+              Vérifiez votre boîte mail
+            </CardTitle>
+            <CardDescription>
+              Un courriel de vérification a été envoyé à{" "}
+              <span className="font-semibold text-foreground">{sentEmail}</span>
+              . Cliquez sur le lien pour activer votre compte.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Vérifiez aussi vos indésirables si vous ne le voyez pas.
+            </p>
+            {resendError && (
+              <p className="text-sm text-destructive">{resendError}</p>
+            )}
+            <Button
+              onClick={handleResend}
+              disabled={resendCooldown > 0}
+              variant="outline"
+              className="w-full"
+            >
+              {resendCooldown > 0
+                ? `Renvoyer dans ${resendCooldown}s`
+                : "Renvoyer le courriel"}
+            </Button>
+          </CardContent>
+          <CardFooter className="flex-col gap-3">
+            <Button
+              className="w-full"
+              onClick={() => {
+                window.location.href = safeRedirectUrl
+                  ? `/profile?redirect=${encodeURIComponent(safeRedirectUrl)}`
+                  : "/dashboard";
+              }}
+            >
+              Continuer vers le tableau de bord →
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Vous pouvez naviguer librement, mais la publication et la
+              réservation nécessitent un email vérifié.
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] py-12 px-4">

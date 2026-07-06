@@ -2,9 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import {
+  useUser,
+  useFirestore,
+  useDoc,
+  useMemoFirebase,
+  useAuth,
+} from "@/firebase";
 import { doc } from "firebase/firestore";
-import { Plus, UserPlus } from "lucide-react";
+import { sendEmailVerification } from "firebase/auth";
+import { Plus, UserPlus, MailWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Chatbot } from "@/components/Chatbot";
@@ -22,9 +29,41 @@ import type { UserProfile } from "@/types/db";
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const [greeting, setGreeting] = React.useState("Bonjour");
+  const [emailVerifiedOverride, setEmailVerifiedOverride] =
+    React.useState(false);
+  const [bannerCooldown, setBannerCooldown] = React.useState(0);
+  const [bannerResendError, setBannerResendError] = React.useState<
+    string | null
+  >(null);
+
+  React.useEffect(() => {
+    if (bannerCooldown <= 0) return;
+    const id = setTimeout(() => setBannerCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [bannerCooldown]);
+
+  const handleBannerResend = async () => {
+    if (!auth?.currentUser || bannerCooldown > 0) return;
+    setBannerResendError(null);
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setBannerCooldown(60);
+    } catch {
+      setBannerResendError("Impossible d'envoyer. Réessayez plus tard.");
+    }
+  };
+
+  const handleRefreshVerification = async () => {
+    if (!user) return;
+    await user.reload();
+    if (user.emailVerified) setEmailVerifiedOverride(true);
+  };
+
+  const showEmailBanner = user && !user.emailVerified && !emailVerifiedOverride;
 
   React.useEffect(() => {
     const h = new Date().getHours();
@@ -80,6 +119,47 @@ export default function DashboardPage() {
 
   return (
     <>
+      {/* Bannière douce — email non vérifié (grandfathering : incitation, pas blocage) */}
+      {showEmailBanner && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5">
+          <div className="container flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+              <MailWarning className="h-4 w-4 shrink-0" />
+              <span>
+                Pensez à vérifier votre email pour accéder à toutes les
+                fonctionnalités.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {bannerResendError && (
+                <span className="text-xs text-destructive">
+                  {bannerResendError}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                disabled={bannerCooldown > 0}
+                onClick={handleBannerResend}
+              >
+                {bannerCooldown > 0
+                  ? `Renvoyer dans ${bannerCooldown}s`
+                  : "Renvoyer"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs text-amber-700 dark:text-amber-400"
+                onClick={handleRefreshVerification}
+              >
+                J&apos;ai vérifié
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container py-8 px-4 md:px-6">
         {isTransporteur ? (
           /* ── Layout transporteur : en-tête pleine largeur + 2 colonnes ── */

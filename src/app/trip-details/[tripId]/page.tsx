@@ -574,6 +574,21 @@ function TripDetailsPageContent() {
   const handleBookTrip = async () => {
     if (!firestore || !user || !trip) return;
 
+    // Email guard: reload only when unverified to avoid extra req for verified users
+    if (!user.emailVerified) {
+      await user.reload();
+      if (!user.emailVerified) {
+        toast({
+          variant: "destructive",
+          title: "Email non vérifié",
+          description:
+            "Vérifiez votre email pour réserver un trajet. Consultez votre boîte de réception.",
+        });
+        setShowBookingConfirm(false);
+        return;
+      }
+    }
+
     setIsBooking(true);
     try {
       const tripRef = doc(firestore, "trips", trip.id);
