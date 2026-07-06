@@ -258,7 +258,7 @@ function LoginPageInternal() {
                         Mot de passe
                       </FormLabel>
                       <Link
-                        href="#"
+                        href="/forgot-password"
                         className="ml-auto text-xs text-cyan-700 hover:underline"
                       >
                         Mot de passe oublié?
