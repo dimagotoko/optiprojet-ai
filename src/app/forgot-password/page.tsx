@@ -54,7 +54,10 @@ function ForgotPasswordPageInternal() {
     setErrorMessage(null);
 
     try {
-      await sendPasswordResetEmail(auth, values.email);
+      await sendPasswordResetEmail(auth, values.email, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      });
       setStatus("sent");
     } catch (error: any) {
       switch (error.code) {
