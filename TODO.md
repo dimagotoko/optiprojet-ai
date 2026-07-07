@@ -28,6 +28,12 @@ profondeur uniquement (bloque UI + clients naïfs, pas un attaquant déterminé)
 
 ---
 
+## TripCard — image picsum décorative
+
+Remplacer l'image picsum décorative des TripCard par une vraie image (ou retirer) — trompeur en l'état.
+
+---
+
 ## Stat CO₂ évité — amélioration distance réelle
 
 La stat "CO₂ évité" (voyageur dashboard) utilise actuellement un forfait fixe de

@@ -1,5 +1,10 @@
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 
 export function TripCardSkeleton() {
   return (
@@ -17,6 +22,10 @@ export function TripCardSkeleton() {
       <CardContent className="flex-grow p-4 pt-0 space-y-4">
         <Skeleton className="h-48 w-full rounded-lg" />
         <Skeleton className="h-4 w-32" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-end">
         <Skeleton className="h-8 w-24 rounded-md" />

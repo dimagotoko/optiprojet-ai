@@ -48,7 +48,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Trip } from "@/types/db";
 
-// Simplified Wrapper: It no longer fetches driver data.
 const TripCardWrapper = ({
   trip,
   onLocationClick,
@@ -56,14 +55,28 @@ const TripCardWrapper = ({
   trip: Trip;
   onLocationClick: (type: "departure" | "destination", value: string) => void;
 }) => {
+  const firestore = useFirestore();
+  const driverRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, "users", trip.offeredBy) : null),
+    [firestore, trip.offeredBy],
+  );
+  const { data: driver, isLoading: isDriverLoading } =
+    useDoc<UserProfile>(driverRef);
+
   return (
     <TripCard
       id={trip.id}
       from={trip.origin}
       to={trip.destination}
-      date={format(trip.departureTime.toDate(), "d MMM")}
+      date={format(trip.departureTime.toDate(), "d MMM", { locale: fr })}
       price={`${trip.pricePerSeat}$`}
       onLocationClick={onLocationClick}
+      driverName={driver?.name}
+      driverPhotoUrl={driver?.profilePictureUrl}
+      driverRating={driver?.averageRating}
+      driverTotalRatings={driver?.totalRatings}
+      driverIsVerified={driver?.isVerified}
+      isDriverLoading={isDriverLoading}
     />
   );
 };
