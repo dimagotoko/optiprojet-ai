@@ -323,8 +323,12 @@ function LoginPageInternal() {
             </Link>
           </p>
           <p className="mt-2 text-center text-xs text-slate-400">
+            <Link href="/cgu" className="hover:underline">
+              Conditions d&apos;utilisation
+            </Link>
+            {" · "}
             <Link href="/confidentialite" className="hover:underline">
-              Politique de confidentialité
+              Confidentialité
             </Link>
           </p>
         </div>

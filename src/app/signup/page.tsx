@@ -555,7 +555,11 @@ function SignupPageInternal() {
                 )}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                En créant votre compte, vous acceptez notre{" "}
+                En vous inscrivant, vous acceptez nos{" "}
+                <Link href="/cgu" className="underline hover:text-foreground">
+                  Conditions d&apos;utilisation
+                </Link>{" "}
+                et notre{" "}
                 <Link
                   href="/confidentialite"
                   className="underline hover:text-foreground"

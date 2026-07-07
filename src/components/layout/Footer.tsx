@@ -36,6 +36,12 @@ export function Footer() {
               À propos
             </Link>
             <Link
+              href="/cgu"
+              className="hover:text-foreground transition-colors"
+            >
+              Conditions d&apos;utilisation
+            </Link>
+            <Link
               href="/confidentialite"
               className="hover:text-foreground transition-colors"
             >
