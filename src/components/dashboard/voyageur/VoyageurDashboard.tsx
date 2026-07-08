@@ -94,6 +94,7 @@ function BookedTripItem({
 }) {
   const firestore = useFirestore();
   const [ratingOpen, setRatingOpen] = React.useState(false);
+  const [hasRated, setHasRated] = React.useState(false);
 
   const tripRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -169,7 +170,7 @@ function BookedTripItem({
                 <StatusIcon className="h-3 w-3" aria-hidden="true" />
                 {cfg.label}
               </Badge>
-              {canRate && (
+              {canRate && !hasRated && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -279,6 +280,7 @@ function BookedTripItem({
           driverId={trip.offeredBy}
           driverName={driver.name}
           tripId={booking.tripId}
+          onRated={() => setHasRated(true)}
         />
       )}
     </>
@@ -496,6 +498,16 @@ export function VoyageurDashboard({
 
   const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
+  const pendingRatingsCount = React.useMemo(() => {
+    const now = new Date();
+    return (bookings ?? []).filter(
+      (b) =>
+        b.status === "accepted" &&
+        b.departureTime != null &&
+        b.departureTime.toDate() < now,
+    ).length;
+  }, [bookings]);
+
   return (
     <div className="space-y-6">
       {/* Suggestions IA + Tabs trajets */}
@@ -521,7 +533,14 @@ export function VoyageurDashboard({
         <Tabs defaultValue="upcoming">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upcoming">Trajets à venir</TabsTrigger>
-            <TabsTrigger value="history">Historique des trajets</TabsTrigger>
+            <TabsTrigger value="history">
+              Historique des trajets
+              {pendingRatingsCount > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-yellow-400 text-yellow-900 text-xs font-bold h-4 min-w-4 px-1">
+                  {pendingRatingsCount}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="upcoming" className="mt-4 space-y-2">
             {isLoading ? (

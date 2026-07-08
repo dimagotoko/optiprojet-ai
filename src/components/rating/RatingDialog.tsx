@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useFirestore, useUser } from '@/firebase';
-import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import { Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import * as React from "react";
+import { useFirestore, useUser } from "@/firebase";
+import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface RatingDialogProps {
   open: boolean;
@@ -23,15 +23,23 @@ interface RatingDialogProps {
   driverId: string;
   driverName: string;
   tripId: string;
+  onRated?: () => void;
 }
 
-export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId }: RatingDialogProps) {
+export function RatingDialog({
+  open,
+  onOpenChange,
+  driverId,
+  driverName,
+  tripId,
+  onRated,
+}: RatingDialogProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
   const [rating, setRating] = React.useState(0);
   const [hovered, setHovered] = React.useState(0);
-  const [comment, setComment] = React.useState('');
+  const [comment, setComment] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleSubmit = async () => {
@@ -40,8 +48,8 @@ export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId 
 
     // reviewId déterministe : empêche de noter deux fois le même trajet
     const reviewId = `${tripId}_${user.uid}`;
-    const reviewRef = doc(firestore, 'users', driverId, 'reviews', reviewId);
-    const driverRef = doc(firestore, 'users', driverId);
+    const reviewRef = doc(firestore, "users", driverId, "reviews", reviewId);
+    const driverRef = doc(firestore, "users", driverId);
 
     try {
       await runTransaction(firestore, async (tx) => {
@@ -50,7 +58,8 @@ export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId 
           tx.get(driverRef),
         ]);
 
-        if (reviewSnap.exists()) throw new Error('Vous avez déjà noté ce trajet.');
+        if (reviewSnap.exists())
+          throw new Error("Vous avez déjà noté ce trajet.");
 
         const d = driverSnap.data();
         const currentTotal = d?.totalRatings ?? 0;
@@ -71,12 +80,20 @@ export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId 
         });
       });
 
-      toast({ title: 'Avis envoyé !', description: `Merci d'avoir noté ${driverName}.` });
+      toast({
+        title: "Avis envoyé !",
+        description: `Merci d'avoir noté ${driverName}.`,
+      });
       onOpenChange(false);
+      onRated?.();
       setRating(0);
-      setComment('');
+      setComment("");
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Erreur', description: err.message ?? 'Impossible d\'envoyer l\'avis.' });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: err.message ?? "Impossible d'envoyer l'avis.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +107,8 @@ export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId 
         <DialogHeader>
           <DialogTitle>Évaluer {driverName}</DialogTitle>
           <DialogDescription>
-            Partagez votre expérience avec ce conducteur pour aider la communauté.
+            Partagez votre expérience avec ce conducteur pour aider la
+            communauté.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,18 +122,24 @@ export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId 
               onClick={() => setRating(star)}
               onMouseEnter={() => setHovered(star)}
               onMouseLeave={() => setHovered(0)}
-              aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
+              aria-label={`${star} étoile${star > 1 ? "s" : ""}`}
             >
               <Star
                 className={cn(
-                  'h-9 w-9 transition-colors',
-                  star <= displayed ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'
+                  "h-9 w-9 transition-colors",
+                  star <= displayed
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-muted-foreground/30",
                 )}
               />
             </button>
           ))}
         </div>
-        {rating === 0 && <p className="text-center text-xs text-muted-foreground">Sélectionnez une note</p>}
+        {rating === 0 && (
+          <p className="text-center text-xs text-muted-foreground">
+            Sélectionnez une note
+          </p>
+        )}
 
         {/* Commentaire */}
         <Textarea
@@ -127,11 +151,18 @@ export function RatingDialog({ open, onOpenChange, driverId, driverName, tripId 
         />
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
             Annuler
           </Button>
-          <Button onClick={handleSubmit} disabled={rating === 0 || isSubmitting}>
-            {isSubmitting ? 'Envoi…' : 'Envoyer l\'avis'}
+          <Button
+            onClick={handleSubmit}
+            disabled={rating === 0 || isSubmitting}
+          >
+            {isSubmitting ? "Envoi…" : "Envoyer l'avis"}
           </Button>
         </DialogFooter>
       </DialogContent>

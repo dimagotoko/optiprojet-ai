@@ -1,21 +1,47 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
-import { useParams } from 'next/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Star, MapPin, ArrowRight, Calendar, Car } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import type { UserProfile, Trip } from '@/types/db';
+import * as React from "react";
+import {
+  useFirestore,
+  useDoc,
+  useCollection,
+  useMemoFirebase,
+} from "@/firebase";
+import {
+  doc,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  type Timestamp,
+} from "firebase/firestore";
+import { cn } from "@/lib/utils";
+import { useParams } from "next/navigation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Star, MapPin, ArrowRight, Calendar, Car } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import type { UserProfile, Trip } from "@/types/db";
 
-const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('');
+type Review = {
+  id: string;
+  reviewerId: string;
+  rating: number;
+  comment?: string;
+  createdAt: Timestamp;
+};
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("");
 
 function PublicProfileSkeleton() {
   return (
@@ -38,23 +64,37 @@ export default function PublicProfilePage() {
 
   const userRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return doc(firestore, 'users', userId);
+    return doc(firestore, "users", userId);
   }, [firestore, userId]);
 
-  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userRef);
+  const { data: profile, isLoading: isProfileLoading } =
+    useDoc<UserProfile>(userRef);
 
   const upcomingTripsQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
     return query(
-      collection(firestore, 'trips'),
-      where('offeredBy', '==', userId),
-      where('departureTime', '>=', new Date()),
-      orderBy('departureTime', 'asc'),
-      limit(5)
+      collection(firestore, "trips"),
+      where("offeredBy", "==", userId),
+      where("departureTime", ">=", new Date()),
+      orderBy("departureTime", "asc"),
+      limit(5),
     );
   }, [firestore, userId]);
 
-  const { data: upcomingTrips, isLoading: isTripsLoading } = useCollection<Trip>(upcomingTripsQuery);
+  const { data: upcomingTrips, isLoading: isTripsLoading } =
+    useCollection<Trip>(upcomingTripsQuery);
+
+  const reviewsQuery = useMemoFirebase(() => {
+    if (!firestore || !userId) return null;
+    return query(
+      collection(firestore, "users", userId, "reviews"),
+      orderBy("createdAt", "desc"),
+      limit(10),
+    );
+  }, [firestore, userId]);
+
+  const { data: reviews, isLoading: isReviewsLoading } =
+    useCollection<Review>(reviewsQuery);
 
   if (isProfileLoading) return <PublicProfileSkeleton />;
 
@@ -63,7 +103,9 @@ export default function PublicProfilePage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] gap-4">
         <Car className="h-12 w-12 text-muted-foreground" />
         <h1 className="text-xl font-bold">Profil introuvable</h1>
-        <Button asChild variant="outline"><Link href="/">Retour à l'accueil</Link></Button>
+        <Button asChild variant="outline">
+          <Link href="/">Retour à l'accueil</Link>
+        </Button>
       </div>
     );
   }
@@ -74,26 +116,35 @@ export default function PublicProfilePage() {
       <div className="flex flex-col items-center text-center gap-3">
         <Avatar className="h-28 w-28">
           <AvatarImage src={profile.profilePictureUrl} alt={profile.name} />
-          <AvatarFallback className="text-3xl">{getInitials(profile.name)}</AvatarFallback>
+          <AvatarFallback className="text-3xl">
+            {getInitials(profile.name)}
+          </AvatarFallback>
         </Avatar>
         <div>
           <h1 className="text-3xl font-bold">{profile.name}</h1>
           {profile.city && (
             <p className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
-              <MapPin className="h-4 w-4" />{profile.city}
+              <MapPin className="h-4 w-4" />
+              {profile.city}
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="capitalize">{profile.role || 'Voyageur'}</Badge>
+          <Badge variant="secondary" className="capitalize">
+            {profile.role || "Voyageur"}
+          </Badge>
           {profile.totalRatings && profile.totalRatings > 0 ? (
             <span className="flex items-center gap-1 text-sm font-medium">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
               {profile.averageRating?.toFixed(1)}
-              <span className="text-muted-foreground">({profile.totalRatings} avis)</span>
+              <span className="text-muted-foreground">
+                ({profile.totalRatings} avis)
+              </span>
             </span>
           ) : (
-            <span className="text-sm text-muted-foreground italic">Pas encore noté</span>
+            <span className="text-sm text-muted-foreground italic">
+              Pas encore noté
+            </span>
           )}
         </div>
       </div>
@@ -116,7 +167,7 @@ export default function PublicProfilePage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {upcomingTrips.map(trip => (
+            {upcomingTrips.map((trip) => (
               <Card key={trip.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -127,15 +178,75 @@ export default function PublicProfilePage() {
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                       <Calendar className="h-3 w-3" />
-                      {format(trip.departureTime.toDate(), 'd MMM yyyy · HH:mm', { locale: fr })}
+                      {format(
+                        trip.departureTime.toDate(),
+                        "d MMM yyyy · HH:mm",
+                        { locale: fr },
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="secondary" className="font-bold">{trip.pricePerSeat}$</Badge>
+                    <Badge variant="secondary" className="font-bold">
+                      {trip.pricePerSeat}$
+                    </Badge>
                     <Button size="sm" asChild>
                       <Link href={`/trip-details/${trip.id}`}>Réserver</Link>
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Avis reçus */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" /> Avis
+          reçus
+        </h2>
+        {isReviewsLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : !reviews?.length ? (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              Aucun avis pour le moment.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((review) => (
+              <Card key={review.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={cn(
+                            "h-4 w-4",
+                            s <= review.rating
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-muted-foreground/30",
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {format(review.createdAt.toDate(), "d MMM yyyy", {
+                        locale: fr,
+                      })}
+                    </span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm mt-2 text-muted-foreground">
+                      {review.comment}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}

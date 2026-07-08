@@ -16,6 +16,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { Car, DollarSign, TrendingUp, Star } from "lucide-react";
+import { RatingDialog } from "@/components/rating/RatingDialog";
 import { StatCard } from "../shared/StatCard";
 import { DemandesEnAttente } from "./DemandesEnAttente";
 import { TripPublieRow } from "./TripPublieRow";
@@ -37,11 +38,90 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { Trip, UserProfile, Vehicle } from "@/types/db";
+import type { Trip, UserProfile, Vehicle, Booking } from "@/types/db";
 
 interface TransporteurDashboardProps {
   userId: string;
   userData: UserProfile;
+}
+
+function TravelerRatingButton({
+  booking,
+  tripId,
+}: {
+  booking: Booking;
+  tripId: string;
+}) {
+  const firestore = useFirestore();
+  const [ratingOpen, setRatingOpen] = React.useState(false);
+  const [hasRated, setHasRated] = React.useState(false);
+
+  const travelerRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "users", booking.travelerId);
+  }, [firestore, booking.travelerId]);
+  const { data: traveler } = useDoc<UserProfile>(travelerRef);
+
+  if (hasRated) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 rounded-md border border-yellow-300 bg-transparent px-2 py-1 text-xs font-medium text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+        onClick={() => setRatingOpen(true)}
+      >
+        <Star className="h-3 w-3" aria-hidden="true" />
+        Évaluer {traveler?.name ?? "le passager"}
+      </button>
+      <RatingDialog
+        open={ratingOpen}
+        onOpenChange={setRatingOpen}
+        driverId={booking.travelerId}
+        driverName={traveler?.name ?? "ce passager"}
+        tripId={tripId}
+        onRated={() => setHasRated(true)}
+      />
+    </>
+  );
+}
+
+function PastTripRatingSection({
+  tripId,
+  driverId,
+}: {
+  tripId: string;
+  driverId: string;
+}) {
+  const firestore = useFirestore();
+
+  const bookingsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, "trips", tripId, "bookings"),
+      where("offeredBy", "==", driverId),
+      where("status", "==", "accepted"),
+    );
+  }, [firestore, tripId, driverId]);
+
+  const { data: bookings } = useCollection<Booking>(bookingsQuery);
+
+  if (!bookings?.length) return null;
+
+  return (
+    <div className="rounded-b-xl border-x border-b bg-yellow-50 dark:bg-yellow-900/10 px-4 py-2 -mt-1 flex flex-wrap items-center gap-2">
+      <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">
+        Passagers à évaluer :
+      </span>
+      {bookings.map((booking) => (
+        <TravelerRatingButton
+          key={booking.id}
+          booking={booking}
+          tripId={tripId}
+        />
+      ))}
+    </div>
+  );
 }
 
 /* ── En-tête pleine largeur : 4 stats ── */
@@ -169,6 +249,11 @@ export function TransporteurDashboard({
     return { upcomingTrips: upcoming, pastTrips: past };
   }, [allTrips]);
 
+  const ratingsCount = React.useMemo(
+    () => pastTrips.filter((t) => (t.totalBookings ?? 0) > 0).length,
+    [pastTrips],
+  );
+
   const handleEditClick = (tripId: string) =>
     router.push(`/edit-trip/${tripId}`);
 
@@ -234,7 +319,14 @@ export function TransporteurDashboard({
             <Tabs defaultValue="upcoming">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="upcoming">À venir</TabsTrigger>
-                <TabsTrigger value="history">Historique</TabsTrigger>
+                <TabsTrigger value="history">
+                  Historique
+                  {ratingsCount > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-yellow-400 text-yellow-900 text-xs font-bold h-4 min-w-4 px-1">
+                      {ratingsCount}
+                    </span>
+                  )}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="upcoming" className="mt-3 space-y-3">
@@ -275,16 +367,23 @@ export function TransporteurDashboard({
                   </Card>
                 ) : (
                   pastTrips.map((trip) => (
-                    <TripPublieRow
-                      key={trip.id}
-                      trip={trip}
-                      vehicle={vehicleMap[trip.vehicleId]}
-                      onEditClick={handleEditClick}
-                      onDeleteClick={setTripToDelete}
-                      onToggleCloseTrip={handleToggleCloseTrip}
-                      onRepublierClick={handleRepublier}
-                      isPast
-                    />
+                    <div key={trip.id}>
+                      <TripPublieRow
+                        trip={trip}
+                        vehicle={vehicleMap[trip.vehicleId]}
+                        onEditClick={handleEditClick}
+                        onDeleteClick={setTripToDelete}
+                        onToggleCloseTrip={handleToggleCloseTrip}
+                        onRepublierClick={handleRepublier}
+                        isPast
+                      />
+                      {(trip.totalBookings ?? 0) > 0 && (
+                        <PastTripRatingSection
+                          tripId={trip.id}
+                          driverId={userId}
+                        />
+                      )}
+                    </div>
                   ))
                 )}
               </TabsContent>
