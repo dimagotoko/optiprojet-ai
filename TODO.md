@@ -34,6 +34,18 @@ Remplacer l'image picsum décorative des TripCard par une vraie image (ou retire
 
 ---
 
+## Pagination /trips — filtres client-side sur l'ensemble accumulé
+
+La pagination Firestore de /trips utilise `limit(50)` + curseur `startAfter`.
+Les filtres (origine, destination, créneau horaire, options, prix) s'appliquent
+**côté client** sur l'ensemble accumulé des batches chargés. C'est correct pour
+un volume faible à moyen. Quand le volume grandira, basculer les filtres
+principaux (origine / destination / date) **côté serveur** avec des index
+composites Firestore (déplacer le matching texte vers Algolia ou Typesense,
+ou ajouter des champs normalisés `originCity` / `destinationCity` indexés).
+
+---
+
 ## Stat CO₂ évité — amélioration distance réelle
 
 La stat "CO₂ évité" (voyageur dashboard) utilise actuellement un forfait fixe de

@@ -3,20 +3,20 @@ import { Suspense, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TripCard } from "@/components/TripCard";
 import { TripSearchForm } from "@/components/TripSearchForm";
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  useUser,
-  useDoc,
-} from "@/firebase";
+import { useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import {
   collection,
   doc,
   Timestamp,
   query,
   where,
+  orderBy,
+  limit,
+  startAfter,
+  getDocs,
   QueryConstraint,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/types/db";
@@ -139,27 +139,87 @@ function TripsPageContent() {
     return date instanceof Date && !isNaN(date.getTime()) ? date : null;
   }, [dateStr]);
 
-  const tripsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+  const FIRESTORE_PAGE_SIZE = 50;
 
-    const constraints: QueryConstraint[] = [
-      where("departureTime", ">=", startOfDay(new Date())),
-    ];
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [lastVisible, setLastVisible] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasFirestoreMore, setHasFirestoreMore] = useState(false);
 
-    if (searchDate) {
-      constraints.push(where("departureTime", ">=", startOfDay(searchDate)));
-      constraints.push(where("departureTime", "<=", endOfDay(searchDate)));
+  // Charge le premier batch Firestore (et recharge si la date change)
+  useEffect(() => {
+    if (!firestore) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setTrips([]);
+    setLastVisible(null);
+    setHasFirestoreMore(false);
+
+    const baseConstraints: QueryConstraint[] = searchDate
+      ? [
+          where("departureTime", ">=", startOfDay(searchDate)),
+          where("departureTime", "<=", endOfDay(searchDate)),
+        ]
+      : [where("departureTime", ">=", startOfDay(new Date()))];
+    baseConstraints.push(orderBy("departureTime", "asc"));
+
+    getDocs(
+      query(
+        collection(firestore, "trips"),
+        ...baseConstraints,
+        limit(FIRESTORE_PAGE_SIZE),
+      ),
+    ).then((snap) => {
+      if (cancelled) return;
+      setTrips(snap.docs.map((d) => ({ ...(d.data() as Trip), id: d.id })));
+      setLastVisible(snap.docs[snap.docs.length - 1] ?? null);
+      setHasFirestoreMore(snap.docs.length === FIRESTORE_PAGE_SIZE);
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [firestore, searchDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLoadFirestoreMore = async () => {
+    if (!firestore || !lastVisible || isLoadingMore) return;
+    setIsLoadingMore(true);
+
+    const baseConstraints: QueryConstraint[] = searchDate
+      ? [
+          where("departureTime", ">=", startOfDay(searchDate)),
+          where("departureTime", "<=", endOfDay(searchDate)),
+        ]
+      : [where("departureTime", ">=", startOfDay(new Date()))];
+    baseConstraints.push(orderBy("departureTime", "asc"));
+
+    try {
+      const snap = await getDocs(
+        query(
+          collection(firestore, "trips"),
+          ...baseConstraints,
+          startAfter(lastVisible),
+          limit(FIRESTORE_PAGE_SIZE),
+        ),
+      );
+      setTrips((prev) => [
+        ...prev,
+        ...snap.docs.map((d) => ({ ...(d.data() as Trip), id: d.id })),
+      ]);
+      if (snap.docs.length > 0) setLastVisible(snap.docs[snap.docs.length - 1]);
+      setHasFirestoreMore(snap.docs.length === FIRESTORE_PAGE_SIZE);
+    } finally {
+      setIsLoadingMore(false);
     }
-
-    return query(collection(firestore, "trips"), ...constraints);
-  }, [firestore, searchDate]);
-
-  const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
+  };
 
   const filteredTrips = useMemo(() => {
-    if (!allTrips) return [];
+    if (!trips.length) return [];
 
-    return allTrips.filter((trip: Trip) => {
+    return trips.filter((trip: Trip) => {
       const tripDepartureTime = trip.departureTime.toDate();
       const matchesPrice = maxPrice ? trip.pricePerSeat <= maxPrice : true;
       const matchesNonSmoking = showNonSmoking
@@ -186,7 +246,7 @@ function TripsPageContent() {
       );
     });
   }, [
-    allTrips,
+    trips,
     maxPrice,
     departureTime,
     showNonSmoking,
@@ -251,13 +311,13 @@ function TripsPageContent() {
       : undefined;
 
   const maxPriceInResults = useMemo(() => {
-    if (!allTrips) return 100;
-    const max = allTrips.reduce(
+    if (!trips.length) return 100;
+    const max = trips.reduce(
       (max, trip) => Math.max(max, trip.pricePerSeat),
       0,
     );
     return max > 0 ? Math.ceil(max / 5) * 5 : 100; // Round up to nearest 5
-  }, [allTrips]);
+  }, [trips]);
 
   const handleLocationClick = (
     type: "departure" | "destination",
@@ -298,14 +358,27 @@ function TripsPageContent() {
               />
             ))}
           </div>
-          {hasMore && (
-            <div className="flex justify-center pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              >
-                Charger plus ({resultsToShow.length - visibleCount} restants)
-              </Button>
+          {(hasMore || hasFirestoreMore) && (
+            <div className="flex justify-center gap-3 pt-4 flex-wrap">
+              {hasMore && (
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Charger plus ({resultsToShow.length - visibleCount} restants)
+                </Button>
+              )}
+              {!hasMore && hasFirestoreMore && (
+                <Button
+                  variant="outline"
+                  onClick={handleLoadFirestoreMore}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore
+                    ? "Chargement…"
+                    : "Charger les 50 trajets suivants"}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -336,7 +409,7 @@ function TripsPageContent() {
       );
     }
 
-    if (!allTrips || allTrips.length === 0) {
+    if (trips.length === 0) {
       return (
         <div className="text-center py-16 border border-dashed rounded-xl space-y-4">
           <p className="text-4xl">🌱</p>
