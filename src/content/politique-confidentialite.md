@@ -37,7 +37,7 @@ du service de covoiturage.
   fournisseur d'authentification — voir section 6 — nous n'y avons pas accès).
 - Nom (ou prénom/pseudonyme d'affichage).
 - Numéro de téléphone.
-- Rôle choisi (voyageur ou transporteur) et préférences de trajet.
+- Rôle choisi (voyageur ou conducteur) et préférences de trajet.
 
 **Si vous offrez des trajets (conducteurs)**
 
@@ -50,7 +50,8 @@ du service de covoiturage.
 **Lorsque vous utilisez le service**
 
 - Réservations effectuées, y compris les renseignements sur les **co-passagers**
-  que vous inscrivez.
+  que vous inscrivez. En inscrivant un co-passager, vous confirmez être autorisé à
+  nous communiquer ses renseignements et l'avoir informé de la présente politique.
 - Évaluations et avis que vous laissez ou recevez.
 - Date d'acceptation du protocole d'utilisation.
 - Contenu des échanges avec notre **assistant conversationnel** (chatbot d'aide).
@@ -126,10 +127,10 @@ Nous conservons vos renseignements uniquement le temps nécessaire aux fins
 décrites, puis nous les détruisons ou les anonymisons :
 
 - **Compte et profil :** conservés tant que votre compte est actif, puis détruits
-  ou anonymisés dans un délai de 【à confirmer】 après la fermeture du compte.
-- **Historique des trajets et réservations :** 【à confirmer】 à des fins de
-  sécurité, de résolution de litiges et d'obligations légales.
-- **Échanges avec le soutien / l'assistant :** 【à confirmer】.
+  ou anonymisés dans un délai de 12 mois après la fermeture du compte.
+- **Historique des trajets et réservations :** conservé jusqu'à 3 ans, à des fins
+  de sécurité, de résolution de litiges et d'obligations légales.
+- **Échanges avec le soutien / l'assistant :** conservés jusqu'à 24 mois.
 
 ## 8. Vos droits
 
