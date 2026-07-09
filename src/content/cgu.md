@@ -37,10 +37,9 @@ conducteur s'engage à respecter les règles suivantes :
 - La contribution demandée aux voyageurs vise uniquement à **partager les frais
   d'utilisation du véhicule**, sans générer de profit pour le conducteur.
 - La somme totale demandée à l'ensemble des passagers d'un trajet **ne dépasse pas
-  le plafond légal applicable** (au Québec, 0,54 $/km — à confirmer et à adapter
-  si l'exploitation s'étend à d'autres provinces). La plateforme applique une
-  vérification de ce plafond au moment de la publication, mais le respect final de
-  la loi demeure la responsabilité du conducteur.
+  le plafond légal applicable au Québec**, soit 0,54 $ par kilomètre. La plateforme
+  applique une vérification de ce plafond au moment de la publication, mais le
+  respect final de la loi demeure la responsabilité du conducteur.
 - Le déplacement doit correspondre à un trajet que le conducteur effectuerait de
   toute façon : le transport de passagers est **accessoire** à son déplacement, et
   non le but premier de celui-ci.
@@ -71,6 +70,13 @@ En publiant un trajet, le conducteur déclare et s'engage à :
 - fournir des informations exactes sur le trajet, le véhicule et le nombre de
   places ;
 - respecter le plafond de partage de frais (section 3) ;
+- n'utiliser qu'un véhicule de promenade ou de loisir (à l'exclusion des autobus et
+  minibus), pour un déplacement qu'il effectue pour ses propres fins et dont le
+  transport de passagers demeure accessoire ;
+- respecter les limites de fréquence propres au covoiturage : au plus deux trajets
+  rémunérés par jour (pour un total de moins de 13 heures), ou, sur le territoire
+  d'une même communauté métropolitaine, au plus quatre déplacements totalisant moins
+  de 100 km par jour ;
 - adopter une conduite prudente et respectueuse des règles de circulation.
 
 ## 6. Obligations des voyageurs
