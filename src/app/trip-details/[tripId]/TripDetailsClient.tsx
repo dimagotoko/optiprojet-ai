@@ -449,26 +449,29 @@ const PassengersList = ({
 function ShareButton({
   origin,
   destination,
+  date,
 }: {
   origin: string;
   destination: string;
+  date: string;
 }) {
   const { toast } = useToast();
 
   const handleShare = async () => {
     const url = window.location.href;
     const title = `Covoiturage ${origin} → ${destination}`;
+    const text = `Covoiturage ${origin} → ${destination} le ${date} sur OptiTrajet AI`;
     const nav = navigator as Navigator & {
       share?: (data: ShareData) => Promise<void>;
     };
     if (typeof nav.share === "function") {
       try {
-        await nav.share({ title, url });
+        await nav.share({ title, text, url });
       } catch {
         /* annulé */
       }
     } else {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${text}\n${url}`);
       toast({
         title: "Lien copié !",
         description: "Partagez ce lien avec vos contacts.",
@@ -767,6 +770,9 @@ function TripDetailsPageContent() {
                   <ShareButton
                     origin={trip.origin}
                     destination={trip.destination}
+                    date={format(departureDate, "d MMMM yyyy 'à' HH:mm", {
+                      locale: fr,
+                    })}
                   />
                   <Badge
                     variant="secondary"
