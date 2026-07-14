@@ -1,34 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight, Calendar, Star } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import Link from "next/link";
+import { ArrowRight, Calendar, MapPin, Navigation, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
-import { Button } from "./ui/button";
-import Link from "next/link";
+import { getTripGradient } from "@/lib/trip-gradient";
+import { StarRating } from "@/components/ui/StarRating";
 
-type TripCardProps = {
-  id: string;
-  from: string;
-  to: string;
-  date: string;
-  price: string;
-  onLocationClick?: (type: "departure" | "destination", value: string) => void;
-  // Driver info — all optional; row skeletonises while isDriverLoading, hides when absent
-  driverName?: string;
-  driverPhotoUrl?: string;
-  driverRating?: number;
-  driverTotalRatings?: number;
-  driverIsVerified?: boolean;
-  isDriverLoading?: boolean;
-};
+// "Berri-UQAM, Rue Sainte-Catherine Est, Montréal, QC, Canada" → "Berri-UQAM, Montréal"
+function shortAddress(full: string): string {
+  const parts = full.split(", ").map((s) => s.trim());
+  const filtered = parts.filter((p) => p !== "Canada" && !/^[A-Z]{2}$/.test(p));
+  if (filtered.length <= 1) return filtered[0] ?? full;
+  if (filtered.length === 2) return filtered.join(", ");
+  return `${filtered[0]}, ${filtered[filtered.length - 1]}`;
+}
 
 const formatDriverName = (name: string): string => {
   const parts = name.trim().split(/\s+/);
@@ -42,13 +30,30 @@ const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+type TripCardProps = {
+  id: string;
+  from: string;
+  to: string;
+  date: string; // date + heure formatée
+  price: string;
+  seatsBooked?: number;
+  totalSeats?: number;
+  driverName?: string;
+  driverPhotoUrl?: string;
+  driverRating?: number;
+  driverTotalRatings?: number;
+  driverIsVerified?: boolean;
+  isDriverLoading?: boolean;
+};
+
 export function TripCard({
   id,
   from,
   to,
   date,
   price,
-  onLocationClick,
+  seatsBooked,
+  totalSeats,
   driverName,
   driverPhotoUrl,
   driverRating,
@@ -56,118 +61,133 @@ export function TripCard({
   driverIsVerified,
   isDriverLoading,
 }: TripCardProps) {
-  const toSeed = (s: string) => {
-    if (!s) return 0;
-    return s.split("").reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-  };
-
-  const handleLocationClick = (
-    type: "departure" | "destination",
-    value: string,
-  ) => {
-    if (onLocationClick) {
-      onLocationClick(type, value);
-    }
-  };
-
-  const LocationButton = ({
-    value,
-    type,
-  }: {
-    value: string;
-    type: "departure" | "destination";
-  }) => (
-    <Button
-      variant="link"
-      className="p-0 h-auto text-sm font-semibold text-card-foreground hover:text-primary transition-colors min-w-0 flex-1"
-      onClick={() => handleLocationClick(type, value)}
-      disabled={!onLocationClick}
-      title={value}
-    >
-      <span className="line-clamp-2 break-words">{value}</span>
-    </Button>
-  );
+  const gradient = getTripGradient(to);
+  const fillPercent =
+    totalSeats != null && totalSeats > 0
+      ? Math.min(((seatsBooked ?? 1) / totalSeats) * 100, 100)
+      : 0;
+  const remaining = totalSeats != null ? totalSeats - (seatsBooked ?? 0) : null;
 
   return (
-    <Card className="flex flex-col h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 overflow-hidden">
-      <CardHeader className="p-4 relative">
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-1 font-semibold min-w-0 flex-1">
-            <LocationButton value={from} type="departure" />
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            <LocationButton value={to} type="destination" />
+    <Link href={`/trip-details/${id}`} className="block group">
+      <Card className="flex flex-col h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 overflow-hidden cursor-pointer">
+        {/* ─── Bandeau gradient compact ─── */}
+        <div
+          className="relative h-20 shrink-0 overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`,
+          }}
+        >
+          <div className="absolute inset-0 bg-black/25" />
+          <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-white/10" />
+          <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/10" />
+
+          {/* Itinéraire + prix */}
+          <div className="absolute inset-0 flex items-center justify-between px-3 py-2">
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1 mr-2">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3 w-3 text-white/80 shrink-0" />
+                <span className="text-white font-semibold text-sm truncate leading-tight">
+                  {shortAddress(from)}
+                </span>
+              </div>
+              <span className="pl-1 text-white/50 text-xs leading-none">↓</span>
+              <div className="flex items-center gap-1.5">
+                <Navigation className="h-3 w-3 text-white/80 shrink-0" />
+                <span className="text-white font-semibold text-sm truncate leading-tight">
+                  {shortAddress(to)}
+                </span>
+              </div>
+            </div>
+            <span className="shrink-0 text-white font-bold text-base leading-none bg-black/25 rounded-lg px-2.5 py-1.5">
+              {price}
+            </span>
           </div>
-          <Badge variant="secondary" className="text-sm font-bold shrink-0">
-            {price}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-grow p-4 pt-0 space-y-3">
-        <div className="relative h-48 w-full rounded-lg overflow-hidden group">
-          <Image
-            src={`https://picsum.photos/seed/${toSeed(to)}/600/400`}
-            alt={`Paysage représentant la destination: ${to}`}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            data-ai-hint="landscape"
-          />
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Calendar className="mr-2 h-4 w-4" />
-          <span>{date}</span>
         </div>
 
-        {/* Rangée conducteur */}
-        {isDriverLoading ? (
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-muted animate-pulse shrink-0" />
-            <div className="h-3.5 w-28 rounded bg-muted animate-pulse" />
+        {/* ─── Corps ─── */}
+        <CardContent className="flex flex-col gap-2.5 p-3 flex-grow">
+          {/* Date + heure */}
+          <div className="flex items-center gap-1.5 text-sm font-medium text-cyan-700 dark:text-primary">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <span>{date}</span>
           </div>
-        ) : driverName ? (
-          <div className="flex items-center gap-2 min-w-0">
-            <Avatar className="h-7 w-7 shrink-0">
-              <AvatarImage src={driverPhotoUrl} alt={driverName} />
-              <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
-                {getInitials(driverName)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm text-muted-foreground truncate flex-1">
-              {formatDriverName(driverName)}
-            </span>
-            {(driverTotalRatings ?? 0) > 0 ? (
-              <span className="flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
-                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                <span>{driverRating?.toFixed(1)}</span>
+
+          {/* Barre de remplissage */}
+          {totalSeats != null && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {seatsBooked ?? 0} / {totalSeats} place
+                  {totalSeats !== 1 ? "s" : ""}
+                </span>
+                {remaining != null && (
+                  <span>
+                    {remaining} restante{remaining !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+              <div className="h-1 w-full rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary motion-safe:transition-[width] duration-500"
+                  style={{ width: `${fillPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Conducteur */}
+          {isDriverLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-full bg-muted animate-pulse shrink-0" />
+              <div className="h-3.5 w-28 rounded bg-muted animate-pulse" />
+            </div>
+          ) : driverName ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <Avatar className="h-7 w-7 shrink-0">
+                <AvatarImage src={driverPhotoUrl} alt={driverName} />
+                <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
+                  {getInitials(driverName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-muted-foreground truncate flex-1">
+                {formatDriverName(driverName)}
               </span>
-            ) : (
-              <Badge
-                variant="secondary"
-                className="text-xs px-1.5 py-0 shrink-0 font-normal"
-              >
-                Nouveau
-              </Badge>
-            )}
-            {driverIsVerified && (
-              <Badge
-                variant="outline"
-                className="text-xs px-1.5 py-0 shrink-0 font-normal text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-700"
-              >
-                Vérifié
-              </Badge>
-            )}
+              {(driverTotalRatings ?? 0) > 0 ? (
+                <StarRating
+                  rating={driverRating ?? 0}
+                  totalRatings={driverTotalRatings ?? 0}
+                  size="sm"
+                  className="shrink-0"
+                />
+              ) : (
+                <Badge
+                  variant="secondary"
+                  className="text-xs px-1.5 py-0 shrink-0 font-normal"
+                >
+                  Nouveau
+                </Badge>
+              )}
+              {driverIsVerified && (
+                <Badge
+                  variant="outline"
+                  className="text-xs px-1.5 py-0 shrink-0 font-normal text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-700"
+                >
+                  Vérifié
+                </Badge>
+              )}
+            </div>
+          ) : null}
+
+          {/* Voir détails — indicateur visuel, navigation gérée par le Link parent */}
+          <div className="mt-auto border-t pt-2 flex justify-end">
+            <span className="inline-flex items-center gap-1 text-sm text-primary font-medium group-hover:underline transition-colors">
+              Voir détails <ArrowRight className="h-3.5 w-3.5" />
+            </span>
           </div>
-        ) : null}
-      </CardContent>
-      <CardFooter className="p-4 border-t flex justify-end items-center">
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/trip-details/${id}`}>
-            Voir détails <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

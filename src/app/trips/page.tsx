@@ -48,13 +48,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Trip } from "@/types/db";
 
-const TripCardWrapper = ({
-  trip,
-  onLocationClick,
-}: {
-  trip: Trip;
-  onLocationClick: (type: "departure" | "destination", value: string) => void;
-}) => {
+const TripCardWrapper = ({ trip }: { trip: Trip }) => {
   const firestore = useFirestore();
   const driverRef = useMemoFirebase(
     () => (firestore ? doc(firestore, "users", trip.offeredBy) : null),
@@ -68,9 +62,12 @@ const TripCardWrapper = ({
       id={trip.id}
       from={trip.origin}
       to={trip.destination}
-      date={format(trip.departureTime.toDate(), "d MMM", { locale: fr })}
+      date={format(trip.departureTime.toDate(), "d MMM à HH:mm", {
+        locale: fr,
+      })}
       price={`${trip.pricePerSeat}$`}
-      onLocationClick={onLocationClick}
+      seatsBooked={trip.totalBookings}
+      totalSeats={trip.availableSeats}
       driverName={driver?.name}
       driverPhotoUrl={driver?.profilePictureUrl}
       driverRating={driver?.averageRating}
@@ -319,15 +316,6 @@ function TripsPageContent() {
     return max > 0 ? Math.ceil(max / 5) * 5 : 100; // Round up to nearest 5
   }, [trips]);
 
-  const handleLocationClick = (
-    type: "departure" | "destination",
-    value: string,
-  ) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set(type, value);
-    router.push(`/trips?${params.toString()}`);
-  };
-
   const PAGE_SIZE = 12;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -351,11 +339,7 @@ function TripsPageContent() {
         <div className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {visibleTrips.map((trip) => (
-              <TripCardWrapper
-                key={trip.id}
-                trip={trip}
-                onLocationClick={handleLocationClick}
-              />
+              <TripCardWrapper key={trip.id} trip={trip} />
             ))}
           </div>
           {(hasMore || hasFirestoreMore) && (
@@ -398,11 +382,7 @@ function TripsPageContent() {
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {suggestedMatches.map((trip) => (
-              <TripCardWrapper
-                key={trip.id}
-                trip={trip}
-                onLocationClick={handleLocationClick}
-              />
+              <TripCardWrapper key={trip.id} trip={trip} />
             ))}
           </div>
         </div>
