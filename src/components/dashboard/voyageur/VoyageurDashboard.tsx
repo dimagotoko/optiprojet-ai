@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RatingDialog } from "@/components/rating/RatingDialog";
+import { StarRating } from "@/components/ui/StarRating";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import Link from "next/link";
@@ -88,13 +89,16 @@ const statusConfig = {
 function BookedTripItem({
   booking,
   showWhenPast,
+  userId,
+  onAlreadyRated,
 }: {
   booking: Booking;
   showWhenPast: boolean;
+  userId: string;
+  onAlreadyRated?: (tripId: string) => void;
 }) {
   const firestore = useFirestore();
   const [ratingOpen, setRatingOpen] = React.useState(false);
-  const [hasRated, setHasRated] = React.useState(false);
 
   const tripRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -119,6 +123,45 @@ function BookedTripItem({
     return doc(firestore, "users", trip.offeredBy, "vehicles", trip.vehicleId);
   }, [firestore, trip?.offeredBy, trip?.vehicleId, booking.status]);
   const { data: vehicle } = useDoc<Vehicle>(vehicleRef);
+
+  // Lecture de l'avis que cet utilisateur a déjà donné sur ce trajet (si existant).
+  // L'ID est déterministe : {tripId}_{reviewerId}. Lecture conditionnelle seulement
+  // quand canRate est possible (trajet passé, accepté, conducteur connu).
+  const myReviewRef = useMemoFirebase(() => {
+    if (
+      !firestore ||
+      !userId ||
+      !trip?.offeredBy ||
+      booking.status !== "accepted"
+    )
+      return null;
+    const isPastNow = trip.departureTime.toDate() < new Date();
+    if (!isPastNow) return null;
+    return doc(
+      firestore,
+      "users",
+      trip.offeredBy,
+      "reviews",
+      `${booking.tripId}_${userId}`,
+    );
+  }, [
+    firestore,
+    userId,
+    trip?.offeredBy,
+    booking.tripId,
+    booking.status,
+    trip?.departureTime,
+  ]);
+  const { data: myReview, isLoading: isReviewLoading } = useDoc<{
+    rating: number;
+  }>(myReviewRef);
+
+  // Signale au parent que ce trajet est déjà évalué → décrémente le badge.
+  React.useEffect(() => {
+    if (!isReviewLoading && myReview && onAlreadyRated) {
+      onAlreadyRated(booking.tripId);
+    }
+  }, [isReviewLoading, myReview, booking.tripId, onAlreadyRated]);
 
   const cfg = statusConfig[booking.status] ?? statusConfig.pending;
   const StatusIcon = cfg.icon;
@@ -170,16 +213,25 @@ function BookedTripItem({
                 <StatusIcon className="h-3 w-3" aria-hidden="true" />
                 {cfg.label}
               </Badge>
-              {canRate && !hasRated && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 text-yellow-600 border-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                  onClick={() => setRatingOpen(true)}
-                >
-                  <Star className="h-3.5 w-3.5" aria-hidden="true" /> Évaluer
-                </Button>
-              )}
+              {canRate &&
+                !isReviewLoading &&
+                (myReview ? (
+                  <span className="inline-flex items-center gap-1 text-xs shrink-0">
+                    <span className="text-muted-foreground font-medium">
+                      Votre note
+                    </span>
+                    <StarRating rating={myReview.rating} size="sm" hideCount />
+                  </span>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-yellow-600 border-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                    onClick={() => setRatingOpen(true)}
+                  >
+                    <Star className="h-3.5 w-3.5" aria-hidden="true" /> Évaluer
+                  </Button>
+                ))}
               <Button variant="ghost" size="sm" asChild>
                 <Link href={`/trip-details/${trip.id}`}>Voir</Link>
               </Button>
@@ -273,14 +325,13 @@ function BookedTripItem({
           )}
         </CardContent>
       </Card>
-      {canRate && driver && (
+      {canRate && !myReview && driver && (
         <RatingDialog
           open={ratingOpen}
           onOpenChange={setRatingOpen}
           driverId={trip.offeredBy}
           driverName={driver.name}
           tripId={booking.tripId}
-          onRated={() => setHasRated(true)}
         />
       )}
     </>
@@ -498,15 +549,30 @@ export function VoyageurDashboard({
 
   const { data: bookings, isLoading } = useCollection<Booking>(bookingsQuery);
 
+  // Ensemble des tripId déjà évalués, alimenté par chaque BookedTripItem
+  // quand son useDoc review se résout. Permet au badge de tomber à 0.
+  const [alreadyRatedTripIds, setAlreadyRatedTripIds] = React.useState<
+    Set<string>
+  >(new Set());
+  const handleAlreadyRated = React.useCallback((tripId: string) => {
+    setAlreadyRatedTripIds((prev) => {
+      if (prev.has(tripId)) return prev;
+      const next = new Set(prev);
+      next.add(tripId);
+      return next;
+    });
+  }, []);
+
   const pendingRatingsCount = React.useMemo(() => {
     const now = new Date();
     return (bookings ?? []).filter(
       (b) =>
         b.status === "accepted" &&
         b.departureTime != null &&
-        b.departureTime.toDate() < now,
+        b.departureTime.toDate() < now &&
+        !alreadyRatedTripIds.has(b.tripId),
     ).length;
-  }, [bookings]);
+  }, [bookings, alreadyRatedTripIds]);
 
   return (
     <div className="space-y-6">
@@ -561,7 +627,13 @@ export function VoyageurDashboard({
               </Card>
             ) : (
               bookings.map((b) => (
-                <BookedTripItem key={b.id} booking={b} showWhenPast={false} />
+                <BookedTripItem
+                  key={b.id}
+                  booking={b}
+                  showWhenPast={false}
+                  userId={userId}
+                  onAlreadyRated={handleAlreadyRated}
+                />
               ))
             )}
           </TabsContent>
@@ -578,7 +650,13 @@ export function VoyageurDashboard({
               </Card>
             ) : (
               bookings.map((b) => (
-                <BookedTripItem key={b.id} booking={b} showWhenPast={true} />
+                <BookedTripItem
+                  key={b.id}
+                  booking={b}
+                  showWhenPast={true}
+                  userId={userId}
+                  onAlreadyRated={handleAlreadyRated}
+                />
               ))
             )}
           </TabsContent>

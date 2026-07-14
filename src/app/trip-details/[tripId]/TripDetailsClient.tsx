@@ -48,6 +48,8 @@ import {
   Plus,
   Trash2,
   Minus,
+  ExternalLink,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -95,21 +97,8 @@ import {
 import { RatingDialog } from "@/components/rating/RatingDialog";
 import { ProtocolDialog } from "@/components/ProtocolDialog";
 
-const GRADIENTS = [
-  { from: "#3b82f6", to: "#8b5cf6" },
-  { from: "#10b981", to: "#06b6d4" },
-  { from: "#f59e0b", to: "#ef4444" },
-  { from: "#6366f1", to: "#ec4899" },
-  { from: "#14b8a6", to: "#3b82f6" },
-  { from: "#7c3aed", to: "#db2777" },
-];
-
-function getGradient(seed: string) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++)
-    h = (seed.charCodeAt(i) + ((h << 5) - h)) | 0;
-  return GRADIENTS[Math.abs(h) % GRADIENTS.length];
-}
+import { getTripGradient } from "@/lib/trip-gradient";
+import { StarRating } from "@/components/ui/StarRating";
 
 const toTitleCase = (s: string) =>
   s.replace(
@@ -179,6 +168,29 @@ const BookingRow = ({
   }, [firestore, isOwner, driverUserId]);
   const { data: driverPrivate } =
     useDoc<import("@/types/db").UserProfilePrivate>(driverPrivateRef);
+
+  // Avis que le conducteur a déjà donné sur ce voyageur pour ce trajet.
+  const myTravelerReviewRef = useMemoFirebase(() => {
+    if (!firestore || !isOwner || !driverUserId || !tripIsPast) return null;
+    if (booking.status !== "accepted") return null;
+    return doc(
+      firestore,
+      "users",
+      booking.travelerId,
+      "reviews",
+      `${tripId}_${driverUserId}`,
+    );
+  }, [
+    firestore,
+    isOwner,
+    driverUserId,
+    booking.travelerId,
+    booking.status,
+    tripId,
+    tripIsPast,
+  ]);
+  const { data: myTravelerReview, isLoading: isTravelerReviewLoading } =
+    useDoc<{ rating: number }>(myTravelerReviewRef);
 
   const updateStatus = async (status: "accepted" | "rejected") => {
     if (!firestore) return;
@@ -277,14 +289,13 @@ const BookingRow = ({
 
               {/* Note + ville + places */}
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                {traveler.averageRating != null ? (
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium text-foreground">
-                      {traveler.averageRating.toFixed(1)}
-                    </span>
-                    <span>({traveler.totalRatings ?? 0} avis)</span>
-                  </span>
+                {(traveler.totalRatings ?? 0) > 0 ? (
+                  <StarRating
+                    rating={traveler.averageRating ?? 0}
+                    totalRatings={traveler.totalRatings ?? 0}
+                    size="sm"
+                    showAvisLabel
+                  />
                 ) : (
                   <span>Pas encore évalué</span>
                 )}
@@ -330,15 +341,30 @@ const BookingRow = ({
                 </Button>
               </>
             )}
-            {isOwner && status === "accepted" && tripIsPast && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setRatingOpen(true)}
-              >
-                <Star className="h-4 w-4 mr-1" /> Évaluer
-              </Button>
-            )}
+            {isOwner &&
+              status === "accepted" &&
+              tripIsPast &&
+              !isTravelerReviewLoading &&
+              (myTravelerReview ? (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                  <span className="font-medium text-foreground">
+                    Votre note
+                  </span>
+                  <StarRating
+                    rating={myTravelerReview.rating}
+                    size="sm"
+                    hideCount
+                  />
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRatingOpen(true)}
+                >
+                  <Star className="h-4 w-4 mr-1" /> Évaluer
+                </Button>
+              ))}
           </div>
         </div>
 
@@ -567,6 +593,22 @@ function TripDetailsPageContent() {
   }, [firestore, trip?.vehicleId, trip?.offeredBy]);
   const { data: vehicle } = useDoc<Vehicle>(vehicleRef);
 
+  // Avis que l'utilisateur courant a déjà donné sur ce conducteur pour ce trajet.
+  // Lecture conditionnelle : seulement pour un voyageur non-propriétaire authentifié.
+  const myDriverReviewRef = useMemoFirebase(() => {
+    if (!firestore || !user || !driverId || isOwner) return null;
+    return doc(
+      firestore,
+      "users",
+      driverId,
+      "reviews",
+      `${tripId}_${user.uid}`,
+    );
+  }, [firestore, user?.uid, driverId, tripId, isOwner]);
+  const { data: myDriverReview, isLoading: isDriverReviewLoading } = useDoc<{
+    rating: number;
+  }>(myDriverReviewRef);
+
   const isLoading =
     isUserLoading ||
     isTripLoading ||
@@ -711,7 +753,7 @@ function TripDetailsPageContent() {
   const totalSeats = trip.availableSeats;
   const userBooking = userBookingResult?.[0];
   const isAccepted = userBooking?.status === "accepted";
-  const gradient = getGradient(trip.destination);
+  const gradient = getTripGradient(trip.destination);
   const remainingSeats = totalSeats - reservedSeats;
   const hasAlreadyBooked = userBookingResult
     ? userBookingResult.length > 0
@@ -758,8 +800,39 @@ function TripDetailsPageContent() {
                   </h1>
                 </div>
               </div>
+              {/* Adresses cliquables → Google Maps */}
+              <div className="flex flex-col gap-1 mt-2 mb-1">
+                <a
+                  href={
+                    trip.originCoords
+                      ? `https://www.google.com/maps/search/?api=1&query=${trip.originCoords.lat},${trip.originCoords.lng}`
+                      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.origin)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary underline decoration-dotted"
+                >
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{trip.origin}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 ml-auto" />
+                </a>
+                <a
+                  href={
+                    trip.destinationCoords
+                      ? `https://www.google.com/maps/search/?api=1&query=${trip.destinationCoords.lat},${trip.destinationCoords.lng}`
+                      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary underline decoration-dotted"
+                >
+                  <Navigation className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{trip.destination}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 ml-auto" />
+                </a>
+              </div>
               <div className="flex flex-wrap justify-between items-center gap-2">
-                <div className="flex items-center gap-2 text-sm sm:text-lg text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm sm:text-lg font-medium text-cyan-700 dark:text-primary">
                   <Calendar className="h-5 w-5 shrink-0" />
                   <span>
                     {format(departureDate, "d MMMM yyyy", { locale: fr })} à{" "}
@@ -830,20 +903,24 @@ function TripDetailsPageContent() {
                         )}
                       </div>
                       {!!driver.totalRatings && (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
-                          <span className="font-semibold text-sm">
-                            {driver.averageRating?.toFixed(1)}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            ({driver.totalRatings} avis)
-                          </span>
-                        </div>
+                        <StarRating
+                          rating={driver.averageRating ?? 0}
+                          totalRatings={driver.totalRatings}
+                          size="md"
+                          showAvisLabel
+                          className="mt-0.5"
+                        />
                       )}
                       {driver.city && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                           <MapPin className="h-3.5 w-3.5 shrink-0" />
                           {driver.city}
+                        </p>
+                      )}
+                      {!isOwner && (
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5">
+                          <Lock className="h-3 w-3 shrink-0" />
+                          Coordonnées partagées après réservation
                         </p>
                       )}
                     </div>
@@ -989,15 +1066,29 @@ function TripDetailsPageContent() {
                         </div>
                       );
                     })()}
-                  {isAccepted && tripIsPast && (
+                  {isAccepted && tripIsPast && !isDriverReviewLoading && (
                     <div className="flex justify-end pt-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRatingDriverOpen(true)}
-                      >
-                        <Star className="h-4 w-4 mr-1" /> Évaluer le conducteur
-                      </Button>
+                      {myDriverReview ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">
+                            Votre note
+                          </span>
+                          <StarRating
+                            rating={myDriverReview.rating}
+                            size="sm"
+                            hideCount
+                          />
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setRatingDriverOpen(true)}
+                        >
+                          <Star className="h-4 w-4 mr-1" /> Évaluer le
+                          conducteur
+                        </Button>
+                      )}
                     </div>
                   )}
                   {userBooking?.status === "pending" && (
