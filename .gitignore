@@ -48,3 +48,11 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# AI tooling — non versionnés
+.agents/
+.superpowers/
+.claude/worktrees/
+
+# Fichiers temporaires de test
+test-step1-before-redirect.png
