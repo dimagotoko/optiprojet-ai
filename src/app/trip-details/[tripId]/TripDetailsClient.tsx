@@ -135,6 +135,12 @@ const statusConfig = {
     icon: XCircle,
     className: "text-muted-foreground bg-muted",
   },
+  expired: {
+    label: "Expirée",
+    icon: Clock,
+    className:
+      "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40",
+  },
 };
 
 const BookingRow = ({
@@ -250,7 +256,10 @@ const BookingRow = ({
   };
 
   const status = booking.status ?? "pending";
-  const cfg = statusConfig[status] ?? statusConfig.pending;
+  const isExpired = status === "pending" && tripIsPast;
+  const cfg = isExpired
+    ? statusConfig.expired
+    : (statusConfig[status] ?? statusConfig.pending);
   const StatusIcon = cfg.icon;
 
   if (isLoading) return <Skeleton className="h-20 w-full rounded-md" />;
@@ -319,7 +328,7 @@ const BookingRow = ({
 
           {/* Boutons d'action */}
           <div className="flex gap-2 shrink-0">
-            {isOwner && status === "pending" && (
+            {isOwner && status === "pending" && !tripIsPast && (
               <>
                 <Button
                   size="sm"
@@ -1091,14 +1100,23 @@ function TripDetailsPageContent() {
                       )}
                     </div>
                   )}
-                  {userBooking?.status === "pending" && (
-                    <div className="flex items-center gap-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
-                      <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
-                      <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                        En attente de confirmation du conducteur
-                      </p>
-                    </div>
-                  )}
+                  {userBooking?.status === "pending" &&
+                    (tripIsPast ? (
+                      <div className="flex items-center gap-3 rounded-lg bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 px-4 py-3">
+                        <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" />
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Demande expirée — le trajet est passé sans réponse du
+                          conducteur
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
+                        <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                        <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                          En attente de confirmation du conducteur
+                        </p>
+                      </div>
+                    ))}
                   {userBooking?.status === "rejected" && (
                     <div className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
                       <XCircle className="h-4 w-4 text-red-500 shrink-0" />
@@ -1310,7 +1328,7 @@ function TripDetailsPageContent() {
                 ) : userBooking?.status === "pending" ? (
                   <Button className="w-full" disabled variant="outline">
                     <Clock className="h-4 w-4 mr-2" />
-                    En attente…
+                    {tripIsPast ? "Expirée" : "En attente…"}
                   </Button>
                 ) : isSoldOut ? (
                   <Button className="w-full" disabled>
@@ -1383,7 +1401,7 @@ function TripDetailsPageContent() {
           ) : userBooking?.status === "pending" ? (
             <Button className="w-full" size="lg" disabled variant="outline">
               <Clock className="h-4 w-4 mr-2" />
-              En attente…
+              {tripIsPast ? "Expirée" : "En attente…"}
             </Button>
           ) : isSoldOut ? (
             <Button className="w-full" size="lg" disabled>

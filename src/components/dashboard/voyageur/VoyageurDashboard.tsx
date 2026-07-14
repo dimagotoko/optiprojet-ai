@@ -84,6 +84,12 @@ const statusConfig = {
     icon: XCircle,
     className: "bg-muted text-muted-foreground border-muted",
   },
+  expired: {
+    label: "Expirée",
+    icon: Clock,
+    className:
+      "bg-slate-100 text-slate-500 dark:bg-slate-800/40 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+  },
 };
 
 function BookedTripItem({
@@ -163,18 +169,20 @@ function BookedTripItem({
     }
   }, [isReviewLoading, myReview, booking.tripId, onAlreadyRated]);
 
-  const cfg = statusConfig[booking.status] ?? statusConfig.pending;
-  const StatusIcon = cfg.icon;
-
   if (isLoading) return <Skeleton className="h-20 w-full rounded-lg" />;
   if (!trip) return null;
 
   const date = trip.departureTime.toDate();
   const isPast = date < new Date();
+  const isExpired = booking.status === "pending" && isPast;
   // Renvoie null si ce booking n'appartient pas à l'onglet demandé.
   // Gère les anciens bookings sans departureTime dénormalisé.
   if (isPast !== showWhenPast) return null;
   const canRate = booking.status === "accepted" && isPast && trip.offeredBy;
+  const cfg = isExpired
+    ? statusConfig.expired
+    : (statusConfig[booking.status] ?? statusConfig.pending);
+  const StatusIcon = cfg.icon;
 
   return (
     <>
