@@ -99,6 +99,7 @@ import { ProtocolDialog } from "@/components/ProtocolDialog";
 
 import { getTripGradient } from "@/lib/trip-gradient";
 import { StarRating } from "@/components/ui/StarRating";
+import { shortAddress } from "@/lib/address";
 
 const toTitleCase = (s: string) =>
   s.replace(
@@ -790,7 +791,7 @@ function TripDetailsPageContent() {
       </div>
       <div className="container py-12 px-4 md:px-6 max-md:pb-28">
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="md:col-span-2 space-y-8">
+          <div className="md:col-span-2 space-y-8 min-w-0">
             <div>
               {/* Bannière gradient — zéro requête réseau, couleur déterministe */}
               <div
@@ -805,7 +806,8 @@ function TripDetailsPageContent() {
                 <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-white/10" />
                 <div className="absolute inset-0 flex flex-col justify-end p-5">
                   <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">
-                    {trip.origin} → {trip.destination}
+                    {shortAddress(trip.origin)} →{" "}
+                    {shortAddress(trip.destination)}
                   </h1>
                 </div>
               </div>
@@ -819,10 +821,10 @@ function TripDetailsPageContent() {
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary underline decoration-dotted"
+                  className="flex min-w-0 overflow-hidden items-center gap-1.5 text-sm text-muted-foreground hover:text-primary underline decoration-dotted"
                 >
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{trip.origin}</span>
+                  <span className="truncate min-w-0">{trip.origin}</span>
                   <ExternalLink className="h-3 w-3 shrink-0 ml-auto" />
                 </a>
                 <a
@@ -833,10 +835,10 @@ function TripDetailsPageContent() {
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary underline decoration-dotted"
+                  className="flex min-w-0 overflow-hidden items-center gap-1.5 text-sm text-muted-foreground hover:text-primary underline decoration-dotted"
                 >
                   <Navigation className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{trip.destination}</span>
+                  <span className="truncate min-w-0">{trip.destination}</span>
                   <ExternalLink className="h-3 w-3 shrink-0 ml-auto" />
                 </a>
               </div>

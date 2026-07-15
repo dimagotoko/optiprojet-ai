@@ -16,7 +16,7 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} OptiTrajet AI. Tous droits réservés.
           </p>
-          <nav className="flex items-center gap-6 text-sm text-muted-foreground">
+          <nav className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 md:gap-6 text-sm text-muted-foreground">
             <Link
               href="/trips"
               className="hover:text-foreground transition-colors"

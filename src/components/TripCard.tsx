@@ -8,15 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getTripGradient } from "@/lib/trip-gradient";
 import { StarRating } from "@/components/ui/StarRating";
-
-// "Berri-UQAM, Rue Sainte-Catherine Est, Montréal, QC, Canada" → "Berri-UQAM, Montréal"
-function shortAddress(full: string): string {
-  const parts = full.split(", ").map((s) => s.trim());
-  const filtered = parts.filter((p) => p !== "Canada" && !/^[A-Z]{2}$/.test(p));
-  if (filtered.length <= 1) return filtered[0] ?? full;
-  if (filtered.length === 2) return filtered.join(", ");
-  return `${filtered[0]}, ${filtered[filtered.length - 1]}`;
-}
+import { shortAddress } from "@/lib/address";
 
 const formatDriverName = (name: string): string => {
   const parts = name.trim().split(/\s+/);
