@@ -45,6 +45,7 @@ export function Header() {
   const [userRole, setUserRole] = React.useState<string | null>(null);
   const { isAdmin } = useAdmin();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -243,7 +244,7 @@ export function Header() {
           </nav>
         </div>
 
-        <Sheet>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
@@ -251,7 +252,11 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0">
-            <Link href="/" className="mr-6 flex items-center space-x-2">
+            <Link
+              href="/"
+              className="mr-6 flex items-center space-x-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
               <Logo className="h-6 w-6 text-primary" />
               <span className="font-bold">KamGo</span>
             </Link>
@@ -261,17 +266,26 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   className="text-sm font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   {link.label}
                 </Link>
               ))}
               {user && userRole === "transporteur" && (
-                <Link href="/post-trip" className="text-sm font-medium">
+                <Link
+                  href="/post-trip"
+                  className="text-sm font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Proposer un trajet
                 </Link>
               )}
               {isAdmin && (
-                <Link href="/admin" className="text-sm font-medium">
+                <Link
+                  href="/admin"
+                  className="text-sm font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Admin
                 </Link>
               )}
