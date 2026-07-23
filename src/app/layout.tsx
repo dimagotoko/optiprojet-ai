@@ -15,8 +15,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: {
-    default: "OptiTrajet AI — Covoiturage québécois intelligent",
-    template: "%s | OptiTrajet AI",
+    default: "KamGo — Covoiturage intelligent",
+    template: "%s | KamGo",
   },
   description:
     "Trouvez votre covoiturage idéal au Québec, optimisé par l'IA pour des trajets plus intelligents, économiques et conviviaux.",
@@ -31,14 +31,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "fr_CA",
-    siteName: "OptiTrajet AI",
-    title: "OptiTrajet AI — Covoiturage québécois intelligent",
+    siteName: "KamGo",
+    title: "KamGo — Covoiturage intelligent",
     description:
       "Trouvez votre covoiturage idéal au Québec, optimisé par l'IA.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OptiTrajet AI",
+    title: "KamGo",
     description: "Covoiturage québécois optimisé par l'IA",
   },
 };

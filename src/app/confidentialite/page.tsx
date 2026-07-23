@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Politique de confidentialité — OptiTrajet AI",
+  title: "Politique de confidentialité — KamGo",
 };
 
 export default function ConfidentialitePage() {

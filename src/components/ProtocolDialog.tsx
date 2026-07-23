@@ -126,8 +126,8 @@ export function ProtocolDialog({
                 className="text-sm leading-snug cursor-pointer font-normal"
               >
                 {role === "transporteur"
-                  ? "J'ai lu et j'accepte le protocole des transporteurs OptiTrajet AI"
-                  : "J'ai lu et j'accepte le protocole des voyageurs OptiTrajet AI"}
+                  ? "J'ai lu et j'accepte le protocole des transporteurs KamGo"
+                  : "J'ai lu et j'accepte le protocole des voyageurs KamGo"}
               </Label>
             </div>
             <DialogFooter>

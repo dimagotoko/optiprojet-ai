@@ -213,7 +213,7 @@ export default function AdminPage() {
         <div className="container py-12 px-4 md:px-6 space-y-12">
             <header className="flex flex-col gap-2">
                 <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Portail Admin</h1>
-                <p className="text-muted-foreground text-sm sm:text-lg">Supervision des activités de la plateforme OptiTrajet AI.</p>
+                <p className="text-muted-foreground text-sm sm:text-lg">Supervision des activités de la plateforme KamGo.</p>
             </header>
             
             <div className="grid gap-8">

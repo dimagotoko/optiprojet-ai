@@ -159,7 +159,7 @@ function ForgotPasswordPageInternal() {
               <Logo className="h-5 w-5" aria-hidden="true" />
             </div>
             <span className="font-extrabold text-lg text-slate-900 tracking-tight">
-              OptiTrajet
+              KamGo
             </span>
           </div>
           <p className="text-xs text-slate-400 italic">

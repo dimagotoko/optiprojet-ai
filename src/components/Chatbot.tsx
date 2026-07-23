@@ -148,7 +148,7 @@ export function Chatbot({ onSearch }: ChatbotProps) {
               <MessageSquare />
             </AvatarFallback>
           </Avatar>
-          <CardTitle className="text-lg">Assistant OptiTrajet</CardTitle>
+          <CardTitle className="text-lg">Assistant KamGo</CardTitle>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
           <X className="h-5 w-5" />

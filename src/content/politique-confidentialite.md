@@ -1,4 +1,4 @@
-# Politique de confidentialité — OptiTrajet AI
+# Politique de confidentialité — KamGo
 
 **Dernière mise à jour :** 1er juillet 2026
 **Responsable du traitement :** OPTI PLUS
@@ -7,12 +7,12 @@
 
 ## 1. Qui nous sommes
 
-OptiTrajet AI est une plateforme de **covoiturage** exploitée au Québec par
+KamGo est une plateforme de **covoiturage** exploitée au Québec par
 **OPTI PLUS** (« nous », « notre plateforme »). Elle met en relation des personnes
 qui offrent des places dans leur véhicule (« conducteurs ») et des personnes qui
 souhaitent partager un trajet (« voyageurs »).
 
-**Important :** OptiTrajet AI ne traite aucun paiement. Les contributions
+**Important :** KamGo ne traite aucun paiement. Les contributions
 financières sont réglées **directement entre le conducteur et les voyageurs**
 (argent comptant, virement Interac, etc.). Nous ne collectons ni ne conservons
 aucune donnée bancaire ou de carte de crédit.
@@ -151,7 +151,7 @@ aussi être modifiés ou supprimés directement depuis votre profil.
 
 ## 9. Consentement
 
-En créant un compte et en utilisant OptiTrajet AI, vous consentez à la collecte, à
+En créant un compte et en utilisant KamGo, vous consentez à la collecte, à
 l'utilisation et à la communication de vos renseignements aux fins décrites dans
 la présente politique. Vous pouvez retirer votre consentement en tout temps ; cela
 peut toutefois vous empêcher de continuer à utiliser certaines fonctions du
@@ -173,7 +173,7 @@ l'information du Québec**, conformément à la loi.
 
 ## 12. Réservé aux personnes de 18 ans et plus
 
-OptiTrajet AI s'adresse aux personnes **âgées de 18 ans ou plus**. Nous ne
+KamGo s'adresse aux personnes **âgées de 18 ans ou plus**. Nous ne
 recueillons pas sciemment de renseignements concernant des personnes mineures. Si
 vous croyez qu'un mineur nous a fourni des renseignements, contactez le
 responsable à la section 2.
