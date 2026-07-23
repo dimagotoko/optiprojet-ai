@@ -43,7 +43,7 @@ export default function Home() {
       icon: <Users className="h-8 w-8 text-primary" />,
       title: "Réservez votre place",
       description:
-        "Payez en toute sécurité via notre plateforme et confirmez votre réservation.",
+        "Réservez votre place en quelques clics. Le paiement est réglé directement avec le conducteur selon le mode qu'il a choisi (comptant, Interac ou les deux).",
     },
     {
       icon: <CalendarDays className="h-8 w-8 text-primary" />,
