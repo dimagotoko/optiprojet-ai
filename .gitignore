@@ -3,6 +3,7 @@
 # Credentials — ne jamais commiter
 scripts/serviceAccountKey.json
 **/serviceAccountKey.json
+service-account.json
 
 # dependencies
 /node_modules

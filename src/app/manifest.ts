@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "KamGo",
     short_name: "KamGo",
-    description: "Covoiturage québécois optimisé par l'IA",
+    description: "Covoiturage optimisé par l'IA",
     start_url: "/",
     display: "standalone",
     theme_color: "#53C8DF",

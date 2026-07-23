@@ -50,7 +50,10 @@ export default function DashboardPage() {
     if (!auth?.currentUser || bannerCooldown > 0) return;
     setBannerResendError(null);
     try {
-      await sendEmailVerification(auth.currentUser);
+      await sendEmailVerification(auth.currentUser, {
+        url: `${window.location.origin}/dashboard`,
+        handleCodeInApp: false,
+      });
       setBannerCooldown(60);
     } catch {
       setBannerResendError("Impossible d'envoyer. Réessayez plus tard.");

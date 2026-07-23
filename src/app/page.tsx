@@ -98,7 +98,7 @@ export default function Home() {
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline text-foreground">
               Trouvez votre covoiturage idéal
             </h1>
-            <p className="mt-4 max-w-2xl text-lg text-muted-foreground sm:text-xl">
+            <p className="mt-4 max-w-2xl text-lg sm:text-xl font-semibold bg-gradient-to-r from-cyan-400 to-sky-300 bg-clip-text text-transparent">
               Optimisé par l'IA pour des trajets plus intelligents, économiques
               et conviviaux.
             </p>
