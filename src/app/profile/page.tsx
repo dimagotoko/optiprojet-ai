@@ -543,8 +543,8 @@ function ProfilePageInternal() {
                             className="font-normal cursor-pointer text-sm leading-snug"
                           >
                             {watchedUserType === "transporteur"
-                              ? "J'ai lu et j'accepte le protocole des transporteurs OptiTrajet AI"
-                              : "J'ai lu et j'accepte le protocole des voyageurs OptiTrajet AI"}
+                              ? "J'ai lu et j'accepte le protocole des transporteurs KamGo"
+                              : "J'ai lu et j'accepte le protocole des voyageurs KamGo"}
                           </FormLabel>
                         </FormItem>
                       )}

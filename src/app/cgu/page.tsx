@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Conditions d'utilisation — OptiTrajet AI",
+  title: "Conditions d'utilisation — KamGo",
 };
 
 export default function CguPage() {

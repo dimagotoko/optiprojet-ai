@@ -5,14 +5,14 @@ _Dernière mise à jour : juillet 2026_
 ## 1. Objet
 
 Les présentes conditions générales d'utilisation (les « CGU ») régissent l'accès
-et l'utilisation de la plateforme **OptiTrajet AI** (la « plateforme »), éditée par
+et l'utilisation de la plateforme **KamGo** (la « plateforme »), éditée par
 **OPTI PLUS** (« nous »). En créant un compte ou en utilisant la plateforme, vous
 acceptez sans réserve les présentes CGU. Si vous n'y consentez pas, vous ne devez
 pas utiliser la plateforme.
 
-## 2. Ce qu'est OptiTrajet AI — et ce qu'elle n'est pas
+## 2. Ce qu'est KamGo — et ce qu'elle n'est pas
 
-OptiTrajet AI est un **service de mise en relation** entre des personnes qui
+KamGo est un **service de mise en relation** entre des personnes qui
 offrent des places dans leur véhicule (« conducteurs ») et des personnes qui
 souhaitent partager ce trajet (« voyageurs »), dans une logique de **covoiturage**.
 

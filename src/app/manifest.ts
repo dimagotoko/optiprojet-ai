@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "OptiTrajet AI",
-    short_name: "OptiTrajet",
+    name: "KamGo",
+    short_name: "KamGo",
     description: "Covoiturage québécois optimisé par l'IA",
     start_url: "/",
     display: "standalone",

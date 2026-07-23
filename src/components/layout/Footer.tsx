@@ -11,10 +11,10 @@ export function Footer() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <Logo className="h-6 w-6 text-primary" />
-            <span className="text-sm font-semibold">OptiTrajet AI</span>
+            <span className="text-sm font-semibold">KamGo</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} OptiTrajet AI. Tous droits réservés.
+            © {new Date().getFullYear()} KamGo. Tous droits réservés.
           </p>
           <nav className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 md:gap-6 text-sm text-muted-foreground">
             <Link

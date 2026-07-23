@@ -130,7 +130,7 @@ export default function Home() {
                 Comment ça marche ?
               </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Rejoignez la communauté OptiTrajet en quatre étapes simples.
+                Rejoignez la communauté KamGo en quatre étapes simples.
               </p>
             </div>
           </div>

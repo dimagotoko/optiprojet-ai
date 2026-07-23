@@ -94,7 +94,7 @@ export default function OnboardingPage() {
       {/* Logo */}
       <div className="mb-8 flex items-center gap-2">
         <Logo className="h-7 w-7 text-primary" />
-        <span className="text-lg font-bold">OptiTrajet AI</span>
+        <span className="text-lg font-bold">KamGo</span>
       </div>
 
       {/* Progress */}

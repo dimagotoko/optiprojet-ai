@@ -496,7 +496,7 @@ function ShareButton({
   const handleShare = async () => {
     const url = window.location.href;
     const title = `Covoiturage ${origin} → ${destination}`;
-    const text = `Covoiturage ${origin} → ${destination} le ${date} sur OptiTrajet AI`;
+    const text = `Covoiturage ${origin} → ${destination} le ${date} sur KamGo`;
     const nav = navigator as Navigator & {
       share?: (data: ShareData) => Promise<void>;
     };

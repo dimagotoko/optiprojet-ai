@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const name: string = user.name ?? "Conducteur";
     const title = `${name} — Conducteur`;
 
-    let description = `Profil de ${name} sur OptiTrajet AI`;
+    let description = `Profil de ${name} sur KamGo`;
     if (user.city) description += `, basé à ${user.city}`;
     if (user.totalRatings > 0 && user.averageRating != null) {
       description += `. Note : ${(user.averageRating as number).toFixed(1)}/5`;
