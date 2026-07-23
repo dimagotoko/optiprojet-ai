@@ -14,6 +14,7 @@ import { LoadingLogo } from "@/components/LoadingLogo";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kamgo.ca"),
   title: {
     default: "KamGo — Covoiturage intelligent",
     template: "%s | KamGo",
