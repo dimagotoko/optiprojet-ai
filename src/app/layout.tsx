@@ -20,14 +20,14 @@ export const metadata: Metadata = {
     template: "%s | KamGo",
   },
   description:
-    "Trouvez votre covoiturage idéal au Québec, optimisé par l'IA pour des trajets plus intelligents, économiques et conviviaux.",
+    "Trouvez votre covoiturage idéal partout au Canada, optimisé par l'IA pour des trajets plus intelligents, économiques et conviviaux.",
   keywords: [
     "covoiturage",
-    "québec",
+    "canada",
     "trajet partagé",
     "transport",
     "IA",
-    "covoiturage québec",
+    "covoiturage canada",
   ],
   openGraph: {
     type: "website",
@@ -35,12 +35,12 @@ export const metadata: Metadata = {
     siteName: "KamGo",
     title: "KamGo — Covoiturage intelligent",
     description:
-      "Trouvez votre covoiturage idéal au Québec, optimisé par l'IA.",
+      "Trouvez votre covoiturage idéal partout au Canada, optimisé par l'IA.",
   },
   twitter: {
     card: "summary_large_image",
     title: "KamGo",
-    description: "Covoiturage québécois optimisé par l'IA",
+    description: "Covoiturage intelligent optimisé par l'IA",
   },
 };
 
