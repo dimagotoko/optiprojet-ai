@@ -12,6 +12,7 @@ import { updateProfile } from "firebase/auth";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { signProtocol } from "@/lib/protocol";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -147,7 +146,7 @@ function ProfilePageInternal() {
   });
 
   const {
-    formState: { isSubmitting, isDirty },
+    formState: { isSubmitting },
   } = form;
   const watchedUserType = form.watch("userType");
 
@@ -291,6 +290,13 @@ function ProfilePageInternal() {
     return null;
   }
 
+  const avatarFallback =
+    (form.watch("fullName") || user.displayName || "")
+      .split(" ")
+      .map((n) => n.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join("") || "U";
+
   return (
     <div className="container py-12 px-4 md:px-6">
       <Form {...form}>
@@ -307,8 +313,8 @@ function ProfilePageInternal() {
                     }
                     alt={user.displayName || "Avatar"}
                   />
-                  <AvatarFallback>
-                    {user.displayName?.charAt(0).toUpperCase() || "U"}
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xl">
+                    {avatarFallback}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -320,251 +326,271 @@ function ProfilePageInternal() {
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              {/* Nom */}
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom complet</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Photo */}
-              <FormField
-                control={form.control}
-                name="profilePictureUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL de la photo de profil</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="https://example.com/photo.jpg"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Email + Téléphone */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="votre@email.com" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Téléphone</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          {...field}
-                          placeholder="+1 514 000 0000"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Ville + Code postal */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ville</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="postalCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code Postal</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Type de compte */}
-              <FormField
-                control={form.control}
-                name="userType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Je suis un…</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="flex gap-4 pt-2"
-                      >
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <RadioGroupItem value="voyageur" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Voyageur
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <RadioGroupItem value="transporteur" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Transporteur
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Permis de conduire — transporteur uniquement */}
-              {watchedUserType === "transporteur" && (
-                <FormField
-                  control={form.control}
-                  name="driverLicense"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Numéro de permis de conduire</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Ex. A12-345-678-9" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <Separator />
-
-              {/* Protocole d'accord */}
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Protocole d'utilisation
-                </h3>
-
-                {existingProtocolSignedAt ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-green-400">
-                      <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                      Accepté le{" "}
-                      {format(
-                        existingProtocolSignedAt.toDate(),
-                        "d MMMM yyyy",
-                        {
-                          locale: fr,
-                        },
-                      )}
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto px-0 py-0 text-xs text-muted-foreground underline-offset-2 hover:underline hover:bg-transparent"
-                        >
-                          <FileText
-                            className="h-3 w-3 mr-1"
-                            aria-hidden="true"
+            <CardContent className="space-y-4">
+              {/* Identité */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Identité
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <FormField
+                    control={form.control}
+                    name="profilePictureUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Photo de profil</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="https://example.com/photo.jpg"
                           />
-                          Revoir le protocole
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
-                            <Shield
-                              className="h-4 w-4 text-primary"
-                              aria-hidden="true"
-                            />
-                            Protocole d&apos;utilisation
-                          </DialogTitle>
-                        </DialogHeader>
-                        <ProtocolText role={watchedUserType} />
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                ) : (
-                  <>
-                    <ProtocolText role={watchedUserType} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom complet</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
+              {/* Coordonnées */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Coordonnées
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="protocolAccepted"
+                      name="email"
                       render={({ field }) => (
-                        <FormItem className="flex items-start gap-3 space-y-0 pt-1">
+                        <FormItem>
+                          <FormLabel>Courriel</FormLabel>
                           <FormControl>
-                            <Checkbox
-                              id="protocol-accepted"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Input {...field} placeholder="votre@email.com" />
                           </FormControl>
-                          <FormLabel
-                            htmlFor="protocol-accepted"
-                            className="font-normal cursor-pointer text-sm leading-snug"
-                          >
-                            {watchedUserType === "transporteur"
-                              ? "J'ai lu et j'accepte le protocole des transporteurs KamGo"
-                              : "J'ai lu et j'accepte le protocole des voyageurs KamGo"}
-                          </FormLabel>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </>
-                )}
-              </div>
+                    <FormField
+                      control={form.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Téléphone</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              {...field}
+                              placeholder="+1 514 000 0000"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ville</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="postalCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Code postal</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Rôle */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">Rôle</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <FormField
+                    control={form.control}
+                    name="userType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Je suis un…</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-3 pt-1">
+                            {(["voyageur", "transporteur"] as const).map(
+                              (val) => (
+                                <div
+                                  key={val}
+                                  onClick={() => field.onChange(val)}
+                                  className={cn(
+                                    "flex items-center justify-center rounded-lg border px-4 py-3 text-sm font-medium cursor-pointer transition-colors",
+                                    field.value === val
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-white/[0.06] text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                                  )}
+                                >
+                                  {val === "voyageur"
+                                    ? "Voyageur"
+                                    : "Transporteur"}
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {watchedUserType === "transporteur" && (
+                    <FormField
+                      control={form.control}
+                      name="driverLicense"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Numéro de permis de conduire</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Ex. A12-345-678-9" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Protocole d'utilisation */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary flex items-center gap-2">
+                    <Shield className="h-4 w-4" aria-hidden="true" />
+                    Protocole d&apos;utilisation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {existingProtocolSignedAt ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-success">
+                        <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                        Accepté le{" "}
+                        {format(
+                          existingProtocolSignedAt.toDate(),
+                          "d MMMM yyyy",
+                          { locale: fr },
+                        )}
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto px-0 py-0 text-xs text-muted-foreground underline-offset-2 hover:underline hover:bg-transparent"
+                          >
+                            <FileText
+                              className="h-3 w-3 mr-1"
+                              aria-hidden="true"
+                            />
+                            Revoir le protocole
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Shield
+                                className="h-4 w-4 text-primary"
+                                aria-hidden="true"
+                              />
+                              Protocole d&apos;utilisation
+                            </DialogTitle>
+                          </DialogHeader>
+                          <ProtocolText role={watchedUserType} />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  ) : (
+                    <>
+                      <ProtocolText role={watchedUserType} />
+                      <FormField
+                        control={form.control}
+                        name="protocolAccepted"
+                        render={({ field }) => (
+                          <FormItem className="flex items-start gap-3 space-y-0 pt-3">
+                            <FormControl>
+                              <Checkbox
+                                id="protocol-accepted"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel
+                              htmlFor="protocol-accepted"
+                              className="font-normal cursor-pointer text-sm leading-snug"
+                            >
+                              {watchedUserType === "transporteur"
+                                ? "J'ai lu et j'accepte le protocole des transporteurs KamGo"
+                                : "J'ai lu et j'accepte le protocole des voyageurs KamGo"}
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </CardContent>
 
             <CardFooter className="border-t px-6 py-4">
-              <div className="flex flex-wrap justify-between items-center w-full gap-3">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center w-full gap-3">
                 <Button
                   type="button"
                   variant="outline"
                   disabled={isSubmitting}
                   onClick={handleCancel}
+                  className="w-full sm:w-auto"
                 >
                   Annuler les modifications
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
                   {isSubmitting && <LoadingLogo className="mr-2 h-4 w-4" />}
                   {initialData ? "Mettre à jour le profil" : "Créer mon profil"}
                 </Button>
