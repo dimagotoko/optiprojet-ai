@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useFirestore } from "@/firebase";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import type { Timestamp } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
@@ -102,11 +103,6 @@ const profileSchema = z.object({
   phoneNumber: z.string().min(10, "Le numéro de téléphone est requis."),
   city: z.string().min(1, "La ville est requise."),
   postalCode: z.string().min(1, "Le code postal est requis."),
-  profilePictureUrl: z
-    .string()
-    .url("Veuillez entrer une URL valide.")
-    .optional()
-    .or(z.literal("")),
   userType: z.enum(["voyageur", "transporteur"]),
   driverLicense: z.string().optional(),
   protocolAccepted: z.boolean(),
@@ -128,6 +124,7 @@ function ProfilePageInternal() {
     React.useState<ProfileFormValues | null>(null);
   const [existingProtocolSignedAt, setExistingProtocolSignedAt] =
     React.useState<Timestamp | null>(null);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = React.useState<string>("");
   const isNewProfileRef = React.useRef(false);
 
   const form = useForm<ProfileFormValues>({
@@ -138,7 +135,6 @@ function ProfilePageInternal() {
       phoneNumber: "",
       city: "",
       postalCode: "",
-      profilePictureUrl: "",
       userType: "voyageur",
       driverLicense: "",
       protocolAccepted: false,
@@ -178,13 +174,13 @@ function ProfilePageInternal() {
         const signedAt = priv.protocolSignedAt as Timestamp | undefined;
         setExistingProtocolSignedAt(signedAt ?? null);
 
+        setCurrentPhotoUrl(pub.profilePictureUrl || user.photoURL || "");
         form.reset({
           fullName: pub.name || user.displayName || "",
           email: priv.email || user.email || "",
           phoneNumber: priv.phoneNumber || "",
           city: pub.city || "",
           postalCode: priv.postalCode || "",
-          profilePictureUrl: pub.profilePictureUrl || user.photoURL || "",
           userType: (pub.role as "voyageur" | "transporteur") || "voyageur",
           driverLicense: priv.driverLicense || "",
           protocolAccepted: !!signedAt,
@@ -224,7 +220,6 @@ function ProfilePageInternal() {
             id: user.uid,
             name: values.fullName,
             city: values.city,
-            profilePictureUrl: values.profilePictureUrl,
             role: values.userType,
           },
           { merge: true },
@@ -254,14 +249,8 @@ function ProfilePageInternal() {
         );
       }
 
-      if (
-        user.displayName !== values.fullName ||
-        user.photoURL !== values.profilePictureUrl
-      ) {
-        await updateProfile(user, {
-          displayName: values.fullName,
-          photoURL: values.profilePictureUrl || undefined,
-        });
+      if (user.displayName !== values.fullName) {
+        await updateProfile(user, { displayName: values.fullName });
       }
 
       toast({
@@ -306,11 +295,7 @@ function ProfilePageInternal() {
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage
-                    src={
-                      form.watch("profilePictureUrl") ||
-                      user.photoURL ||
-                      undefined
-                    }
+                    src={currentPhotoUrl || undefined}
                     alt={user.displayName || "Avatar"}
                   />
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xl">
@@ -337,22 +322,6 @@ function ProfilePageInternal() {
                 <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
-                    name="profilePictureUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Photo de profil</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="https://example.com/photo.jpg"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
@@ -364,6 +333,20 @@ function ProfilePageInternal() {
                       </FormItem>
                     )}
                   />
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium leading-none">
+                      Photo de profil
+                    </p>
+                    <AvatarUpload
+                      uid={user.uid}
+                      currentUrl={currentPhotoUrl}
+                      displayName={
+                        form.watch("fullName") || user.displayName || ""
+                      }
+                      onUploadComplete={(url) => setCurrentPhotoUrl(url)}
+                      onRemove={() => setCurrentPhotoUrl("")}
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
