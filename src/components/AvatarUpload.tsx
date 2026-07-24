@@ -158,17 +158,24 @@ export function AvatarUpload({
         contentType: "image/webp",
       });
 
-      await new Promise<void>((resolve, reject) => {
-        task.on(
-          "state_changed",
-          (snap) =>
-            setProgress(
-              Math.round((snap.bytesTransferred / snap.totalBytes) * 100),
-            ),
-          reject,
-          resolve,
-        );
-      });
+      const uploadTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 60000),
+      );
+
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          task.on(
+            "state_changed",
+            (snap) =>
+              setProgress(
+                Math.round((snap.bytesTransferred / snap.totalBytes) * 100),
+              ),
+            reject,
+            resolve,
+          );
+        }),
+        uploadTimeout,
+      ]);
 
       const url = await getDownloadURL(avatarRef);
       await setDoc(
@@ -180,9 +187,13 @@ export function AvatarUpload({
 
       setStatus("done");
       onUploadComplete(url);
-    } catch {
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.message === "timeout";
+      console.error("[AvatarUpload] upload error:", err);
       setErrorMessage(
-        "Une erreur est survenue lors de l'envoi. Veuillez réessayer.",
+        isTimeout
+          ? "L'envoi a expiré. Vérifiez votre connexion et que Firebase Storage est activé."
+          : "Une erreur est survenue lors de l'envoi. Veuillez réessayer.",
       );
       setStatus("error");
     }
