@@ -9,10 +9,10 @@ import { z } from "zod";
 import { vehicleSchema, type VehicleFormValues } from "@/lib/vehicle-schema";
 import {
   ArrowLeft,
-  Calendar as CalendarIcon,
   Users,
   Clock,
   DollarSign,
+  Minus,
   Plus,
   Luggage,
   Briefcase,
@@ -24,14 +24,10 @@ import {
 import { Slider } from "@/components/ui/slider";
 
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Card,
   CardContent,
@@ -689,216 +685,110 @@ export default function PostTripPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Trip Details */}
+              {/* ITINÉRAIRE */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">Détails du trajet</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Itinéraire
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={tripForm.control}
-                      name="departure"
-                      render={({ field }) => (
-                        <FormItem className="grid gap-2">
-                          <FormLabel>Départ</FormLabel>
-                          <FormControl>
-                            <AddressInput
-                              id="departure"
-                              placeholder="Adresse de départ"
-                              onAddressSelect={field.onChange}
-                              defaultValue={field.value?.description}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={tripForm.control}
-                      name="destination"
-                      render={({ field }) => (
-                        <FormItem className="grid gap-2">
-                          <FormLabel>Destination</FormLabel>
-                          <FormControl>
-                            <AddressInput
-                              id="destination"
-                              placeholder="Adresse de destination"
-                              onAddressSelect={field.onChange}
-                              defaultValue={field.value?.description}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={tripForm.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem className="grid gap-2">
-                          <FormLabel>Date du trajet</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal h-11",
-                                    !field.value && "text-muted-foreground",
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? (
-                                    format(field.value, "d MMMM yyyy", {
-                                      locale: fr,
-                                    })
-                                  ) : (
-                                    <span>Choisissez une date</span>
-                                  )}
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date <
-                                  new Date(new Date().setHours(0, 0, 0, 0))
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={tripForm.control}
-                        name="time"
-                        render={({ field }) => (
-                          <FormItem className="grid gap-2">
-                            <FormLabel>Heure de départ</FormLabel>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                              <FormControl>
-                                <Input
-                                  type="time"
-                                  className="pl-10 h-11"
-                                  {...field}
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={tripForm.control}
-                        name="arrivalTime"
-                        render={({ field }) => (
-                          <FormItem className="grid gap-2">
-                            <FormLabel>Heure d'arrivée</FormLabel>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                              <FormControl>
-                                <Input
-                                  type="time"
-                                  className="pl-10 h-11"
-                                  {...field}
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                  <FormField
+                    control={tripForm.control}
+                    name="departure"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <FormLabel>Départ</FormLabel>
+                        <FormControl>
+                          <AddressInput
+                            id="departure"
+                            placeholder="Adresse de départ"
+                            onAddressSelect={field.onChange}
+                            defaultValue={field.value?.description}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={tripForm.control}
+                    name="destination"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <FormLabel>Destination</FormLabel>
+                        <FormControl>
+                          <AddressInput
+                            id="destination"
+                            placeholder="Adresse de destination"
+                            onAddressSelect={field.onChange}
+                            defaultValue={field.value?.description}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* DATE & HEURE */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Date &amp; heure
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <FormField
+                    control={tripForm.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <FormLabel>Date du trajet</FormLabel>
+                        <FormControl>
+                          <DatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            disabled={(date) =>
+                              date < new Date(new Date().setHours(0, 0, 0, 0))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={tripForm.control}
-                      name="seats"
+                      name="time"
                       render={({ field }) => (
                         <FormItem className="grid gap-2">
-                          <FormLabel>Places disponibles</FormLabel>
-                          <div className="relative">
-                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="ex: 3"
-                                className="pl-10 h-11"
-                                min="1"
-                                max={maxSeatsForVehicle}
-                                {...field}
-                              />
-                            </FormControl>
-                          </div>
-                          {selectedVehicle && (
-                            <p className="text-xs text-muted-foreground">
-                              Maximum {maxSeatsForVehicle} places pour ce
-                              véhicule (
-                              {VEHICLE_TYPE_CONFIG[
-                                selectedVehicle.type as VehicleType
-                              ]?.label ?? "Autre"}
-                              )
-                            </p>
-                          )}
+                          <FormLabel>Heure de départ</FormLabel>
+                          <FormControl>
+                            <TimePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
                       control={tripForm.control}
-                      name="price"
+                      name="arrivalTime"
                       render={({ field }) => (
                         <FormItem className="grid gap-2">
-                          <div className="flex items-center justify-between">
-                            <FormLabel>Prix par place</FormLabel>
-                            <span className="flex items-center gap-1 text-2xl font-bold text-primary tabular-nums">
-                              <DollarSign className="h-5 w-5" />
-                              {Math.min(currentPrice, sliderMax)}
-                            </span>
-                          </div>
+                          <FormLabel>Heure d&apos;arrivée estimée</FormLabel>
                           <FormControl>
-                            <Slider
-                              min={0}
-                              max={sliderMax}
-                              step={1}
-                              value={[Math.min(currentPrice, sliderMax)]}
-                              onValueChange={(vals) => field.onChange(vals[0])}
-                              className="my-1"
+                            <TimePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="HH : mm (opt.)"
                             />
                           </FormControl>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>0 $</span>
-                            {legalMaxPerSeat !== null && (
-                              <span className="font-medium text-amber-600">
-                                Max légal : {legalMaxPerSeat.toFixed(2)} $
-                              </span>
-                            )}
-                            <span>Max : {sliderMax} $</span>
-                          </div>
-                          {distanceKm && legalMaxTotal !== null && (
-                            <p className="text-xs text-muted-foreground">
-                              Trajet ~{distanceKm} km — plafond légal QC :{" "}
-                              <span className="font-medium text-foreground">
-                                {legalMaxTotal.toFixed(2)} $ total
-                              </span>{" "}
-                              (art. 84)
-                            </p>
-                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -907,11 +797,126 @@ export default function PostTripPage() {
                 </CardContent>
               </Card>
 
-              {/* Vehicle & Options */}
+              {/* PLACES & PRIX */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">
-                    Véhicule, Options & Paiement
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Places &amp; prix
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-6">
+                  <FormField
+                    control={tripForm.control}
+                    name="seats"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <FormLabel>Places disponibles</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-10 w-10 shrink-0"
+                              onClick={() =>
+                                field.onChange(
+                                  Math.max(1, Number(field.value) - 1),
+                                )
+                              }
+                              disabled={Number(field.value) <= 1}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="min-w-[3rem] text-center text-2xl font-bold tabular-nums">
+                              {field.value}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-10 w-10 shrink-0"
+                              onClick={() =>
+                                field.onChange(
+                                  Math.min(
+                                    maxSeatsForVehicle,
+                                    Number(field.value) + 1,
+                                  ),
+                                )
+                              }
+                              disabled={
+                                Number(field.value) >= maxSeatsForVehicle
+                              }
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </FormControl>
+                        {selectedVehicle && (
+                          <p className="text-xs text-muted-foreground">
+                            Maximum {maxSeatsForVehicle} places pour ce véhicule
+                            (
+                            {VEHICLE_TYPE_CONFIG[
+                              selectedVehicle.type as VehicleType
+                            ]?.label ?? "Autre"}
+                            )
+                          </p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={tripForm.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Prix par place</FormLabel>
+                          <span className="flex items-center gap-1 text-2xl font-bold text-primary tabular-nums">
+                            <DollarSign className="h-5 w-5" />
+                            {Math.min(currentPrice, sliderMax)}
+                          </span>
+                        </div>
+                        <FormControl>
+                          <Slider
+                            min={0}
+                            max={sliderMax}
+                            step={1}
+                            value={[Math.min(currentPrice, sliderMax)]}
+                            onValueChange={(vals) => field.onChange(vals[0])}
+                            className="my-1"
+                          />
+                        </FormControl>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>0 $</span>
+                          <span>Max : {sliderMax} $</span>
+                        </div>
+                        {distanceKm && legalMaxPerSeat !== null && (
+                          <p
+                            className={cn(
+                              "text-xs",
+                              isOverLegalCap
+                                ? "text-destructive/70"
+                                : "text-success",
+                            )}
+                          >
+                            {isOverLegalCap
+                              ? `Plafond légal dépassé — max : ${legalMaxPerSeat.toFixed(2)} $/place`
+                              : "Sous le plafond légal (0,54 $/km)"}
+                          </p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* VÉHICULE & PAIEMENT */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Véhicule &amp; paiement
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-6">
@@ -1349,30 +1354,32 @@ export default function PostTripPage() {
                 </CardContent>
               </Card>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={handleCancel}
-                  className="w-full sm:flex-1"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full sm:flex-1"
-                  disabled={
-                    tripForm.formState.isSubmitting ||
-                    !tripForm.formState.isValid ||
-                    isOverLegalCap
-                  }
-                >
-                  {tripForm.formState.isSubmitting
-                    ? "Publication..."
-                    : "Publier mon trajet"}
-                </Button>
+              <div className="sticky bottom-0 z-10 -mx-6 -mb-6 border-t border-white/[0.06] bg-background/95 px-6 pb-6 pt-3 backdrop-blur-sm sm:relative sm:bottom-auto sm:mx-0 sm:mb-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={handleCancel}
+                    className="w-full sm:flex-1"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full sm:flex-1"
+                    disabled={
+                      tripForm.formState.isSubmitting ||
+                      !tripForm.formState.isValid ||
+                      isOverLegalCap
+                    }
+                  >
+                    {tripForm.formState.isSubmitting
+                      ? "Publication..."
+                      : "Publier mon trajet"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

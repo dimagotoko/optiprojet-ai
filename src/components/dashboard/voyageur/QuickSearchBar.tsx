@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, Calendar, Users, Bookmark } from "lucide-react";
+import { format } from "date-fns";
+import { Search, Users, Bookmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { AddressInput } from "@/components/AddressInput";
 
 interface SavedFavorite {
@@ -97,17 +99,11 @@ export function QuickSearchBar({
           />
         </div>
 
-        <div className="relative sm:w-40">
-          <Calendar
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
-            aria-hidden="true"
-          />
-          <Input
-            type="date"
-            className="pl-9 h-12"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label="Date de départ"
+        <div className="sm:w-40">
+          <DatePicker
+            value={date ? new Date(`${date}T00:00:00`) : undefined}
+            onChange={(d) => setDate(d ? format(d, "yyyy-MM-dd") : "")}
+            disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
           />
         </div>
 
