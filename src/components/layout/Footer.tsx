@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="w-full border-t bg-background">
       <div className="container px-4 md:px-6 py-6 md:py-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
           <Link
             href="/"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
