@@ -1,16 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CalendarDays,
+  Check,
   MapPin,
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
 import { TripSearchForm } from "@/components/TripSearchForm";
 import { RealTripsSection } from "@/components/home/RealTripsSection";
@@ -27,10 +26,6 @@ type TripSearch = {
 export default function Home() {
   const router = useRouter();
   const [tripSearch, setTripSearch] = useState<TripSearch>({});
-
-  const heroImage = PlaceHolderImages.find(
-    (img) => img.id === "hero-background",
-  );
 
   const howItWorks = [
     {
@@ -55,7 +50,7 @@ export default function Home() {
       icon: <ShieldCheck className="h-8 w-8 text-primary" />,
       title: "Sécurité avant tout",
       description:
-        "Tous nos conducteurs sont vérifiés pour vous assurer un voyage en toute tranquillité.",
+        "Chaque conducteur signe notre protocole de confiance et accepte nos conditions d'utilisation.",
     },
   ];
 
@@ -81,19 +76,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
-      <section className="relative w-full h-[70vh] md:h-[80vh]">
-        {heroImage && (
-          <Image
-            src={heroImage.imageUrl}
-            alt={heroImage.description}
-            data-ai-hint={heroImage.imageHint}
-            fill
-            className="object-cover"
-            priority
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-primary-foreground px-4">
+      <section className="relative w-full h-[70vh] md:h-[80vh] overflow-hidden bg-background bg-brand-glow">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
           <div className="max-w-4xl mx-auto flex flex-col items-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline text-foreground">
               Trouvez votre covoiturage idéal
@@ -117,6 +101,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Trust bar */}
+      <section className="w-full bg-card border-b border-white/5 py-5">
+        <div className="container px-4 md:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-3 text-sm">
+            {[
+              { title: "Sans commission", sub: "On ne prélève rien" },
+              { title: "Paiement direct", sub: "Entre membres" },
+              { title: "Plafond 0,54 $/km", sub: "Barème légal respecté" },
+              { title: "Assistant IA intégré", sub: "Recherche intelligente" },
+            ].map(({ title, sub }) => (
+              <div key={title} className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground leading-tight">
+                    {title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <LiveCounters />
 
       <section
@@ -130,7 +138,8 @@ export default function Home() {
                 Comment ça marche ?
               </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Rejoignez la communauté KamGo en quatre étapes simples.
+                Rejoignez la communauté KamGo en quatre étapes simples —
+                inscription gratuite.
               </p>
             </div>
           </div>
@@ -156,18 +165,19 @@ export default function Home() {
       </section>
 
       {/* CTA for drivers */}
-      <section className="w-full py-12 md:py-20 bg-secondary/50 border-y border-border">
+      <section className="relative overflow-hidden w-full py-12 md:py-20 bg-secondary border-y border-white/5">
+        <div className="absolute inset-0 pointer-events-none bg-brand-glow-right" />
         <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
               Vous conduisez ? Rentabilisez vos trajets.
             </h2>
-            <p className="mt-2 text-muted-foreground max-w-xl">
+            <p className="mt-2 text-foreground/70 max-w-xl">
               Proposez vos trajets, partagez les frais et voyagez accompagné.
               Inscription gratuite.
             </p>
           </div>
-          <Button asChild size="lg" className="shrink-0">
+          <Button asChild size="lg" className="shrink-0 shadow-lg">
             <Link href="/signup">
               Devenir conducteur <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -177,7 +187,7 @@ export default function Home() {
 
       <section
         id="trajets-populaires"
-        className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20"
+        className="w-full py-12 md:py-24 lg:py-32 bg-background"
       >
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">

@@ -24,27 +24,41 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    /* Design tokens universels */
+    --primary-hover: 222.2 47.4% 8%;
+    --success: 142 68% 57%;
   }
 
   .dark {
-    --background: 215 25% 23%;
-    --foreground: 210 40% 98%;
-    --card: 215 18% 35%;
-    --card-foreground: 210 40% 98%;
-    --popover: 215 18% 35%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 190 69% 60%;
-    --primary-foreground: 215 25% 15%;
-    --secondary: 215 18% 35%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 215 18% 28%;
-    --muted-foreground: 215 20% 65%;
+    /* Fonds — 3 niveaux */
+    --background: 222 41% 10%; /* #0B1622 — bg-base */
+    --card: 216 40% 17%; /* #1A2B3D — bg-card */
+    --secondary: 218 43% 13%; /* #12202F — bg-elevated */
+    --muted: 218 30% 15%;
+    --popover: 216 40% 17%;
+
+    /* Texte — 3 niveaux */
+    --foreground: 208 50% 97%; /* #F4F8FB — text-primary */
+    --card-foreground: 208 50% 97%;
+    --popover-foreground: 208 50% 97%;
+    --secondary-foreground: 208 50% 97%;
+    --muted-foreground: 210 16% 49%; /* #6B7F91 — text-muted */
+
+    /* Marque */
+    --primary: 190 69% 60%; /* #53C8DF — brand (inchangé) */
+    --primary-foreground: 222 41% 10%; /* #0B1622 — texte sur bouton brand */
+    --primary-hover: 189 63% 50%; /* #2FB4D1 — brand-strong */
+
+    /* Sémantique */
+    --success: 142 68% 57%; /* #4ADE80 */
     --accent: 178 48% 45%;
-    --accent-foreground: 210 40% 98%;
+    --accent-foreground: 208 50% 97%;
     --destructive: 0 79% 57%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 18% 30%;
-    --input: 215 18% 30%;
+
+    /* Bordures — subtiles */
+    --border: 218 20% 18%;
+    --input: 218 20% 18%;
     --ring: 190 69% 60%;
   }
 }
@@ -60,9 +74,16 @@
 
 @layer utilities {
   @keyframes car-rumble {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-0.5px); }
-    75% { transform: translateX(0.5px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-0.5px);
+    }
+    75% {
+      transform: translateX(0.5px);
+    }
   }
 
   @keyframes smoke-puff {
@@ -103,5 +124,21 @@
   .animate-spin-wheels {
     transform-origin: center;
     animation: spin-wheels 1s linear infinite;
+  }
+
+  /* Brand glow utilities */
+  .bg-brand-glow {
+    background-image: radial-gradient(
+      ellipse 80% 50% at 50% -5%,
+      rgba(83, 200, 223, 0.12) 0%,
+      transparent 70%
+    );
+  }
+  .bg-brand-glow-right {
+    background-image: radial-gradient(
+      ellipse 60% 80% at 100% 50%,
+      rgba(83, 200, 223, 0.1) 0%,
+      transparent 70%
+    );
   }
 }

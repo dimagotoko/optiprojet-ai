@@ -68,7 +68,7 @@ function TravelerRatingButton({
     <>
       <button
         type="button"
-        className="inline-flex items-center gap-1 rounded-md border border-yellow-300 bg-transparent px-2 py-1 text-xs font-medium text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+        className="inline-flex items-center gap-1 rounded-md border border-yellow-400/50 px-2 py-1 text-xs font-medium text-yellow-500 hover:bg-yellow-400/10 transition-colors"
         onClick={() => setRatingOpen(true)}
       >
         <Star className="h-3 w-3" aria-hidden="true" />
@@ -109,8 +109,8 @@ function PastTripRatingSection({
   if (!bookings?.length) return null;
 
   return (
-    <div className="rounded-b-xl border-x border-b bg-yellow-50 dark:bg-yellow-900/10 px-4 py-2 -mt-1 flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">
+    <div className="rounded-b-xl border-x border-b bg-yellow-400/10 px-4 py-2 -mt-1 flex flex-wrap items-center gap-2">
+      <span className="text-xs font-medium text-yellow-500">
         Passagers à évaluer :
       </span>
       {bookings.map((booking) => (
