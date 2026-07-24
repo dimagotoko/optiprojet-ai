@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://kamgo.ca",
+      "https://www.kamgo.ca",
+      "http://localhost:3000"
+    ],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "x-goog-resumable"]
+  }
+]
