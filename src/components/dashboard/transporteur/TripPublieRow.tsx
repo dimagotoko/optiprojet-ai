@@ -22,9 +22,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Trip, Vehicle } from "@/types/db";
+import { AddressLink } from "@/components/ui/AddressLink";
 
 interface TripPublieRowProps {
   trip: Trip;
@@ -55,12 +57,12 @@ export function TripPublieRow({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-semibold flex items-center gap-1 flex-wrap">
-            <span>{trip.origin}</span>
+            <AddressLink address={trip.origin} />
             <ArrowRight
               className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
               aria-hidden="true"
             />
-            <span>{trip.destination}</span>
+            <AddressLink address={trip.destination} />
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {format(date, "d MMM, HH:mm", { locale: fr })}
@@ -106,6 +108,14 @@ export function TripPublieRow({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {(isPast || !!trip.isClosed) && (
+            <Badge
+              variant="outline"
+              className="text-xs text-muted-foreground border-muted bg-muted/40 shrink-0"
+            >
+              {isPast ? "Passé" : "Fermé"}
+            </Badge>
+          )}
           <span className="text-sm font-bold text-primary whitespace-nowrap">
             {trip.pricePerSeat} $
             <span className="font-normal text-muted-foreground">/place</span>

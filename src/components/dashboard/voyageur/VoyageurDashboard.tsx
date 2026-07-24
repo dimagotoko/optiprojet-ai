@@ -47,6 +47,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AddressLink } from "@/components/ui/AddressLink";
+import { formatShortLocation } from "@/lib/address";
 import type {
   Booking,
   FavoriteRoute,
@@ -60,6 +62,36 @@ const CO2_PER_TRIP_KG = 18;
 // assurance, dépréciation). Sert au calcul "Argent économisé vs voiture solo".
 const COUT_PAR_KM = 0.7;
 
+// Badges pour les trajets à VENIR (upcoming)
+const upcomingStatusConfig = {
+  pending: {
+    label: "En attente",
+    icon: Clock,
+    className: "text-primary border-primary/30 bg-primary/10",
+  },
+  accepted: {
+    label: "Confirmée",
+    icon: CheckCircle,
+    className: "text-success border-success/30 bg-success/10",
+  },
+  rejected: {
+    label: "Refusée",
+    icon: XCircle,
+    className: "text-muted-foreground border-muted bg-muted/40",
+  },
+  cancelled: {
+    label: "Annulée",
+    icon: XCircle,
+    className: "text-muted-foreground border-muted bg-muted/40",
+  },
+  expired: {
+    label: "Expirée",
+    icon: Clock,
+    className: "text-muted-foreground border-muted bg-muted/40",
+  },
+};
+
+// Badges pour l'HISTORIQUE (past)
 const statusConfig = {
   pending: {
     label: "En attente",
@@ -70,8 +102,7 @@ const statusConfig = {
   accepted: {
     label: "Acceptée",
     icon: CheckCircle,
-    className:
-      "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200",
+    className: "text-success border-success/30 bg-success/10",
   },
   rejected: {
     label: "Refusée",
@@ -82,13 +113,12 @@ const statusConfig = {
   cancelled: {
     label: "Annulée",
     icon: XCircle,
-    className: "bg-muted text-muted-foreground border-muted",
+    className: "text-muted-foreground border-muted bg-muted/40",
   },
   expired: {
     label: "Expirée",
     icon: Clock,
-    className:
-      "bg-slate-100 text-slate-500 dark:bg-slate-800/40 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+    className: "text-muted-foreground border-muted bg-muted/40",
   },
 };
 
@@ -179,9 +209,10 @@ function BookedTripItem({
   // Gère les anciens bookings sans departureTime dénormalisé.
   if (isPast !== showWhenPast) return null;
   const canRate = booking.status === "accepted" && isPast && trip.offeredBy;
+  const cfgMap = showWhenPast ? statusConfig : upcomingStatusConfig;
   const cfg = isExpired
     ? statusConfig.expired
-    : (statusConfig[booking.status] ?? statusConfig.pending);
+    : (cfgMap[booking.status] ?? cfgMap.pending);
   const StatusIcon = cfg.icon;
 
   return (
@@ -195,18 +226,25 @@ function BookedTripItem({
               </div>
               <div className="min-w-0">
                 <p className="font-semibold flex items-center gap-1 min-w-0">
-                  <span className="truncate min-w-0 flex-1">{trip.origin}</span>
+                  <AddressLink
+                    address={trip.origin}
+                    className="truncate min-w-0 flex-1"
+                  />
                   <ArrowRight
                     className="h-3 w-3 shrink-0 text-muted-foreground"
                     aria-hidden="true"
                   />
-                  <span className="truncate min-w-0 flex-1">
-                    {trip.destination}
-                  </span>
+                  <AddressLink
+                    address={trip.destination}
+                    className="truncate min-w-0 flex-1"
+                  />
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {format(date, "d MMM yyyy · HH:mm", { locale: fr })} ·{" "}
-                  {trip.pricePerSeat} $
+                  {format(date, "d MMM yyyy · HH:mm", { locale: fr })}
+                  {" · "}
+                  <span className="text-primary font-semibold">
+                    {trip.pricePerSeat} $
+                  </span>
                 </p>
               </div>
             </div>
@@ -509,12 +547,16 @@ export function VoyageurDashboardHeader({
                     className="flex items-center gap-0.5 min-w-0 hover:text-primary transition-colors"
                     aria-label={`Pré-remplir ${fav.origin} → ${fav.destination}`}
                   >
-                    <span className="truncate">{fav.origin}</span>
+                    <span className="truncate">
+                      {formatShortLocation(fav.origin)}
+                    </span>
                     <ArrowRight
                       className="h-3 w-3 shrink-0 mx-0.5 text-muted-foreground"
                       aria-hidden="true"
                     />
-                    <span className="truncate">{fav.destination}</span>
+                    <span className="truncate">
+                      {formatShortLocation(fav.destination)}
+                    </span>
                   </button>
                   <button
                     type="button"

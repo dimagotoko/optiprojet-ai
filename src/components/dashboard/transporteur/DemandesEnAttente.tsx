@@ -30,6 +30,7 @@ import type {
   UserProfilePrivate,
 } from "@/types/db";
 import { RELATION_LABELS } from "@/types/db";
+import { AddressLink } from "@/components/ui/AddressLink";
 
 const getInitials = (name: string) =>
   name
@@ -181,9 +182,15 @@ function DemandeCard({
             </div>
           )}
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 min-w-0">
-            <span className="truncate min-w-0 flex-1">{trip.origin}</span>
+            <AddressLink
+              address={trip.origin}
+              className="truncate min-w-0 flex-1"
+            />
             <ArrowRight className="h-3 w-3 shrink-0" aria-hidden="true" />
-            <span className="truncate min-w-0 flex-1">{trip.destination}</span>
+            <AddressLink
+              address={trip.destination}
+              className="truncate min-w-0 flex-1"
+            />
             {traveler?.averageRating && (
               <>
                 <span className="mx-0.5">·</span>
