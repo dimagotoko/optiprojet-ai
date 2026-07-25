@@ -45,7 +45,8 @@ import {
 } from "@/components/ui/dialog";
 import { LoadingLogo } from "@/components/LoadingLogo";
 import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
-import { CheckCircle, FileText, Shield } from "lucide-react";
+import { ArrowLeft, CheckCircle, FileText, Shield } from "lucide-react";
+import Link from "next/link";
 
 function ProtocolText({ role }: { role: string }) {
   if (role === "transporteur") {
@@ -288,6 +289,17 @@ function ProfilePageInternal() {
 
   return (
     <div className="container py-12 px-4 md:px-6">
+      <Link href="/dashboard">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gap-2 mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Tableau de bord
+        </Button>
+      </Link>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Card className="w-full max-w-2xl mx-auto">
