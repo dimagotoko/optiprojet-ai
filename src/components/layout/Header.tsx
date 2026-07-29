@@ -210,10 +210,9 @@ export function Header() {
     <header
       className={cn(
         "top-0 z-50 w-full transition-colors duration-200",
-        isHome ? "absolute" : "sticky",
         isHomeDark
-          ? "border-transparent bg-transparent"
-          : "border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+          ? "absolute border-transparent bg-transparent"
+          : "sticky border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
       )}
     >
       <div className="container flex h-14 items-center">
