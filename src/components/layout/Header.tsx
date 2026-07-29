@@ -34,6 +34,7 @@ import { useTheme } from "next-themes";
 import React from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { useAdmin } from "@/hooks/use-admin";
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const { user, isUserLoading } = useUser();
@@ -41,10 +42,12 @@ export function Header() {
   const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
+  const isHome = pathname === "/";
   const { toast } = useToast();
   const [userRole, setUserRole] = React.useState<string | null>(null);
   const { isAdmin } = useAdmin();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const isHomeDark = isHome && resolvedTheme === "dark";
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -204,7 +207,15 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className={cn(
+        "top-0 z-50 w-full transition-colors duration-200",
+        isHome ? "absolute" : "sticky",
+        isHomeDark
+          ? "border-transparent bg-transparent"
+          : "border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+      )}
+    >
       <div className="container flex h-14 items-center">
         {/* Logo always visible on mobile, full nav on desktop */}
         <Link href="/" className="mr-4 flex items-center space-x-2 md:hidden">
@@ -213,14 +224,26 @@ export function Header() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-6 w-6 text-primary" />
-            <span className="hidden font-bold sm:inline-block">KamGo</span>
+            <span
+              className={cn(
+                "hidden font-bold sm:inline-block",
+                isHomeDark && "text-white",
+              )}
+            >
+              KamGo
+            </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="transition-colors hover:text-foreground text-foreground/80 whitespace-nowrap"
+                className={cn(
+                  "transition-colors whitespace-nowrap",
+                  isHomeDark
+                    ? "text-white/80 hover:text-white"
+                    : "text-foreground/80 hover:text-foreground",
+                )}
               >
                 {link.label}
               </Link>
@@ -228,7 +251,12 @@ export function Header() {
             {user && userRole === "transporteur" && (
               <Link
                 href="/post-trip"
-                className="transition-colors hover:text-foreground text-foreground/80 whitespace-nowrap"
+                className={cn(
+                  "transition-colors whitespace-nowrap",
+                  isHomeDark
+                    ? "text-white/80 hover:text-white"
+                    : "text-foreground/80 hover:text-foreground",
+                )}
               >
                 Proposer un trajet
               </Link>
@@ -236,7 +264,12 @@ export function Header() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="transition-colors hover:text-foreground text-foreground/80 whitespace-nowrap"
+                className={cn(
+                  "transition-colors whitespace-nowrap",
+                  isHomeDark
+                    ? "text-white/80 hover:text-white"
+                    : "text-foreground/80 hover:text-foreground",
+                )}
               >
                 Admin
               </Link>

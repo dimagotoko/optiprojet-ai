@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +17,8 @@ import { RealTripsSection } from "@/components/home/RealTripsSection";
 import { Chatbot } from "@/components/Chatbot";
 import { LiveCounters } from "@/components/home/LiveCounters";
 import { useState } from "react";
+
+const HERO_IMAGE: string | null = "/hero/ambiance.jpg";
 
 type TripSearch = {
   departure?: string;
@@ -42,7 +45,7 @@ export default function Home() {
     },
     {
       icon: <CalendarDays className="h-8 w-8 text-primary" />,
-      title: "Voyagez ensemble",
+      title: "Profitez du voyage",
       description:
         "Rencontrez votre conducteur et profitez d'un voyage économique et convivial.",
     },
@@ -76,54 +79,88 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
-      <section className="relative w-full h-[70vh] md:h-[80vh] overflow-hidden bg-background bg-brand-glow">
-        <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
-          <div className="max-w-4xl mx-auto flex flex-col items-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline text-foreground">
-              Trouvez votre covoiturage idéal
+      {/* ── HÉRO ── */}
+      <section
+        className="relative h-[55vh] md:h-[70vh] overflow-hidden"
+        style={
+          HERO_IMAGE
+            ? undefined
+            : {
+                background: [
+                  "radial-gradient(ellipse 60% 55% at 75% 8%, rgba(83,200,223,0.20) 0%, transparent 65%)",
+                  "radial-gradient(ellipse 45% 50% at 25% 92%, rgba(47,180,209,0.12) 0%, transparent 60%)",
+                  "linear-gradient(155deg, #0B1622 0%, #12202F 55%, #162840 100%)",
+                ].join(", "),
+              }
+        }
+      >
+        {HERO_IMAGE && (
+          <Image
+            src={HERO_IMAGE}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[62%_45%] brightness-110 dark:brightness-90"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Voile — léger en mode clair, plus soutenu en mode sombre */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/20 dark:from-black/10 dark:via-transparent dark:to-black/45" />
+
+        {/* Texte centré */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 pt-14">
+          <div className="max-w-3xl">
+            <h1
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight font-headline text-white leading-[1.08]"
+              style={{ textShadow: "0 2px 20px rgba(11,22,34,0.6)" }}
+            >
+              Voyagez ensemble,{" "}
+              <span className="bg-gradient-to-r from-primary to-cyan-300 bg-clip-text text-transparent">
+                partagez les frais.
+              </span>
             </h1>
-            <p className="mt-4 max-w-2xl text-lg sm:text-xl font-semibold bg-gradient-to-r from-cyan-400 to-sky-300 bg-clip-text text-transparent">
-              Optimisé par l'IA pour des trajets plus intelligents, économiques
-              et conviviaux.
+            <p
+              className="mt-4 text-base sm:text-lg text-white/75 max-w-xl mx-auto"
+              style={{ textShadow: "0 1px 8px rgba(11,22,34,0.7)" }}
+            >
+              Le covoiturage entre membres, sans commission.
             </p>
-            <div className="mt-8 w-full max-w-3xl">
-              <TripSearchForm
-                key={JSON.stringify(tripSearch)}
-                initialSearch={tripSearch}
-                onSearch={(s) =>
-                  router.push(
-                    `/trips?departure=${s.departure || ""}&destination=${s.destination || ""}&date=${s.date ? s.date.toISOString() : ""}`,
-                  )
-                }
-              />
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Trust bar */}
-      <section className="w-full bg-card border-b border-white/5 py-5">
-        <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-3 text-sm">
-            {[
-              { title: "Sans commission", sub: "On ne prélève rien" },
-              { title: "Paiement direct", sub: "Entre membres" },
-              { title: "Plafond 0,54 $/km", sub: "Barème légal respecté" },
-              { title: "Assistant IA intégré", sub: "Recherche intelligente" },
-            ].map(({ title, sub }) => (
-              <div key={title} className="flex items-start gap-2">
-                <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground leading-tight">
-                    {title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* ── FORMULAIRE flottant — chevauche le héro ── */}
+      <div className="relative z-20 container px-4 md:px-6 -mt-10 md:-mt-12">
+        <div className="bg-card border border-border rounded-2xl shadow-2xl p-4 md:p-6">
+          <TripSearchForm
+            key={JSON.stringify(tripSearch)}
+            initialSearch={tripSearch}
+            onSearch={(s) =>
+              router.push(
+                `/trips?departure=${s.departure || ""}&destination=${s.destination || ""}&date=${s.date ? s.date.toISOString() : ""}`,
+              )
+            }
+          />
         </div>
-      </section>
+      </div>
+
+      {/* ── TRUST BAR fine ── */}
+      <div className="container px-4 md:px-6 pt-6 pb-2">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          {[
+            "Sans commission",
+            "Paiement direct",
+            "Plafond légal 0,54 $/km",
+          ].map((item) => (
+            <span key={item} className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-success shrink-0" />
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
 
       <LiveCounters />
 
