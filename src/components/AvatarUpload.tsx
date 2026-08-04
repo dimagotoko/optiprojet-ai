@@ -25,14 +25,14 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_BLOB_SIZE = 200 * 1024;
 const TARGET_SIZE = 512;
 const QUALITY_STEPS = [0.82, 0.7, 0.6, 0.5, 0.4];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getInitials(name: string): string {
+export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return (parts[0]?.[0] ?? "?").toUpperCase();
   return (
@@ -40,13 +40,13 @@ function getInitials(name: string): string {
   ).toUpperCase();
 }
 
-function formatSize(bytes: number): string {
+export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-function isHeicFile(file: File): boolean {
+export function isHeicFile(file: File): boolean {
   return (
     file.type === "image/heic" ||
     file.type === "image/heif" ||
@@ -54,7 +54,7 @@ function isHeicFile(file: File): boolean {
   );
 }
 
-async function compressImage(
+export async function compressImage(
   file: File,
 ): Promise<{ blob: Blob; originalSize: number; compressedSize: number }> {
   const originalSize = file.size;
@@ -102,7 +102,7 @@ async function compressImage(
 
 // ─── CameraModal ──────────────────────────────────────────────────────────────
 
-interface CameraModalProps {
+export interface CameraModalProps {
   open: boolean;
   onCapture: (blob: Blob) => void;
   onClose: () => void;
@@ -110,7 +110,7 @@ interface CameraModalProps {
 
 type CameraPhase = "loading" | "streaming" | "preview" | "error";
 
-function CameraModal({ open, onCapture, onClose }: CameraModalProps) {
+export function CameraModal({ open, onCapture, onClose }: CameraModalProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const previewUrlRef = React.useRef<string | null>(null);

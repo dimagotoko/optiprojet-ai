@@ -11,8 +11,10 @@ import {
   sendEmailVerification,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, useStorage } from "@/firebase";
+import { AvatarPicker } from "@/components/AvatarPicker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -57,11 +59,6 @@ const formSchema = z
       .regex(/^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/, {
         message: "Format invalide. Exemple : H3A 0G4",
       }),
-    profilePictureUrl: z
-      .string()
-      .url({ message: "Veuillez entrer une URL valide." })
-      .optional()
-      .or(z.literal("")),
     userType: z.enum(["voyageur", "transporteur"], {
       required_error: "Veuillez sélectionner un type de compte.",
     }),
@@ -96,12 +93,14 @@ function SignupPageInternal() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const storage = useStorage();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [verificationSent, setVerificationSent] = React.useState(false);
   const [sentEmail, setSentEmail] = React.useState("");
   const [resendCooldown, setResendCooldown] = React.useState(0);
   const [resendError, setResendError] = React.useState<string | null>(null);
+  const [avatarBlob, setAvatarBlob] = React.useState<Blob | null>(null);
 
   // Single source of truth for verification email settings — used by both initial send and resend.
   const verificationSettings = {
@@ -145,7 +144,6 @@ function SignupPageInternal() {
       confirmPassword: "",
       city: "",
       postalCode: "",
-      profilePictureUrl: "",
       userType: "voyageur",
     },
   });
@@ -168,10 +166,24 @@ function SignupPageInternal() {
       );
       const user = userCredential.user;
 
+      // 1b. Upload de la photo de profil (choisie avant que le compte existe)
+      let photoUrl = "";
+      if (avatarBlob && storage) {
+        try {
+          const avatarRef = ref(storage, `avatars/${user.uid}/avatar.webp`);
+          await uploadBytes(avatarRef, avatarBlob, {
+            contentType: "image/webp",
+          });
+          photoUrl = await getDownloadURL(avatarRef);
+        } catch (uploadError) {
+          console.error("Avatar upload error:", uploadError);
+        }
+      }
+
       // 2. Update Firebase Auth profile
       await updateProfile(user, {
         displayName: values.fullName,
-        photoURL: values.profilePictureUrl || null,
+        photoURL: photoUrl || null,
       });
 
       // 2b. Send verification email before Firestore writes
@@ -192,7 +204,7 @@ function SignupPageInternal() {
         name: values.fullName,
         city: values.city,
         role: values.userType,
-        profilePictureUrl: values.profilePictureUrl || "",
+        profilePictureUrl: photoUrl,
         averageRating: 0,
         totalRatings: 0,
         onboardingCompleted: false,
@@ -296,242 +308,271 @@ function SignupPageInternal() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom complet</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Prénom Nom" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="m@example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Téléphone</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="514-555-1234"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="profilePictureUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Photo de profil{" "}
-                      <span className="text-muted-foreground">
-                        (URL, optionnel)
-                      </span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="url"
-                        placeholder="https://example.com/photo.jpg"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          className="pr-10"
-                          {...field}
-                          autoComplete="new-password"
-                        />
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          aria-label={
-                            showPassword
-                              ? "Masquer le mot de passe"
-                              : "Afficher le mot de passe"
-                          }
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </FormControl>
-                    {passwordValue && (
-                      <div className="mt-1 space-y-1">
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4].map((i) => (
-                            <div
-                              key={i}
-                              className={`h-1 flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : "bg-muted"}`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {strength.label}
-                        </p>
-                      </div>
+              {/* Identité */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Identité
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom complet</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Prénom Nom" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirmer le mot de passe</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showConfirmPassword ? "text" : "password"}
-                          className="pr-10"
-                          {...field}
-                          autoComplete="new-password"
-                        />
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          onClick={() => setShowConfirmPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          aria-label={
-                            showConfirmPassword
-                              ? "Masquer le mot de passe"
-                              : "Afficher le mot de passe"
-                          }
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ville</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Montréal" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="postalCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code Postal</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="H3A 0G4"
-                          maxLength={7}
-                          {...field}
-                          onChange={(e) => {
-                            const raw = e.target.value
-                              .toUpperCase()
-                              .replace(/\s/g, "");
-                            const formatted =
-                              raw.length > 3
-                                ? `${raw.slice(0, 3)} ${raw.slice(3, 6)}`
-                                : raw;
-                            field.onChange(formatted);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="userType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Je suis un...</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex gap-4 pt-2"
-                      >
-                        <FormItem className="flex items-center space-x-2">
+                  />
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium leading-none">
+                      Photo de profil
+                    </p>
+                    <AvatarPicker
+                      displayName={form.watch("fullName")}
+                      onChange={setAvatarBlob}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Coordonnées */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Coordonnées
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <RadioGroupItem value="voyageur" />
+                            <Input
+                              type="email"
+                              placeholder="m@example.com"
+                              {...field}
+                            />
                           </FormControl>
-                          <FormLabel className="font-normal">
-                            Voyageur
-                          </FormLabel>
+                          <FormMessage />
                         </FormItem>
-                        <FormItem className="flex items-center space-x-2">
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Téléphone</FormLabel>
                           <FormControl>
-                            <RadioGroupItem value="transporteur" />
+                            <Input
+                              type="tel"
+                              placeholder="514-555-1234"
+                              {...field}
+                            />
                           </FormControl>
-                          <FormLabel className="font-normal">
-                            Transporteur
-                          </FormLabel>
+                          <FormMessage />
                         </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ville</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Montréal" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="postalCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Code Postal</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="H3A 0G4"
+                              maxLength={7}
+                              {...field}
+                              onChange={(e) => {
+                                const raw = e.target.value
+                                  .toUpperCase()
+                                  .replace(/\s/g, "");
+                                const formatted =
+                                  raw.length > 3
+                                    ? `${raw.slice(0, 3)} ${raw.slice(3, 6)}`
+                                    : raw;
+                                field.onChange(formatted);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sécurité */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">
+                    Sécurité
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mot de passe</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              className="pr-10"
+                              {...field}
+                              autoComplete="new-password"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setShowPassword((v) => !v)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              aria-label={
+                                showPassword
+                                  ? "Masquer le mot de passe"
+                                  : "Afficher le mot de passe"
+                              }
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        {passwordValue && (
+                          <div className="mt-1 space-y-1">
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4].map((i) => (
+                                <div
+                                  key={i}
+                                  className={`h-1 flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : "bg-muted"}`}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {strength.label}
+                            </p>
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmer le mot de passe</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              className="pr-10"
+                              {...field}
+                              autoComplete="new-password"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setShowConfirmPassword((v) => !v)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              aria-label={
+                                showConfirmPassword
+                                  ? "Masquer le mot de passe"
+                                  : "Afficher le mot de passe"
+                              }
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Rôle */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-primary">Rôle</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="userType"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Je suis un...</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex gap-4 pt-2"
+                          >
+                            <FormItem className="flex items-center space-x-2">
+                              <FormControl>
+                                <RadioGroupItem value="voyageur" />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                Voyageur
+                              </FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2">
+                              <FormControl>
+                                <RadioGroupItem value="transporteur" />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                Transporteur
+                              </FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
               <div className="mt-2 text-center text-sm">
                 Vous avez déjà un compte?{" "}
                 <Link href={loginHref} className="underline">
