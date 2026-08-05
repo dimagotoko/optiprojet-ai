@@ -678,6 +678,12 @@ function TripDetailsPageContent() {
         });
       });
 
+      fetch("/api/notifications/booking-created", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId: trip.id, bookingId: bookingRef.id }),
+      }).catch(() => {});
+
       toast({
         title: "Réservation confirmée !",
         description: `${selectedSeats} place${selectedSeats > 1 ? "s" : ""} réservée${selectedSeats > 1 ? "s" : ""}. Bon voyage !`,

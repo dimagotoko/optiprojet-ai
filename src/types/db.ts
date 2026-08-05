@@ -96,6 +96,9 @@ export type Booking = {
   distanceKm?: number;
   // Co-passagers renseignés après confirmation (hors réservant)
   passengers?: PassengerEntry[];
+  // Idempotence des notifications push — posé dans une transaction (claim())
+  notifiedAt?: Timestamp;
+  statusNotifiedAt?: Timestamp;
 };
 
 export type FavoriteRoute = {

@@ -396,6 +396,12 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId || isAdmin();
     }
 
+    // Tokens FCM (push notifications) — lecture/écriture client totalement bloquée.
+    // L'Admin SDK (API routes via firebase-admin) ignore les Security Rules et garde l'accès.
+    match /users/{userId}/fcmTokens/{token} {
+      allow read, write: if false;
+    }
+
     // stripeCustomerId — lecture/écriture client totalement bloquée
     // L'Admin SDK (Cloud Functions) ignore les Security Rules et garde l'accès
     match /stripe_customers/{userId} {

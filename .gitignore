@@ -57,3 +57,6 @@ firestore-debug.log
 
 # Fichiers temporaires de test
 test-step1-before-redirect.png
+
+# Fichiers de travail temporaires (revues de phase) — jamais versionnés
+PHASE*.md

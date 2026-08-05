@@ -101,6 +101,11 @@ function DemandeCard({
         availableSeats: increment(-seats),
       });
       await batch.commit();
+      fetch("/api/notifications/booking-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId: trip.id, bookingId: booking.id }),
+      }).catch(() => {});
       toast({
         title: "Demande acceptée",
         description: `${traveler?.name ?? "Voyageur"} a été confirmé(e).`,
@@ -126,6 +131,11 @@ function DemandeCard({
           status: "rejected",
         },
       );
+      fetch("/api/notifications/booking-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId: trip.id, bookingId: booking.id }),
+      }).catch(() => {});
       toast({ title: "Demande refusée" });
     } catch {
       toast({

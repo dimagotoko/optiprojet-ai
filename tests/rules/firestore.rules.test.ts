@@ -1073,6 +1073,51 @@ describe("REVIEWS – vérification participation & anti-abus", () => {
   });
 });
 
+// ─── FCM TOKENS – /users/{userId}/fcmTokens/{token} ──────────────────────────
+
+describe("FCM TOKENS – deny-all client (Admin SDK only)", () => {
+  const TOKEN = "tokenAbc123";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", USER, "fcmTokens", TOKEN), {
+        token: TOKEN,
+        userAgent: "test-agent",
+        createdAt: new Date(),
+        lastSeenAt: new Date(),
+      });
+    });
+  });
+
+  test("non authentifié tente de créer un token → échec", async () => {
+    await assertFails(
+      setDoc(doc(asAnon(), "users", USER, "fcmTokens", "newToken"), {
+        token: "newToken",
+      }),
+    );
+  });
+
+  test("propriétaire authentifié tente de créer directement un token → échec", async () => {
+    await assertFails(
+      setDoc(doc(asUser(USER), "users", USER, "fcmTokens", "newToken"), {
+        token: "newToken",
+      }),
+    );
+  });
+
+  test("propriétaire authentifié tente de lire son propre token → échec", async () => {
+    await assertFails(
+      getDoc(doc(asUser(USER), "users", USER, "fcmTokens", TOKEN)),
+    );
+  });
+
+  test("autre utilisateur tente de lire le token d'un autre → échec", async () => {
+    await assertFails(
+      getDoc(doc(asUser(OTHER), "users", USER, "fcmTokens", TOKEN)),
+    );
+  });
+});
+
 // ─── PARTICIPANTS – /trips/{tripId}/participants/{travelerId} ──────────────────
 
 describe("PARTICIPANTS – règle create (write-only conducteur)", () => {
