@@ -1,11 +1,10 @@
+"use client";
 
-'use client';
-
-import { useEffect, useCallback } from 'react';
-import { useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
-import { useToast } from './use-toast';
-import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useCallback } from "react";
+import { useAuth } from "@/firebase";
+import { logout } from "@/lib/logout";
+import { useToast } from "./use-toast";
+import { usePathname, useRouter } from "next/navigation";
 
 export function useIdleLogout(timeout: number) {
   const auth = useAuth();
@@ -15,29 +14,32 @@ export function useIdleLogout(timeout: number) {
 
   const handleLogout = useCallback(() => {
     if (!auth || !auth.currentUser) return;
-    
-    signOut(auth).then(() => {
-      toast({
-        title: "Déconnexion pour inactivité",
-        description: "Vous avez été déconnecté pour des raisons de sécurité.",
-      });
-      // Redirect to home page after logout
-      router.push('/');
-    }).catch(error => {
+    const uid = auth.currentUser.uid;
+
+    logout(auth, uid)
+      .then(() => {
+        toast({
+          title: "Déconnexion pour inactivité",
+          description: "Vous avez été déconnecté pour des raisons de sécurité.",
+        });
+        // Redirect to home page after logout
+        router.push("/");
+      })
+      .catch((error) => {
         console.error("Erreur lors de la déconnexion pour inactivité:", error);
-    });
+      });
   }, [auth, toast, router]);
 
   useEffect(() => {
     // Ne pas activer la déconnexion sur les pages publiques
-    const publicPages = ['/login', '/signup', '/'];
+    const publicPages = ["/login", "/signup", "/"];
     if (publicPages.includes(pathname) || !auth?.currentUser) {
       return;
     }
 
     let timer: NodeJS.Timeout;
 
-    const events = ['mousemove', 'keydown', 'touchstart', 'scroll'];
+    const events = ["mousemove", "keydown", "touchstart", "scroll"];
 
     const resetTimer = () => {
       if (timer) clearTimeout(timer);
@@ -45,7 +47,7 @@ export function useIdleLogout(timeout: number) {
     };
 
     // Attacher les écouteurs d'événements
-    events.forEach(event => {
+    events.forEach((event) => {
       window.addEventListener(event, resetTimer);
     });
 
@@ -55,11 +57,9 @@ export function useIdleLogout(timeout: number) {
     // Nettoyer lors du démontage du composant
     return () => {
       clearTimeout(timer);
-      events.forEach(event => {
+      events.forEach((event) => {
         window.removeEventListener(event, resetTimer);
       });
     };
   }, [handleLogout, timeout, pathname, auth?.currentUser]);
 }
-
-    

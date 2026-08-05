@@ -27,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { signOut } from "firebase/auth";
+import { logout } from "@/lib/logout";
 import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
@@ -70,12 +70,9 @@ export function Header() {
   }, [user, firestore]);
 
   const handleLogout = async () => {
-    if (!auth) return;
+    if (!auth || !user) return;
     try {
-      // First, delete the session cookie on the server
-      await fetch("/api/auth/session", { method: "DELETE" });
-      // Then, sign out the user from the client
-      await signOut(auth);
+      await logout(auth, user.uid);
 
       toast({
         title: "Déconnexion réussie",

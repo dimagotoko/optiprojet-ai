@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Chatbot } from "@/components/Chatbot";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ProfileSidebar } from "@/components/dashboard/shared/ProfileSidebar";
+import { NotificationOptIn } from "@/components/dashboard/shared/NotificationOptIn";
 import {
   VoyageurDashboard,
   VoyageurDashboardHeader,
@@ -201,6 +202,9 @@ export default function DashboardPage() {
                     photoURL={user.photoURL}
                   />
                 )}
+                <div className="mt-4">
+                  <NotificationOptIn userId={user.uid} />
+                </div>
               </aside>
               <div className="flex-1 min-w-0">
                 {userData && (
@@ -238,6 +242,9 @@ export default function DashboardPage() {
                     photoURL={user.photoURL}
                   />
                 )}
+                <div className="mt-4">
+                  <NotificationOptIn userId={user.uid} />
+                </div>
               </aside>
               <div className="flex-1 min-w-0">
                 {userData && (
