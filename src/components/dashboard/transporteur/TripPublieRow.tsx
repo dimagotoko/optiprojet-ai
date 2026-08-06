@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Trip, Vehicle } from "@/types/db";
 import { AddressLink } from "@/components/ui/AddressLink";
+import { EditVehicleDialog } from "@/components/EditVehicleDialog";
 
 interface TripPublieRowProps {
   trip: Trip;
@@ -51,6 +53,7 @@ export function TripPublieRow({
   const booked = trip.totalBookings ?? 0;
   const total = booked + trip.availableSeats;
   const fillPct = total > 0 ? Math.round((booked / total) * 100) : 0;
+  const [showEditVehicleDialog, setShowEditVehicleDialog] = useState(false);
 
   return (
     <div className="rounded-xl border bg-card p-4">
@@ -70,7 +73,12 @@ export function TripPublieRow({
 
           {/* Infos véhicule */}
           {vehicle && (
-            <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowEditVehicleDialog(true)}
+              aria-label="Modifier les informations du véhicule"
+              className="mt-2 flex items-center gap-2 rounded-lg -m-1 p-1 text-left hover:bg-muted/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring group"
+            >
               {vehicle.imageUrl ? (
                 <div className="relative h-8 w-14 rounded overflow-hidden shrink-0 border">
                   <Image
@@ -96,14 +104,15 @@ export function TripPublieRow({
                   title={vehicle.color}
                   aria-label={`Couleur : ${vehicle.color}`}
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground group-hover:text-primary group-hover:underline">
                   {vehicle.make} {vehicle.model} {vehicle.year}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   · {vehicle.color}
                 </span>
+                <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
               </div>
-            </div>
+            </button>
           )}
         </div>
 
@@ -192,6 +201,13 @@ export function TripPublieRow({
           </Link>
         </div>
       </div>
+      {vehicle && (
+        <EditVehicleDialog
+          vehicle={vehicle}
+          open={showEditVehicleDialog}
+          onOpenChange={setShowEditVehicleDialog}
+        />
+      )}
     </div>
   );
 }

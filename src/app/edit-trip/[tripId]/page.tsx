@@ -10,6 +10,8 @@ import {
   vehicleBaseSchema as vehicleSchema,
   type VehicleBaseFormValues as VehicleFormValues,
 } from "@/lib/vehicle-schema";
+import { VEHICLE_MAKES, VEHICLE_COLOR_OPTIONS } from "@/types/db";
+import { SelectOrCustomField } from "@/components/SelectOrCustomField";
 import {
   Users,
   Clock,
@@ -61,6 +63,7 @@ import { AddressInput, type Address } from "@/components/AddressInput";
 import {
   useUser,
   useFirestore,
+  useStorage,
   useCollection,
   useMemoFirebase,
   useDoc,
@@ -70,12 +73,17 @@ import { LoadingLogo } from "@/components/LoadingLogo";
 import { PostTripSkeleton } from "@/components/skeletons/PostTripSkeleton";
 import {
   collection,
-  addDoc,
   doc,
+  setDoc,
   Timestamp,
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -86,6 +94,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { VehiclePhotoPicker } from "@/components/VehiclePhotoPicker";
 
 const addressSchema = z.object({
   description: z
@@ -138,15 +147,25 @@ const tripSchema = z
 
 type TripFormValues = z.infer<typeof tripSchema>;
 
+const makeOptions = VEHICLE_MAKES.map((m) => ({ value: m, label: m }));
+const colorOptions = VEHICLE_COLOR_OPTIONS.map((c) => ({
+  value: c.label,
+  label: c.label,
+  swatch: c.hex,
+}));
+
 export default function EditTripPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
   const router = useRouter();
   const params = useParams();
   const tripId = params.tripId as string;
 
   const { toast } = useToast();
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
+  const [vehiclePhotoBlob, setVehiclePhotoBlob] = useState<Blob | null>(null);
+  const [vehiclePhotoPickerKey, setVehiclePhotoPickerKey] = useState(0);
 
   // Fetch trip data
   const tripRef = useMemoFirebase(() => {
@@ -244,14 +263,30 @@ export default function EditTripPage() {
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
     try {
-      const vehicleRef = collection(firestore, `users/${user.uid}/vehicles`);
-      await addDoc(vehicleRef, {
+      const vehicleRef = doc(
+        collection(firestore, `users/${user.uid}/vehicles`),
+      );
+      let imageUrl = "";
+      if (vehiclePhotoBlob && storage) {
+        const photoRef = storageRef(
+          storage,
+          `vehicles/${user.uid}/${vehicleRef.id}.webp`,
+        );
+        await uploadBytes(photoRef, vehiclePhotoBlob, {
+          contentType: "image/webp",
+        });
+        imageUrl = await getDownloadURL(photoRef);
+      }
+      await setDoc(vehicleRef, {
         ...values,
+        imageUrl,
         ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
       toast({ title: "Succès", description: "Votre véhicule a été ajouté." });
       vehicleForm.reset();
+      setVehiclePhotoBlob(null);
+      setVehiclePhotoPickerKey((k) => k + 1);
       setShowAddVehicleDialog(false);
     } catch (error) {
       console.error("Error adding vehicle: ", error);
@@ -649,7 +684,13 @@ export default function EditTripPage() {
                           </Select>
                           <Dialog
                             open={showAddVehicleDialog}
-                            onOpenChange={setShowAddVehicleDialog}
+                            onOpenChange={(open) => {
+                              setShowAddVehicleDialog(open);
+                              if (!open) {
+                                setVehiclePhotoBlob(null);
+                                setVehiclePhotoPickerKey((k) => k + 1);
+                              }
+                            }}
                           >
                             <DialogTrigger asChild>
                               <Button
@@ -663,7 +704,7 @@ export default function EditTripPage() {
                                 </span>
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
+                            <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>
                                   Ajouter un nouveau véhicule
@@ -682,18 +723,12 @@ export default function EditTripPage() {
                                   className="grid gap-4 py-4"
                                 >
                                   <div className="grid grid-cols-2 gap-4">
-                                    <FormField
+                                    <SelectOrCustomField
                                       control={vehicleForm.control}
                                       name="make"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Marque</FormLabel>
-                                          <FormControl>
-                                            <Input {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
+                                      label="Marque"
+                                      placeholder="Sélectionner la marque"
+                                      options={makeOptions}
                                     />
                                     <FormField
                                       control={vehicleForm.control}
@@ -702,7 +737,10 @@ export default function EditTripPage() {
                                         <FormItem>
                                           <FormLabel>Modèle</FormLabel>
                                           <FormControl>
-                                            <Input {...field} />
+                                            <Input
+                                              className="h-11"
+                                              {...field}
+                                            />
                                           </FormControl>
                                           <FormMessage />
                                         </FormItem>
@@ -717,24 +755,22 @@ export default function EditTripPage() {
                                         <FormItem>
                                           <FormLabel>Année</FormLabel>
                                           <FormControl>
-                                            <Input type="number" {...field} />
+                                            <Input
+                                              type="number"
+                                              className="h-11"
+                                              {...field}
+                                            />
                                           </FormControl>
                                           <FormMessage />
                                         </FormItem>
                                       )}
                                     />
-                                    <FormField
+                                    <SelectOrCustomField
                                       control={vehicleForm.control}
                                       name="color"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Couleur</FormLabel>
-                                          <FormControl>
-                                            <Input {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
+                                      label="Couleur"
+                                      placeholder="Sélectionner la couleur"
+                                      options={colorOptions}
                                     />
                                   </div>
                                   <FormField
@@ -746,12 +782,21 @@ export default function EditTripPage() {
                                           Plaque d'immatriculation
                                         </FormLabel>
                                         <FormControl>
-                                          <Input {...field} />
+                                          <Input className="h-11" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                       </FormItem>
                                     )}
                                   />
+                                  <div>
+                                    <FormLabel>Photo du véhicule</FormLabel>
+                                    <div className="mt-2">
+                                      <VehiclePhotoPicker
+                                        key={vehiclePhotoPickerKey}
+                                        onChange={setVehiclePhotoBlob}
+                                      />
+                                    </div>
+                                  </div>
                                 </form>
                               </FormProvider>
                               <DialogFooter>

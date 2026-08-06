@@ -27,7 +27,6 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -71,6 +70,7 @@ import { AddressInput, type Address } from "@/components/AddressInput";
 import {
   useUser,
   useFirestore,
+  useStorage,
   useDoc,
   useCollection,
   useMemoFirebase,
@@ -79,9 +79,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoadingLogo } from "@/components/LoadingLogo";
 import { PostTripSkeleton } from "@/components/skeletons/PostTripSkeleton";
+import { VehiclePhotoPicker } from "@/components/VehiclePhotoPicker";
 import {
   collection,
   addDoc,
+  setDoc,
   serverTimestamp,
   Timestamp,
   getDocs,
@@ -91,13 +93,21 @@ import {
   where,
 } from "firebase/firestore";
 import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import {
   VEHICLE_TYPE_CONFIG,
   CANADIAN_PROVINCES,
+  VEHICLE_MAKES,
+  VEHICLE_COLOR_OPTIONS,
   type VehicleType,
   type ProvinceCode,
   type Vehicle,
   type UserProfilePrivate,
 } from "@/types/db";
+import { SelectOrCustomField } from "@/components/SelectOrCustomField";
 import { useToast } from "@/hooks/use-toast";
 import { ProtocolDialog } from "@/components/ProtocolDialog";
 import {
@@ -174,13 +184,23 @@ const tripSchema = z
 
 type TripFormValues = z.infer<typeof tripSchema>;
 
+const makeOptions = VEHICLE_MAKES.map((m) => ({ value: m, label: m }));
+const colorOptions = VEHICLE_COLOR_OPTIONS.map((c) => ({
+  value: c.label,
+  label: c.label,
+  swatch: c.hex,
+}));
+
 export default function PostTripPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
+  const [vehiclePhotoBlob, setVehiclePhotoBlob] = useState<Blob | null>(null);
+  const [vehiclePhotoPickerKey, setVehiclePhotoPickerKey] = useState(0);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showReturnTripDialog, setShowReturnTripDialog] = useState(false);
   const [showFinalConfirmationDialog, setShowFinalConfirmationDialog] =
@@ -230,7 +250,6 @@ export default function PostTripPage() {
       province: "QC" as ProvinceCode,
       licensePlate: "",
       type: "berline",
-      imageUrl: "",
     },
   });
 
@@ -356,19 +375,35 @@ export default function PostTripPage() {
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
     try {
-      const vehicleRef = collection(firestore, `users/${user.uid}/vehicles`);
+      const vehicleRef = doc(
+        collection(firestore, `users/${user.uid}/vehicles`),
+      );
+      let imageUrl = "";
+      if (vehiclePhotoBlob && storage) {
+        const photoRef = storageRef(
+          storage,
+          `vehicles/${user.uid}/${vehicleRef.id}.webp`,
+        );
+        await uploadBytes(photoRef, vehiclePhotoBlob, {
+          contentType: "image/webp",
+        });
+        imageUrl = await getDownloadURL(photoRef);
+      }
       const maxSeats =
         VEHICLE_TYPE_CONFIG[values.type as VehicleType]?.maxSeats ?? 8;
       const plateFormatted = values.licensePlate.toUpperCase().trim();
-      await addDoc(vehicleRef, {
+      await setDoc(vehicleRef, {
         ...values,
         licensePlate: plateFormatted,
+        imageUrl,
         ownerId: user.uid,
         maxSeats,
         createdAt: serverTimestamp(),
       });
       toast({ title: "Succès", description: "Votre véhicule a été ajouté." });
       vehicleForm.reset();
+      setVehiclePhotoBlob(null);
+      setVehiclePhotoPickerKey((k) => k + 1);
       setShowAddVehicleDialog(false);
     } catch (error) {
       console.error("Error adding vehicle: ", error);
@@ -952,7 +987,13 @@ export default function PostTripPage() {
                           </Select>
                           <Dialog
                             open={showAddVehicleDialog}
-                            onOpenChange={setShowAddVehicleDialog}
+                            onOpenChange={(open) => {
+                              setShowAddVehicleDialog(open);
+                              if (!open) {
+                                setVehiclePhotoBlob(null);
+                                setVehiclePhotoPickerKey((k) => k + 1);
+                              }
+                            }}
                           >
                             <DialogTrigger asChild>
                               <Button
@@ -966,7 +1007,7 @@ export default function PostTripPage() {
                                 </span>
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
+                            <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>
                                   Ajouter un nouveau véhicule
@@ -989,13 +1030,13 @@ export default function PostTripPage() {
                                     name="type"
                                     render={({ field }) => (
                                       <FormItem>
-                                        <Label>Type de véhicule</Label>
+                                        <FormLabel>Type de véhicule</FormLabel>
                                         <Select
                                           onValueChange={field.onChange}
                                           value={field.value}
                                         >
                                           <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="h-11">
                                               <SelectValue placeholder="Sélectionner le type" />
                                             </SelectTrigger>
                                           </FormControl>
@@ -1023,27 +1064,24 @@ export default function PostTripPage() {
                                     )}
                                   />
                                   <div className="grid grid-cols-2 gap-4">
-                                    <FormField
+                                    <SelectOrCustomField
                                       control={vehicleForm.control}
                                       name="make"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <Label>Marque</Label>
-                                          <FormControl>
-                                            <Input {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
+                                      label="Marque"
+                                      placeholder="Sélectionner la marque"
+                                      options={makeOptions}
                                     />
                                     <FormField
                                       control={vehicleForm.control}
                                       name="model"
                                       render={({ field }) => (
                                         <FormItem>
-                                          <Label>Modèle</Label>
+                                          <FormLabel>Modèle</FormLabel>
                                           <FormControl>
-                                            <Input {...field} />
+                                            <Input
+                                              className="h-11"
+                                              {...field}
+                                            />
                                           </FormControl>
                                           <FormMessage />
                                         </FormItem>
@@ -1056,29 +1094,24 @@ export default function PostTripPage() {
                                       name="year"
                                       render={({ field }) => (
                                         <FormItem>
-                                          <Label>Année</Label>
-                                          <FormControl>
-                                            <Input type="number" {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormField
-                                      control={vehicleForm.control}
-                                      name="color"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <Label>Couleur</Label>
+                                          <FormLabel>Année</FormLabel>
                                           <FormControl>
                                             <Input
+                                              type="number"
+                                              className="h-11"
                                               {...field}
-                                              placeholder="ex: Bleu nuit"
                                             />
                                           </FormControl>
                                           <FormMessage />
                                         </FormItem>
                                       )}
+                                    />
+                                    <SelectOrCustomField
+                                      control={vehicleForm.control}
+                                      name="color"
+                                      label="Couleur"
+                                      placeholder="Sélectionner la couleur"
+                                      options={colorOptions}
                                     />
                                   </div>
                                   <div className="grid grid-cols-2 gap-4">
@@ -1087,13 +1120,13 @@ export default function PostTripPage() {
                                       name="province"
                                       render={({ field }) => (
                                         <FormItem>
-                                          <Label>Province</Label>
+                                          <FormLabel>Province</FormLabel>
                                           <Select
                                             onValueChange={field.onChange}
                                             value={field.value}
                                           >
                                             <FormControl>
-                                              <SelectTrigger>
+                                              <SelectTrigger className="h-11">
                                                 <SelectValue placeholder="Prov." />
                                               </SelectTrigger>
                                             </FormControl>
@@ -1133,10 +1166,11 @@ export default function PostTripPage() {
                                         const fmt = CANADIAN_PROVINCES[prov];
                                         return (
                                           <FormItem>
-                                            <Label>Plaque</Label>
+                                            <FormLabel>Plaque</FormLabel>
                                             <FormControl>
                                               <Input
                                                 {...field}
+                                                className="h-11"
                                                 placeholder={
                                                   fmt?.placeholder ?? "ABC-123"
                                                 }
@@ -1158,27 +1192,15 @@ export default function PostTripPage() {
                                       }}
                                     />
                                   </div>
-                                  <FormField
-                                    control={vehicleForm.control}
-                                    name="imageUrl"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <Label>
-                                          Photo du véhicule{" "}
-                                          <span className="text-muted-foreground">
-                                            (URL, optionnel)
-                                          </span>
-                                        </Label>
-                                        <FormControl>
-                                          <Input
-                                            {...field}
-                                            placeholder="https://example.com/photo.jpg"
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
+                                  <div>
+                                    <FormLabel>Photo du véhicule</FormLabel>
+                                    <div className="mt-2">
+                                      <VehiclePhotoPicker
+                                        key={vehiclePhotoPickerKey}
+                                        onChange={setVehiclePhotoBlob}
+                                      />
+                                    </div>
+                                  </div>
                                 </form>
                               </Form>
                               <DialogFooter>

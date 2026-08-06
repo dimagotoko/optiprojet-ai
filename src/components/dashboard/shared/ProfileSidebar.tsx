@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Car, CheckCircle, Info } from "lucide-react";
+import Image from "next/image";
+import { Car, CheckCircle, Edit, Info } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
 } from "@/firebase";
 import { doc, collection, query, orderBy, setDoc } from "firebase/firestore";
 import type { UserProfile, UserProfilePrivate, Vehicle } from "@/types/db";
+import { EditVehicleDialog } from "@/components/EditVehicleDialog";
 
 const getInitials = (name: string) =>
   name
@@ -101,6 +103,8 @@ export function ProfileSidebar({
   }, [firestore, userId, isTransporteur]);
   const { data: vehicles } = useCollection<Vehicle>(vehiclesRef);
   const firstVehicle = vehicles?.[0] ?? null;
+  const [showEditVehicleDialog, setShowEditVehicleDialog] =
+    React.useState(false);
 
   // Backfill silencieux : comptes qui ont signé avant l'ajout du champ isVerified
   React.useEffect(() => {
@@ -183,9 +187,13 @@ export function ProfileSidebar({
             {userData.role ?? "Voyageur"}
           </p>
           {isTransporteur && firstVehicle && (
-            <p className="text-xs text-muted-foreground truncate">
+            <button
+              type="button"
+              onClick={() => setShowEditVehicleDialog(true)}
+              className="text-xs text-muted-foreground truncate hover:text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring rounded"
+            >
               {firstVehicle.make} {firstVehicle.model}
-            </p>
+            </button>
           )}
           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
             {ratingCount > 0 && (
@@ -248,13 +256,31 @@ export function ProfileSidebar({
 
         {/* Véhicule du transporteur */}
         {isTransporteur && firstVehicle && (
-          <div className="w-full rounded-lg border bg-muted/40 px-3 py-2.5 mb-3 text-left">
+          <button
+            type="button"
+            onClick={() => setShowEditVehicleDialog(true)}
+            aria-label="Modifier les informations du véhicule"
+            className="w-full rounded-lg border bg-muted/40 hover:bg-muted px-3 py-2.5 mb-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring group"
+          >
             <div className="flex items-center gap-2">
-              <Car
-                className="h-4 w-4 text-muted-foreground shrink-0"
-                aria-hidden="true"
-              />
-              <div className="min-w-0">
+              {firstVehicle.imageUrl ? (
+                <div className="relative h-10 w-14 rounded overflow-hidden shrink-0 border">
+                  <Image
+                    src={firstVehicle.imageUrl}
+                    alt={`${firstVehicle.make} ${firstVehicle.model}`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-10 w-10 rounded bg-background shrink-0">
+                  <Car
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold truncate">
                   {firstVehicle.make} {firstVehicle.model} {firstVehicle.year}
                 </p>
@@ -262,8 +288,9 @@ export function ProfileSidebar({
                   {firstVehicle.color} · {firstVehicle.licensePlate}
                 </p>
               </div>
+              <Edit className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
             </div>
-          </div>
+          </button>
         )}
 
         <div className="w-full mb-4">
@@ -277,6 +304,14 @@ export function ProfileSidebar({
           <Link href="/profile">Modifier le profil</Link>
         </Button>
       </div>
+
+      {firstVehicle && (
+        <EditVehicleDialog
+          vehicle={firstVehicle}
+          open={showEditVehicleDialog}
+          onOpenChange={setShowEditVehicleDialog}
+        />
+      )}
     </div>
   );
 }

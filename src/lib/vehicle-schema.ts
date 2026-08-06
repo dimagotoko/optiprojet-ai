@@ -55,7 +55,6 @@ export const vehicleSchema = vehicleBaseSchema.extend({
   type: z.enum(VEHICLE_TYPES, {
     required_error: "Le type de véhicule est requis",
   }),
-  imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
 });
 
 export type VehicleBaseFormValues = z.infer<typeof vehicleBaseSchema>;

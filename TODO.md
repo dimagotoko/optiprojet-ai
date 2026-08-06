@@ -140,3 +140,31 @@ ce soit. FCM invalide unilatéralement un token après ~270 jours d'inactivité 
 sans purge périodique, ces tokens morts restent en base indéfiniment (l'envoi échoue et le
 purge-sur-échec de `notify.ts` s'en charge _au prochain envoi_, mais jamais proactivement pour
 un utilisateur qui ne reçoit plus jamais de notification).
+
+---
+
+## Véhicules sans `type`/`maxSeats` — fuite active côté edit-trip
+
+Audit Firestore (2026-08) : 5 véhicules sur 14 (36 %) n'ont ni `type` ni `maxSeats`, tous
+créés via le formulaire d'ajout de véhicule d'`edit-trip/[tripId]/page.tsx`. Constat en 3
+points, à traiter ensemble dans un prochain lot (pas dans celui de l'avatar véhicule) :
+
+a) **Fuite active** : `handleAddVehicle` (`edit-trip/[tripId]/page.tsx`, ~ligne 245) écrit
+`addDoc(vehicleRef, { ...values, ownerId, createdAt })` où `values` = `{ make, model, year,
+   color, licensePlate }` — ni `type` ni `maxSeats`. Contrairement au formulaire de
+`post-trip` (qui a un `<Select>` type par défaut `"berline"` et calcule `maxSeats`),
+chaque véhicule ajouté depuis `edit-trip` aujourd'hui est encore créé incomplet.
+
+b) **Donnée fausse visible** : le fallback `selectedVehicle?.maxSeats ?? 8` (`post-trip/page.tsx:631`)
+masque le problème pour l'UI (pas de crash) mais permet à un transporteur avec un véhicule
+legacy de publier jusqu'à 8 places sur une berline — chiffre vu et cru par les voyageurs.
+
+c) **Type qui ment** : `Vehicle.type` (`src/types/db.ts`) est typé `VehicleType` (requis) alors
+que 36 % des documents réels ne l'ont pas. Le passer en `VehicleType | undefined` forcerait
+TypeScript à révéler tous les accès non gardés (`tsc` ne signale rien aujourd'hui car le
+type déclaré ne reflète pas la réalité de la base).
+
+Périmètre du lot à venir : ajouter `type` (+ calcul `maxSeats`) au formulaire d'`edit-trip`,
+et/ou un vrai chemin d'édition de véhicule existant (aujourd'hui `edit-trip` ne fait que
+`addDoc`, jamais `updateDoc`/`setDoc` sur un véhicule) pour permettre aux 5 véhicules déjà en
+base d'être complétés — sans migration de données silencieuse.
