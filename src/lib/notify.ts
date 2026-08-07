@@ -1,4 +1,6 @@
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb, getAdminMessaging } from "@/lib/firebase-admin";
+import type { AppNotification } from "@/types/db";
 
 type PushPayload = { title: string; body: string; url: string; tag: string };
 
@@ -47,6 +49,27 @@ export async function sendPushToUser(
   } catch (err) {
     // Fire-and-forget côté appelant : cette fonction ne doit jamais lever.
     console.error(`[notify] sendPushToUser a échoué pour ${uid}:`, err);
+  }
+}
+
+export async function createInAppNotification(
+  uid: string,
+  notification: Pick<AppNotification, "type" | "title" | "body" | "link">,
+): Promise<void> {
+  try {
+    await getAdminDb()
+      .collection(`users/${uid}/notifications`)
+      .add({
+        ...notification,
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+  } catch (err) {
+    // Fire-and-forget côté appelant : cette fonction ne doit jamais lever.
+    console.error(
+      `[notify] createInAppNotification a échoué pour ${uid}:`,
+      err,
+    );
   }
 }
 

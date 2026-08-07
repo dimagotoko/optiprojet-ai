@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
 import { requireUser } from "@/lib/auth";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { sendPushToUser, firstNameOr } from "@/lib/notify";
+import {
+  sendPushToUser,
+  createInAppNotification,
+  firstNameOr,
+} from "@/lib/notify";
 import { formatShortLocation } from "@/lib/address";
 
 async function claim(
@@ -22,7 +26,8 @@ export async function POST(request: NextRequest) {
   try {
     const { user } = await requireUser();
     uid = user.uid;
-  } catch {
+  } catch (err) {
+    console.error("[booking-status] 403 — requireUser a échoué:", err);
     return new NextResponse(null, { status: 403 });
   }
 
@@ -33,6 +38,11 @@ export async function POST(request: NextRequest) {
     typeof tripId !== "string" ||
     typeof bookingId !== "string"
   ) {
+    console.error(
+      "[booking-status] 403 — tripId/bookingId invalide:",
+      tripId,
+      bookingId,
+    );
     return new NextResponse(null, { status: 403 });
   }
 
@@ -44,10 +54,16 @@ export async function POST(request: NextRequest) {
     .doc(bookingId);
   const bookingSnap = await bookingRef.get();
   if (!bookingSnap.exists) {
+    console.error(
+      `[booking-status] 403 — booking introuvable trips/${tripId}/bookings/${bookingId}`,
+    );
     return new NextResponse(null, { status: 403 });
   }
   const booking = bookingSnap.data()!;
   if (booking.offeredBy !== uid) {
+    console.error(
+      `[booking-status] 403 — uid=${uid} != booking.offeredBy=${booking.offeredBy}`,
+    );
     return new NextResponse(null, { status: 403 });
   }
 
@@ -67,14 +83,25 @@ export async function POST(request: NextRequest) {
   ]);
   const trip = tripSnap.data();
   const prenom = firstNameOr(conducteurSnap.data()?.name, "Le conducteur");
+  const title =
+    status === "accepted" ? "Réservation acceptée" : "Réservation refusée";
+  const body = `${prenom} a ${status === "accepted" ? "accepté" : "refusé"} ta demande pour ${formatShortLocation(trip?.origin ?? "")} → ${formatShortLocation(trip?.destination ?? "")}`;
+  const link = `/trip-details/${tripId}`;
 
-  await sendPushToUser(booking.travelerId, {
-    title:
-      status === "accepted" ? "Réservation acceptée" : "Réservation refusée",
-    body: `${prenom} a ${status === "accepted" ? "accepté" : "refusé"} ta demande pour ${formatShortLocation(trip?.origin ?? "")} → ${formatShortLocation(trip?.destination ?? "")}`,
-    url: `/trip-details/${tripId}`,
-    tag: `booking-${bookingId}`,
-  });
+  await Promise.all([
+    sendPushToUser(booking.travelerId, {
+      title,
+      body,
+      url: link,
+      tag: `booking-${bookingId}`,
+    }),
+    createInAppNotification(booking.travelerId, {
+      type: "booking-status",
+      title,
+      body,
+      link,
+    }),
+  ]);
 
   return NextResponse.json({ status: "sent" });
 }

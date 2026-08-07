@@ -101,6 +101,16 @@ export type Booking = {
   statusNotifiedAt?: Timestamp;
 };
 
+export type AppNotification = {
+  id: string;
+  type: "booking-created" | "booking-status";
+  title: string;
+  body: string;
+  link: string;
+  read: boolean;
+  createdAt: Timestamp;
+};
+
 export type FavoriteRoute = {
   id: string;
   origin: string;

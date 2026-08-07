@@ -402,6 +402,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Notifications in-app — écrites uniquement par l'Admin SDK (API routes de notify).
+    // Le client peut lire les siennes et marquer "read" (seul champ modifiable).
+    match /users/{userId}/notifications/{notifId} {
+      allow get, list: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+                    && request.resource.data.read is bool;
+      allow create, delete: if false;
+    }
+
     // stripeCustomerId — lecture/écriture client totalement bloquée
     // L'Admin SDK (Cloud Functions) ignore les Security Rules et garde l'accès
     match /stripe_customers/{userId} {

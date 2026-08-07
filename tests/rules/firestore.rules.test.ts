@@ -1118,6 +1118,73 @@ describe("FCM TOKENS – deny-all client (Admin SDK only)", () => {
   });
 });
 
+// ─── NOTIFICATIONS – /users/{userId}/notifications/{notifId} ────────────────
+
+describe("NOTIFICATIONS – lecture propriétaire, update read-only", () => {
+  const NOTIF = "notif1";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users", USER, "notifications", NOTIF), {
+        type: "booking-created",
+        title: "Nouvelle demande de réservation",
+        body: "Quelqu'un veut réserver",
+        link: "/dashboard",
+        read: false,
+        createdAt: new Date(),
+      });
+    });
+  });
+
+  test("propriétaire lit sa propre notification → succès", async () => {
+    await assertSucceeds(
+      getDoc(doc(asUser(USER), "users", USER, "notifications", NOTIF)),
+    );
+  });
+
+  test("autre utilisateur lit la notification d'un autre → échec", async () => {
+    await assertFails(
+      getDoc(doc(asUser(OTHER), "users", USER, "notifications", NOTIF)),
+    );
+  });
+
+  test("non authentifié lit une notification → échec", async () => {
+    await assertFails(
+      getDoc(doc(asAnon(), "users", USER, "notifications", NOTIF)),
+    );
+  });
+
+  test("propriétaire marque une notification comme lue (read seul) → succès", async () => {
+    await assertSucceeds(
+      updateDoc(doc(asUser(USER), "users", USER, "notifications", NOTIF), {
+        read: true,
+      }),
+    );
+  });
+
+  test("propriétaire tente de modifier un autre champ en même temps → échec", async () => {
+    await assertFails(
+      updateDoc(doc(asUser(USER), "users", USER, "notifications", NOTIF), {
+        read: true,
+        title: "Titre modifié",
+      }),
+    );
+  });
+
+  test("client (même propriétaire) tente de créer une notification → échec", async () => {
+    await assertFails(
+      setDoc(doc(asUser(USER), "users", USER, "notifications", "newNotif"), {
+        type: "booking-created",
+        title: "x",
+        body: "x",
+        link: "/dashboard",
+        read: false,
+        createdAt: new Date(),
+      }),
+    );
+  });
+});
+
 // ─── PARTICIPANTS – /trips/{tripId}/participants/{travelerId} ──────────────────
 
 describe("PARTICIPANTS – règle create (write-only conducteur)", () => {

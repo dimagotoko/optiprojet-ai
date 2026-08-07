@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, UserCircle, LogOut, Sun, Moon } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useUser, useAuth, useFirestore } from "@/firebase";
 import {
   DropdownMenu,
@@ -109,6 +110,7 @@ export function Header() {
               {firstName}
             </span>
           )}
+          <NotificationBell />
           <AlertDialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
