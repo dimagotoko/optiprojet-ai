@@ -278,7 +278,10 @@ service cloud.firestore {
         return isParticipant(participant1Id, participant2Id) && resource != null;
       }
 
-      allow get, list: if (request.auth != null && resource != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id)) || isAdmin();
+      // Un canal inexistant ne contient aucune donnée à protéger : on autorise la lecture
+      // (résultat vide) pour éviter un permission-denied sur les réservations acceptées
+      // avant la création du canal (ex. bookings antérieurs à cette fonctionnalité).
+      allow get, list: if (request.auth != null && (!exists(/databases/$(database)/documents/chat_channels/$(chatChannelId)) || isParticipant(resource.data.participant1Id, resource.data.participant2Id))) || isAdmin();
       // Créé uniquement par l'Admin SDK (route booking-status), jamais par le client.
       allow create: if false;
       // Le client ne peut modifier que `readBy` (marquage lu) ; lastMessageAt/lastMessagePreview

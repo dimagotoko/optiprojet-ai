@@ -1399,10 +1399,11 @@ describe("CHAT – messages (shape validation + immutabilité)", () => {
 describe("CHAT – régression: chat_channels inexistant (pas d'erreur d'évaluation)", () => {
   const MISSING_BOOKING = "bookingInexistant";
 
-  test("lecture d'un chat_channels inexistant → échec propre (pas de crash)", async () => {
-    await assertFails(
+  test("lecture d'un chat_channels inexistant → succès, snapshot vide (pas de permission-denied)", async () => {
+    const snap = await assertSucceeds(
       getDoc(doc(asUser(TRAVELER), "chat_channels", MISSING_BOOKING)),
     );
+    expect(snap.exists()).toBe(false);
   });
 
   test("lecture des messages d'un chat_channels inexistant → échec propre", async () => {
