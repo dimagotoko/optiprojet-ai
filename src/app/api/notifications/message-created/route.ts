@@ -92,14 +92,22 @@ export async function POST(request: NextRequest) {
       body: preview,
       link,
     }),
-    channelRef.set(
+  ]);
+
+  try {
+    await channelRef.set(
       {
         lastMessageAt: FieldValue.serverTimestamp(),
         lastMessagePreview: preview,
       },
       { merge: true },
-    ),
-  ]);
+    );
+  } catch (err) {
+    console.error(
+      `[message-created] échec mise à jour métadonnées chat_channels/${bookingId}:`,
+      err,
+    );
+  }
 
   return NextResponse.json({ status: "sent" });
 }
