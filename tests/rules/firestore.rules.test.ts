@@ -1236,9 +1236,9 @@ describe("PARTICIPANTS – règle create (write-only conducteur)", () => {
   });
 });
 
-// ─── CHAT — chat_channels + messages ──────────────────────────────────────────
+// ─── CHAT – chat_channels + messages ──────────────────────────────────────────
 
-describe("CHAT — chat_channels (create verrouillé, update readBy-only)", () => {
+describe("CHAT – chat_channels (create verrouillé, update readBy-only)", () => {
   const BOOKING = "booking1";
 
   beforeEach(async () => {
@@ -1273,7 +1273,23 @@ describe("CHAT — chat_channels (create verrouillé, update readBy-only)", () =
     );
   });
 
-  test("participant tente de modifier lastMessageAt → échec", async () => {
+  test("non-participant tente de modifier readBy → échec", async () => {
+    await assertFails(
+      updateDoc(doc(asUser(OTHER), "chat_channels", BOOKING), {
+        readBy: { [OTHER]: new Date() },
+      }),
+    );
+  });
+
+  test("participant tente de mettre readBy à une valeur non-map → échec", async () => {
+    await assertFails(
+      updateDoc(doc(asUser(TRAVELER), "chat_channels", BOOKING), {
+        readBy: "not-a-map",
+      }),
+    );
+  });
+
+  test("participant tente de modifier un champ hors readBy → échec", async () => {
     await assertFails(
       updateDoc(doc(asUser(TRAVELER), "chat_channels", BOOKING), {
         lastMessageAt: new Date(),
@@ -1283,7 +1299,7 @@ describe("CHAT — chat_channels (create verrouillé, update readBy-only)", () =
   });
 });
 
-describe("CHAT — messages (shape validation + immutabilité)", () => {
+describe("CHAT – messages (shape validation + immutabilité)", () => {
   const BOOKING = "booking1";
 
   beforeEach(async () => {
