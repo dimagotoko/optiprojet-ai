@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import "./globals.css";
 
 export default function GlobalError({
   error,
@@ -29,14 +30,14 @@ export default function GlobalError({
 
             <div className="space-y-3">
               <button
-                onClick={() => reset()}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 active:bg-blue-800"
+                onClick={reset}
+                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 active:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Réessayer
               </button>
               <a
                 href="/"
-                className="block w-full rounded-lg border border-slate-300 px-4 py-3 text-center font-semibold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100"
+                className="block w-full rounded-lg border border-slate-300 px-4 py-3 text-center font-semibold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Retour à l&apos;accueil
               </a>
