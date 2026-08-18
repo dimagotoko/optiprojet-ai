@@ -77,6 +77,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "already-notified" });
   }
 
+  if (status === "accepted") {
+    await db.collection("chat_channels").doc(bookingId).set(
+      {
+        tripId,
+        bookingId,
+        participant1Id: booking.travelerId,
+        participant2Id: booking.offeredBy,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
   const [tripSnap, conducteurSnap] = await Promise.all([
     db.collection("trips").doc(tripId).get(),
     db.collection("users").doc(uid).get(),
