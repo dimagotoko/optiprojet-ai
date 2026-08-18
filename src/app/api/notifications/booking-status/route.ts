@@ -72,11 +72,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "nothing-to-notify" });
   }
 
-  const won = await claim(bookingRef, "statusNotifiedAt");
-  if (!won) {
-    return NextResponse.json({ status: "already-notified" });
-  }
-
   if (status === "accepted") {
     await db.collection("chat_channels").doc(bookingId).set(
       {
@@ -88,6 +83,11 @@ export async function POST(request: NextRequest) {
       },
       { merge: true },
     );
+  }
+
+  const won = await claim(bookingRef, "statusNotifiedAt");
+  if (!won) {
+    return NextResponse.json({ status: "already-notified" });
   }
 
   const [tripSnap, conducteurSnap] = await Promise.all([
