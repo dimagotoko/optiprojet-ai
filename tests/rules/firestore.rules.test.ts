@@ -1235,3 +1235,146 @@ describe("PARTICIPANTS – règle create (write-only conducteur)", () => {
     );
   });
 });
+
+// ─── CHAT — chat_channels + messages ──────────────────────────────────────────
+
+describe("CHAT — chat_channels (create verrouillé, update readBy-only)", () => {
+  const BOOKING = "booking1";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "chat_channels", BOOKING), {
+        tripId: "trip1",
+        bookingId: BOOKING,
+        participant1Id: TRAVELER,
+        participant2Id: DRIVER,
+        createdAt: new Date(),
+      });
+    });
+  });
+
+  test("client (même participant) tente de créer un chat_channels → échec", async () => {
+    await assertFails(
+      setDoc(doc(asUser(TRAVELER), "chat_channels", "newChannel"), {
+        tripId: "trip1",
+        bookingId: "newChannel",
+        participant1Id: TRAVELER,
+        participant2Id: DRIVER,
+        createdAt: new Date(),
+      }),
+    );
+  });
+
+  test("participant modifie uniquement readBy → succès", async () => {
+    await assertSucceeds(
+      updateDoc(doc(asUser(TRAVELER), "chat_channels", BOOKING), {
+        readBy: { [TRAVELER]: new Date() },
+      }),
+    );
+  });
+
+  test("participant tente de modifier lastMessageAt → échec", async () => {
+    await assertFails(
+      updateDoc(doc(asUser(TRAVELER), "chat_channels", BOOKING), {
+        lastMessageAt: new Date(),
+        lastMessagePreview: "triche",
+      }),
+    );
+  });
+});
+
+describe("CHAT — messages (shape validation + immutabilité)", () => {
+  const BOOKING = "booking1";
+
+  beforeEach(async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "chat_channels", BOOKING), {
+        tripId: "trip1",
+        bookingId: BOOKING,
+        participant1Id: TRAVELER,
+        participant2Id: DRIVER,
+        createdAt: new Date(),
+      });
+    });
+  });
+
+  test("participant crée un message valide → succès", async () => {
+    await assertSucceeds(
+      setDoc(
+        doc(asUser(TRAVELER), "chat_channels", BOOKING, "messages", "m1"),
+        {
+          senderId: TRAVELER,
+          text: "Je serai en retard de 10 minutes",
+          createdAt: new Date(),
+        },
+      ),
+    );
+  });
+
+  test("non-participant tente de créer un message → échec", async () => {
+    await assertFails(
+      setDoc(doc(asUser(OTHER), "chat_channels", BOOKING, "messages", "m2"), {
+        senderId: OTHER,
+        text: "Je m'incruste",
+        createdAt: new Date(),
+      }),
+    );
+  });
+
+  test("message avec senderId usurpé → échec", async () => {
+    await assertFails(
+      setDoc(
+        doc(asUser(TRAVELER), "chat_channels", BOOKING, "messages", "m3"),
+        {
+          senderId: DRIVER, // spoofing
+          text: "Usurpation",
+          createdAt: new Date(),
+        },
+      ),
+    );
+  });
+
+  test("message avec text vide → échec", async () => {
+    await assertFails(
+      setDoc(
+        doc(asUser(TRAVELER), "chat_channels", BOOKING, "messages", "m4"),
+        {
+          senderId: TRAVELER,
+          text: "",
+          createdAt: new Date(),
+        },
+      ),
+    );
+  });
+
+  test("message avec text > 1000 caractères → échec", async () => {
+    await assertFails(
+      setDoc(
+        doc(asUser(TRAVELER), "chat_channels", BOOKING, "messages", "m5"),
+        {
+          senderId: TRAVELER,
+          text: "a".repeat(1001),
+          createdAt: new Date(),
+        },
+      ),
+    );
+  });
+
+  test("participant tente d'éditer un message existant → échec", async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "chat_channels", BOOKING, "messages", "m6"), {
+        senderId: TRAVELER,
+        text: "Original",
+        createdAt: new Date(),
+      });
+    });
+    await assertFails(
+      updateDoc(
+        doc(asUser(TRAVELER), "chat_channels", BOOKING, "messages", "m6"),
+        {
+          text: "Modifié",
+        },
+      ),
+    );
+  });
+});
