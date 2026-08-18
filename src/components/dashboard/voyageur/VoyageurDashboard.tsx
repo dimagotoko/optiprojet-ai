@@ -48,6 +48,7 @@ import { fr } from "date-fns/locale";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { AddressLink } from "@/components/ui/AddressLink";
+import { ContactBookingButton } from "@/components/chat/ContactBookingButton";
 import { formatShortLocation } from "@/lib/address";
 import type {
   Booking,
@@ -287,13 +288,23 @@ function BookedTripItem({
           {/* Infos conducteur + véhicule + contact — visibles si réservation acceptée */}
           {booking.status === "accepted" && (
             <div className="rounded-lg border bg-muted/40 px-3 py-2.5 space-y-2">
-              {/* Badge vérifié */}
-              {driver?.isVerified && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                  <ShieldCheck className="h-3 w-3" aria-hidden="true" />
-                  Chauffeur vérifié
-                </span>
-              )}
+              {/* Badge vérifié + contact */}
+              <div className="flex items-center justify-between gap-2">
+                {driver?.isVerified ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                    Chauffeur vérifié
+                  </span>
+                ) : (
+                  <span />
+                )}
+                {driver && (
+                  <ContactBookingButton
+                    bookingId={booking.id}
+                    otherUserName={driver.name}
+                  />
+                )}
+              </div>
               {/* Véhicule */}
               {vehicle && (
                 <div className="flex items-center gap-3">

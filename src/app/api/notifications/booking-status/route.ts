@@ -72,6 +72,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "nothing-to-notify" });
   }
 
+  if (status === "accepted") {
+    await db.collection("chat_channels").doc(bookingId).set(
+      {
+        tripId,
+        bookingId,
+        participant1Id: booking.travelerId,
+        participant2Id: booking.offeredBy,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
   const won = await claim(bookingRef, "statusNotifiedAt");
   if (!won) {
     return NextResponse.json({ status: "already-notified" });

@@ -98,6 +98,7 @@ import { RatingDialog } from "@/components/rating/RatingDialog";
 import { ProtocolDialog } from "@/components/ProtocolDialog";
 
 import { getTripGradient } from "@/lib/trip-gradient";
+import { ContactBookingButton } from "@/components/chat/ContactBookingButton";
 import { StarRating } from "@/components/ui/StarRating";
 import { shortAddress } from "@/lib/address";
 
@@ -414,6 +415,12 @@ const BookingRow = ({
             <StatusIcon className="h-3 w-3" />
             {cfg.label}
           </span>
+          {status === "accepted" && (
+            <ContactBookingButton
+              bookingId={booking.id}
+              otherUserName={traveler.name}
+            />
+          )}
         </div>
       </div>
       <RatingDialog
@@ -1057,9 +1064,17 @@ function TripDetailsPageContent() {
                           {(userBooking?.driverPhone ||
                             userBooking?.driverEmail) && (
                             <div className="rounded-md bg-green-100/60 dark:bg-green-900/30 px-3 py-2 space-y-1.5">
-                              <p className="text-xs font-semibold text-green-700 dark:text-green-400">
-                                Contacter le conducteur
-                              </p>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-green-700 dark:text-green-400">
+                                  Contacter le conducteur
+                                </p>
+                                {userBooking && (
+                                  <ContactBookingButton
+                                    bookingId={userBooking.id}
+                                    otherUserName={driver.name}
+                                  />
+                                )}
+                              </div>
                               {userBooking.driverPhone && (
                                 <a
                                   href={`tel:${userBooking.driverPhone}`}

@@ -260,12 +260,14 @@ service cloud.firestore {
     /**
      * @description Controls access to chat channels, allowing only the participants to read and write messages.
      * @path /chat_channels/{chatChannelId}
-     * @allow (create) User 'user123' can create a chat channel with `participant1Id` or `participant2Id` set to 'user123'.
+     * @allow (create) Only the Admin SDK (server) can create a chat channel; client-side creation is always denied.
      * @allow (get, list) User 'user123' can read/list chat channels if `participant1Id` or `participant2Id` is 'user123'.
-     * @allow (update, delete) User 'user123' can update/delete a chat channel if `participant1Id` or `participant2Id` is 'user123'.
-     * @deny (create) User 'otherUser' cannot create a chat channel with neither `participant1Id` nor `participant2Id` set to 'otherUser'.
-     * @deny (get, list, update, delete) User 'otherUser' cannot access a chat channel if they are not a participant.
-     * @principle Enforces shared access based on participant IDs.
+     * @allow (update) User 'user123' can update only the `readBy` field (to a map) on a chat channel if `participant1Id` or `participant2Id` is 'user123'.
+     * @allow (delete) User 'user123' can delete a chat channel if `participant1Id` or `participant2Id` is 'user123'.
+     * @deny (create) No client — including a would-be participant — can create a chat channel; `if false`.
+     * @deny (update) User 'user123' cannot change any field other than `readBy`, or set `readBy` to a non-map value.
+     * @deny (get, list, delete) User 'otherUser' cannot access a chat channel if they are not a participant.
+     * @principle Enforces shared access based on participant IDs; channel creation and metadata (`lastMessageAt`, `lastMessagePreview`) are server-managed only.
      */
     match /chat_channels/{chatChannelId} {
       function isParticipant(participant1Id, participant2Id) {
@@ -276,21 +278,27 @@ service cloud.firestore {
         return isParticipant(participant1Id, participant2Id) && resource != null;
       }
 
-      allow get, list: if (request.auth != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id)) || isAdmin();
-      allow create: if request.auth != null && (request.resource.data.participant1Id == request.auth.uid || request.resource.data.participant2Id == request.auth.uid);
-      allow update: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id) || isAdmin();
+      allow get, list: if (request.auth != null && resource != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id)) || isAdmin();
+      // Créé uniquement par l'Admin SDK (route booking-status), jamais par le client.
+      allow create: if false;
+      // Le client ne peut modifier que `readBy` (marquage lu) ; lastMessageAt/lastMessagePreview
+      // ne sont écrits que par l'Admin SDK, qui bypass les règles.
+      allow update: if (isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+                        && request.resource.data.readBy is map)
+                      || isAdmin();
       allow delete: if isExistingParticipant(resource.data.participant1Id, resource.data.participant2Id) || isAdmin();
     }
 
     /**
      * @description Controls access to chat messages within a channel, allowing only channel participants.
      * @path /chat_channels/{chatChannelId}/messages/{messageId}
-     * @allow (create) User 'user123' can create a message in channel 'channel456' if they are a participant.
+     * @allow (create) User 'user123' can create a message in channel 'channel456' if they are a participant, `senderId` is 'user123', and `text` is a non-empty string of at most 1000 characters.
      * @allow (get, list) User 'user123' can read/list messages in channel 'channel456' if they are a participant.
-     * @allow (update, delete) User 'user123' can update/delete a message in channel 'channel456' if they are a participant.
-     * @deny (create) User 'otherUser' cannot create a message in channel 'channel456' if they are not a participant.
-     * @deny (get, list, update, delete) User 'otherUser' cannot access messages in channel 'channel456' if they are not a participant.
-     * @principle Inherits access control from the parent chat channel.
+     * @deny (create) User 'otherUser' cannot create a message in channel 'channel456' if they are not a participant, or if `senderId`/`text` is invalid.
+     * @deny (get, list) User 'otherUser' cannot access messages in channel 'channel456' if they are not a participant.
+     * @deny (update, delete) No client can update or delete a message; messages are immutable after creation (`if false`).
+     * @principle Inherits access control from the parent chat channel; messages are immutable once created.
      */
     match /chat_channels/{chatChannelId}/messages/{messageId} {
 
@@ -303,15 +311,19 @@ service cloud.firestore {
       }
 
       function isParticipant(chatChannelId) {
-        return getChannelParticipant1Id(chatChannelId) == request.auth.uid
-            || getChannelParticipant2Id(chatChannelId) == request.auth.uid;
+        return exists(/databases/$(database)/documents/chat_channels/$(chatChannelId))
+            && (getChannelParticipant1Id(chatChannelId) == request.auth.uid
+                || getChannelParticipant2Id(chatChannelId) == request.auth.uid);
       }
 
-      function isExistingParticipant(chatChannelId) {
-        return request.auth != null && isParticipant(chatChannelId) && resource != null;
-      }
-
-      allow read, write: if (request.auth != null && isParticipant(chatChannelId)) || isAdmin();
+      allow get, list: if (request.auth != null && isParticipant(chatChannelId)) || isAdmin();
+      allow create: if request.auth != null && isParticipant(chatChannelId)
+                    && request.resource.data.senderId == request.auth.uid
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 1000;
+      // Messages immuables en v1 — pas d'édition ni de suppression côté client.
+      allow update, delete: if false;
     }
 
     /**
