@@ -68,7 +68,8 @@ export function BookingChatSheet({
     }
   }, [open, messages?.length]);
 
-  // Marque le canal comme lu à l'ouverture.
+  // Marque le canal comme lu à l'ouverture, et à chaque nouveau message
+  // reçu tant que le panneau reste ouvert.
   React.useEffect(() => {
     if (!open || !firestore || !user) return;
     const channelRef = doc(firestore, "chat_channels", bookingId);
@@ -77,7 +78,7 @@ export function BookingChatSheet({
       { readBy: { [user.uid]: serverTimestamp() } },
       { merge: true },
     );
-  }, [open, firestore, user, bookingId]);
+  }, [open, firestore, user, bookingId, messages?.length]);
 
   const handleSend = async () => {
     const trimmed = text.trim();
@@ -112,7 +113,11 @@ export function BookingChatSheet({
         </SheetHeader>
 
         <ScrollArea className="flex-1 px-4">
-          <div className="flex flex-col gap-2 py-4">
+          <div
+            className="flex flex-col gap-2 py-4"
+            aria-live="polite"
+            aria-relevant="additions"
+          >
             {isLoading ? (
               <>
                 <Skeleton className="h-10 w-2/3" />
