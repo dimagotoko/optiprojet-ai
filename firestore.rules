@@ -278,7 +278,7 @@ service cloud.firestore {
         return isParticipant(participant1Id, participant2Id) && resource != null;
       }
 
-      allow get, list: if (request.auth != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id)) || isAdmin();
+      allow get, list: if (request.auth != null && resource != null && isParticipant(resource.data.participant1Id, resource.data.participant2Id)) || isAdmin();
       // Créé uniquement par l'Admin SDK (route booking-status), jamais par le client.
       allow create: if false;
       // Le client ne peut modifier que `readBy` (marquage lu) ; lastMessageAt/lastMessagePreview
@@ -311,8 +311,9 @@ service cloud.firestore {
       }
 
       function isParticipant(chatChannelId) {
-        return getChannelParticipant1Id(chatChannelId) == request.auth.uid
-            || getChannelParticipant2Id(chatChannelId) == request.auth.uid;
+        return exists(/databases/$(database)/documents/chat_channels/$(chatChannelId))
+            && (getChannelParticipant1Id(chatChannelId) == request.auth.uid
+                || getChannelParticipant2Id(chatChannelId) == request.auth.uid);
       }
 
       allow get, list: if (request.auth != null && isParticipant(chatChannelId)) || isAdmin();

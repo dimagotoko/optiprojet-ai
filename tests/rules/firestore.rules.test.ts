@@ -6,6 +6,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   doc,
+  collection,
   getDoc,
   getDocs,
   setDoc,
@@ -1389,6 +1390,48 @@ describe("CHAT – messages (shape validation + immutabilité)", () => {
         doc(asUser(TRAVELER), "chat_channels", BOOKING, "messages", "m6"),
         {
           text: "Modifié",
+        },
+      ),
+    );
+  });
+});
+
+describe("CHAT – régression: chat_channels inexistant (pas d'erreur d'évaluation)", () => {
+  const MISSING_BOOKING = "bookingInexistant";
+
+  test("lecture d'un chat_channels inexistant → échec propre (pas de crash)", async () => {
+    await assertFails(
+      getDoc(doc(asUser(TRAVELER), "chat_channels", MISSING_BOOKING)),
+    );
+  });
+
+  test("lecture des messages d'un chat_channels inexistant → échec propre", async () => {
+    await assertFails(
+      getDocs(
+        collection(
+          asUser(TRAVELER),
+          "chat_channels",
+          MISSING_BOOKING,
+          "messages",
+        ),
+      ),
+    );
+  });
+
+  test("création d'un message sous un chat_channels inexistant → échec propre", async () => {
+    await assertFails(
+      setDoc(
+        doc(
+          asUser(TRAVELER),
+          "chat_channels",
+          MISSING_BOOKING,
+          "messages",
+          "m1",
+        ),
+        {
+          senderId: TRAVELER,
+          text: "Personne ne devrait voir ça",
+          createdAt: new Date(),
         },
       ),
     );
