@@ -103,12 +103,33 @@ export type Booking = {
 
 export type AppNotification = {
   id: string;
-  type: "booking-created" | "booking-status";
+  type: "booking-created" | "booking-status" | "new-message";
   title: string;
   body: string;
   link: string;
   read: boolean;
   createdAt: Timestamp;
+};
+
+// ID déterministe == bookingId — un canal par réservation, pas par paire d'utilisateurs.
+export type ChatChannel = {
+  id: string;
+  tripId: string;
+  bookingId: string;
+  participant1Id: string; // travelerId
+  participant2Id: string; // offeredBy (conducteur)
+  createdAt: Timestamp;
+  lastMessageAt?: Timestamp;
+  lastMessagePreview?: string;
+  readBy?: Record<string, Timestamp>;
+};
+
+export type ChatMessage = {
+  id: string;
+  senderId: string;
+  text: string; // 1-1000 caractères
+  createdAt: Timestamp;
+  notifiedAt?: Timestamp; // idempotence push, même pattern que Booking.notifiedAt
 };
 
 export type FavoriteRoute = {
