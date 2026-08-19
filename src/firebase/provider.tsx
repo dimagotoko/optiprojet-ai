@@ -1,11 +1,18 @@
+"use client";
 
-'use client';
-
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getIdToken } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import React, {
+  DependencyList,
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
+import { FirebaseApp } from "firebase/app";
+import { Firestore } from "firebase/firestore";
+import { Auth, User, onAuthStateChanged, getIdToken } from "firebase/auth";
+import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -44,14 +51,17 @@ export interface FirebaseServicesAndUser {
 }
 
 // Return type for useUser() - specific to user auth state
-export interface UserHookResult { // Renamed from UserAuthHookResult for consistency if desired, or keep as UserAuthHookResult
+export interface UserHookResult {
+  // Renamed from UserAuthHookResult for consistency if desired, or keep as UserAuthHookResult
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
 }
 
 // React Context
-export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
+export const FirebaseContext = createContext<FirebaseContextState | undefined>(
+  undefined,
+);
 
 /**
  * FirebaseProvider manages and provides Firebase services and user authentication state.
@@ -70,38 +80,70 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   // Effect to subscribe to Firebase auth state changes and manage session cookie
   useEffect(() => {
+    let settled = false;
+
+    // Filet de sécurité : si onAuthStateChanged ne répond jamais (ex. blocage
+    // interne du SDK sur l'ouverture d'IndexedDB), on ne laisse pas l'UI
+    // bloquée indéfiniment sur l'état de chargement.
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.error(
+          "FirebaseProvider: onAuthStateChanged n'a pas répondu après 8s, retour à l'état déconnecté.",
+        );
+        setUserAuthState({ user: null, isUserLoading: false, userError: null });
+      }
+    }, 8000);
+
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (firebaseUser) => { // Auth state determined
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+      async (firebaseUser) => {
+        // Auth state determined
+        settled = true;
+        clearTimeout(timeoutId);
+        setUserAuthState({
+          user: firebaseUser,
+          isUserLoading: false,
+          userError: null,
+        });
 
         if (firebaseUser) {
           // User is signed in, create or refresh the session cookie
           try {
             const idToken = await getIdToken(firebaseUser, true);
-            await fetch('/api/auth/session', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            await fetch("/api/auth/session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ idToken }),
             });
           } catch (error) {
-            console.error('Failed to create session cookie:', error);
+            console.error("Failed to create session cookie:", error);
           }
         } else {
           // User is signed out, delete the session cookie
           try {
-            await fetch('/api/auth/session', { method: 'DELETE' });
+            await fetch("/api/auth/session", { method: "DELETE" });
           } catch (error) {
-            console.error('Failed to delete session cookie:', error);
+            console.error("Failed to delete session cookie:", error);
           }
         }
       },
-      (error) => { // Auth listener error
+      (error) => {
+        // Auth listener error
+        settled = true;
+        clearTimeout(timeoutId);
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      }
+        setUserAuthState({
+          user: null,
+          isUserLoading: false,
+          userError: error,
+        });
+      },
     );
-    return () => unsubscribe(); // Cleanup
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    }; // Cleanup
   }, [auth]); // Depends on the auth instance
 
   // Memoize the context value
@@ -134,11 +176,18 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
+    throw new Error("useFirebase must be used within a FirebaseProvider.");
   }
 
-  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    throw new Error('Firebase core services not available. Check FirebaseProvider props.');
+  if (
+    !context.areServicesAvailable ||
+    !context.firebaseApp ||
+    !context.firestore ||
+    !context.auth
+  ) {
+    throw new Error(
+      "Firebase core services not available. Check FirebaseProvider props.",
+    );
   }
 
   return {
@@ -154,8 +203,8 @@ export const useFirebase = (): FirebaseServicesAndUser => {
 /** Hook to access Firebase Auth instance. */
 export const useAuth = (): Auth | null => {
   const context = useContext(FirebaseContext);
-   if (context === undefined) {
-    throw new Error('useAuth must be used within a FirebaseProvider.');
+  if (context === undefined) {
+    throw new Error("useAuth must be used within a FirebaseProvider.");
   }
   return context.auth;
 };
@@ -164,7 +213,7 @@ export const useAuth = (): Auth | null => {
 export const useFirestore = (): Firestore | null => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    throw new Error('useFirestore must be used within a FirebaseProvider.');
+    throw new Error("useFirestore must be used within a FirebaseProvider.");
   }
   return context.firestore;
 };
@@ -172,22 +221,25 @@ export const useFirestore = (): Firestore | null => {
 /** Hook to access Firebase App instance. */
 export const useFirebaseApp = (): FirebaseApp | null => {
   const context = useContext(FirebaseContext);
-   if (context === undefined) {
-    throw new Error('useFirebaseApp must be used within a FirebaseProvider.');
+  if (context === undefined) {
+    throw new Error("useFirebaseApp must be used within a FirebaseProvider.");
   }
   return context.firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
+type MemoFirebase<T> = T & { __memo?: boolean };
 
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
+export function useMemoFirebase<T>(
+  factory: () => T,
+  deps: DependencyList,
+): T | MemoFirebase<T> {
   const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  if(!('__memo' in memoized) || !(memoized as MemoFirebase<T>).__memo) {
+
+  if (typeof memoized !== "object" || memoized === null) return memoized;
+  if (!("__memo" in memoized) || !(memoized as MemoFirebase<T>).__memo) {
     (memoized as MemoFirebase<T>).__memo = true;
   }
-  
+
   return memoized;
 }
 
@@ -196,10 +248,15 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
  * This provides the User object, loading status, and any auth errors.
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
-export const useUser = (): UserHookResult => { // Renamed from useAuthUser
+export const useUser = (): UserHookResult => {
+  // Renamed from useAuthUser
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    throw new Error('useUser must be used within a FirebaseProvider.');
+    throw new Error("useUser must be used within a FirebaseProvider.");
   }
-  return { user: context.user, isUserLoading: context.isUserLoading, userError: context.userError };
+  return {
+    user: context.user,
+    isUserLoading: context.isUserLoading,
+    userError: context.userError,
+  };
 };
