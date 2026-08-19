@@ -1,2 +1,5 @@
 #!/bin/sh
+if [ -n "$JAVA_HOME" ]; then
+  PATH="$JAVA_HOME/bin:$PATH"
+fi
 npm run test:rules
