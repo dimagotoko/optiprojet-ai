@@ -44,6 +44,7 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isThemeLockedPage = pathname === "/login";
   const { toast } = useToast();
   const [userRole, setUserRole] = React.useState<string | null>(null);
   const { isAdmin } = useAdmin();
@@ -325,21 +326,23 @@ export function Header() {
         </Sheet>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={
-              resolvedTheme === "dark"
-                ? "Passer en mode clair"
-                : "Passer en mode sombre"
-            }
-            onClick={() =>
-              setTheme(resolvedTheme === "dark" ? "light" : "dark")
-            }
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
-          </Button>
+          {!isThemeLockedPage && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={
+                resolvedTheme === "dark"
+                  ? "Passer en mode clair"
+                  : "Passer en mode sombre"
+              }
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+            </Button>
+          )}
           {renderUserMenu()}
         </div>
       </div>

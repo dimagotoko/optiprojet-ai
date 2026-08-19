@@ -16,15 +16,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { useAuth, useUser } from "@/firebase";
@@ -92,6 +83,7 @@ function LoginPageInternal() {
 
   const onSubmit = async (values: LoginFormValues) => {
     if (!auth) return;
+    setLoginError(null);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       window.location.href = redirectUrl;
@@ -238,7 +230,7 @@ function LoginPageInternal() {
                       <Input
                         type="email"
                         placeholder="m@example.com"
-                        className="h-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
+                        className="h-11 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
                         style={{ color: "#0f172a" }}
                         {...field}
                         autoComplete="email"
@@ -260,7 +252,7 @@ function LoginPageInternal() {
                       <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
-                          className="h-10 pr-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
+                          className="h-11 pr-10 bg-slate-50 border-slate-200 rounded-lg text-slate-900 focus-visible:ring-cyan-700/20 focus-visible:border-cyan-700 focus-visible:ring-offset-white placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f8fafc] [&:-webkit-autofill]:[color:#0f172a]"
                           style={{ color: "#0f172a" }}
                           {...field}
                           autoComplete="current-password"
@@ -295,9 +287,17 @@ function LoginPageInternal() {
                   </FormItem>
                 )}
               />
+              {loginError && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                >
+                  {loginError}
+                </div>
+              )}
               <Button
                 type="submit"
-                className="w-full h-[42px] font-bold rounded-lg bg-gradient-to-r from-[#0891b2] to-[#06b6d4] hover:from-[#0e7490] hover:to-[#0891b2] border-0 shadow-[0_4px_14px_rgba(6,182,212,0.35)] text-white mt-1"
+                className="w-full h-12 font-bold rounded-lg bg-gradient-to-r from-[#0891b2] to-[#06b6d4] hover:from-[#0e7490] hover:to-[#0891b2] border-0 shadow-[0_4px_14px_rgba(6,182,212,0.35)] text-white mt-1"
                 disabled={isSubmitting || !auth}
               >
                 {isSubmitting ? (
@@ -332,25 +332,6 @@ function LoginPageInternal() {
           </p>
         </div>
       </div>
-
-      <AlertDialog
-        open={!!loginError}
-        onOpenChange={(open) => {
-          if (!open) setLoginError(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Erreur de connexion</AlertDialogTitle>
-            <AlertDialogDescription>{loginError}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setLoginError(null)}>
-              OK
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
