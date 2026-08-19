@@ -79,6 +79,7 @@ export function QuickSearchBar({
         <div className="flex-1 min-w-0">
           <AddressInput
             id="quick-departure"
+            label="Ville de départ"
             placeholder="Ville de départ"
             defaultValue={initialDeparture}
             onAddressSelect={(addr) => {
@@ -90,6 +91,7 @@ export function QuickSearchBar({
         <div className="flex-1 min-w-0">
           <AddressInput
             id="quick-destination"
+            label="Ville d'arrivée"
             placeholder="Ville d'arrivée"
             defaultValue={initialDestination}
             onAddressSelect={(addr) => {

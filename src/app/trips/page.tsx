@@ -128,6 +128,8 @@ function TripsPageContent() {
   const departure = searchParams.get("departure")?.toLowerCase();
   const destination = searchParams.get("destination")?.toLowerCase();
   const dateStr = searchParams.get("date");
+  const passengersStr = searchParams.get("passengers");
+  const passengers = passengersStr ? parseInt(passengersStr, 10) || 1 : 1;
 
   // Correctly parse the date only if it's a valid string
   const searchDate = useMemo(() => {
@@ -234,12 +236,15 @@ function TripsPageContent() {
         (departureTime === "morning" && hour >= 6 && hour < 12) ||
         (departureTime === "afternoon" && hour >= 12 && hour < 18) ||
         (departureTime === "evening" && hour >= 18);
+      const remainingSeats = trip.availableSeats - (trip.totalBookings ?? 0);
+      const matchesPassengers = remainingSeats >= passengers;
       return (
         matchesPrice &&
         matchesTime &&
         matchesNonSmoking &&
         matchesPetsAllowed &&
-        matchesLargeBags
+        matchesLargeBags &&
+        matchesPassengers
       );
     });
   }, [
@@ -249,6 +254,7 @@ function TripsPageContent() {
     showNonSmoking,
     showPetsAllowed,
     showLargeBagsAllowed,
+    passengers,
   ]);
 
   const { exactMatches, suggestedMatches } = useMemo(() => {
@@ -293,11 +299,13 @@ function TripsPageContent() {
     departure?: string;
     destination?: string;
     date?: Date;
+    passengers?: number;
   }) => {
     const params = new URLSearchParams();
     if (search.departure) params.set("departure", search.departure);
     if (search.destination) params.set("destination", search.destination);
     if (search.date) params.set("date", search.date.toISOString());
+    if (search.passengers) params.set("passengers", String(search.passengers));
 
     router.push(`/trips?${params.toString()}`);
   };
@@ -485,6 +493,7 @@ function TripsPageContent() {
             departure: searchParams.get("departure") || "",
             destination: searchParams.get("destination") || "",
             date: initialDate,
+            passengers,
           }}
           onSearch={handleSearch}
         />

@@ -452,6 +452,7 @@ export default function EditTripPage() {
                         <FormControl>
                           <AddressInput
                             id="departure"
+                            label="Départ"
                             placeholder="Adresse de départ"
                             defaultValue={field.value?.description}
                             onAddressSelect={field.onChange}
@@ -470,6 +471,7 @@ export default function EditTripPage() {
                         <FormControl>
                           <AddressInput
                             id="destination"
+                            label="Destination"
                             placeholder="Adresse de destination"
                             defaultValue={field.value?.description}
                             onAddressSelect={field.onChange}

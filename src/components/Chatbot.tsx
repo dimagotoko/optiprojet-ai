@@ -150,7 +150,12 @@ export function Chatbot({ onSearch }: ChatbotProps) {
           </Avatar>
           <CardTitle className="text-lg">Assistant KamGo</CardTitle>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsOpen(false)}
+          aria-label="Fermer le chat"
+        >
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>

@@ -16,6 +16,10 @@ function useCountUp(target: number, duration = 1200) {
 
   useEffect(() => {
     if (target === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(target);
+      return;
+    }
     const start = Date.now();
     const timer = setInterval(() => {
       const elapsed = Date.now() - start;

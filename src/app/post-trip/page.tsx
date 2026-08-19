@@ -737,6 +737,7 @@ export default function PostTripPage() {
                         <FormControl>
                           <AddressInput
                             id="departure"
+                            label="Départ"
                             placeholder="Adresse de départ"
                             onAddressSelect={field.onChange}
                             defaultValue={field.value?.description}
@@ -755,6 +756,7 @@ export default function PostTripPage() {
                         <FormControl>
                           <AddressInput
                             id="destination"
+                            label="Destination"
                             placeholder="Adresse de destination"
                             onAddressSelect={field.onChange}
                             defaultValue={field.value?.description}

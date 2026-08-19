@@ -24,6 +24,7 @@ type TripSearch = {
   departure?: string;
   destination?: string;
   date?: Date;
+  passengers?: number;
 };
 
 export default function Home() {
@@ -139,7 +140,7 @@ export default function Home() {
             initialSearch={tripSearch}
             onSearch={(s) =>
               router.push(
-                `/trips?departure=${s.departure || ""}&destination=${s.destination || ""}&date=${s.date ? s.date.toISOString() : ""}`,
+                `/trips?departure=${s.departure || ""}&destination=${s.destination || ""}&date=${s.date ? s.date.toISOString() : ""}&passengers=${s.passengers || 1}`,
               )
             }
           />

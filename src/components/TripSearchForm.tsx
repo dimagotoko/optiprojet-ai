@@ -17,6 +17,7 @@ type TripSearchFormValues = {
   departure?: string;
   destination?: string;
   date?: Date;
+  passengers?: number;
 };
 
 type TripSearchFormProps = {
@@ -28,7 +29,9 @@ export function TripSearchForm({
   initialSearch,
   onSearch,
 }: TripSearchFormProps) {
-  const [passengers, setPassengers] = React.useState(1);
+  const [passengers, setPassengers] = React.useState(
+    initialSearch?.passengers ?? 1,
+  );
 
   const formMethods = useForm<TripSearchFormValues>({
     defaultValues: initialSearch,
@@ -42,18 +45,20 @@ export function TripSearchForm({
 
   React.useEffect(() => {
     reset(initialSearch);
+    setPassengers(initialSearch?.passengers ?? 1);
   }, [initialSearch, reset]);
 
   const onSubmit = (data: TripSearchFormValues) => {
-    onSearch(data);
+    onSearch({ ...data, passengers });
   };
 
   const handleReset = () => {
     reset({ departure: "", destination: "", date: undefined });
+    setPassengers(1);
     onSearch({});
   };
 
-  const canReset = departure || destination || date;
+  const canReset = departure || destination || date || passengers > 1;
 
   return (
     <FormProvider {...formMethods}>
@@ -66,6 +71,7 @@ export function TripSearchForm({
             <div className="relative md:col-span-3">
               <AddressInput
                 id="departure"
+                label="Départ"
                 placeholder="Départ (ex: Station Berri-UQAM)"
                 defaultValue={departure}
                 onAddressSelect={(address) =>
@@ -81,6 +87,7 @@ export function TripSearchForm({
             <div className="relative md:col-span-3">
               <AddressInput
                 id="destination"
+                label="Destination"
                 placeholder="Destination (ex: Carrefour Laval)"
                 defaultValue={destination}
                 onAddressSelect={(address) =>
@@ -118,6 +125,7 @@ export function TripSearchForm({
                         className="h-8 w-8"
                         onClick={() => setPassengers((p) => Math.max(1, p - 1))}
                         disabled={passengers <= 1}
+                        aria-label="Diminuer le nombre de passagers"
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
@@ -129,6 +137,7 @@ export function TripSearchForm({
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => setPassengers((p) => p + 1)}
+                        aria-label="Augmenter le nombre de passagers"
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
@@ -141,7 +150,7 @@ export function TripSearchForm({
               <Button
                 type="submit"
                 className="w-full h-12 text-base"
-                disabled={!departure && !destination}
+                disabled={!departure && !destination && passengers <= 1}
               >
                 Rechercher
               </Button>
