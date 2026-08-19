@@ -41,6 +41,7 @@ const darkBgStyle: React.CSSProperties = {
 const formSchema = z.object({
   email: z
     .string()
+    .min(1, { message: "Veuillez entrer votre adresse email." })
     .email({ message: "Veuillez entrer une adresse email valide." }),
   password: z
     .string()
@@ -95,8 +96,6 @@ function LoginPageInternal() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       window.location.href = redirectUrl;
     } catch (error: any) {
-      console.error("Login error:", error.code, error.message);
-
       let message: string;
       switch (error.code) {
         case "auth/invalid-credential":
@@ -115,6 +114,7 @@ function LoginPageInternal() {
             "Trop de tentatives échouées. Réessayez dans quelques minutes.";
           break;
         default:
+          console.error("Login error:", error.code, error.message);
           message =
             "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
       }
@@ -216,11 +216,11 @@ function LoginPageInternal() {
                 KamGo
               </span>
             </div>
-            <p className="text-xs text-slate-400 italic">
+            <p className="text-xs text-slate-500 italic">
               Covoiturage intelligent
             </p>
             <div className="w-full h-px bg-slate-100 my-1.5" />
-            <p className="font-bold text-sm text-slate-800">Connexion</p>
+            <h1 className="font-bold text-sm text-slate-800">Connexion</h1>
           </div>
 
           {/* Formulaire */}
@@ -253,17 +253,9 @@ function LoginPageInternal() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex items-center">
-                      <FormLabel className="text-xs font-semibold text-gray-700">
-                        Mot de passe
-                      </FormLabel>
-                      <Link
-                        href="/forgot-password"
-                        className="ml-auto text-xs text-cyan-700 hover:underline"
-                      >
-                        Mot de passe oublié?
-                      </Link>
-                    </div>
+                    <FormLabel className="text-xs font-semibold text-gray-700">
+                      Mot de passe
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
@@ -275,7 +267,6 @@ function LoginPageInternal() {
                         />
                         <button
                           type="button"
-                          tabIndex={-1}
                           onClick={() => setShowPassword((v) => !v)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           aria-label={
@@ -292,6 +283,14 @@ function LoginPageInternal() {
                         </button>
                       </div>
                     </FormControl>
+                    <div className="flex justify-end">
+                      <Link
+                        href="/forgot-password"
+                        className="text-xs text-cyan-700 hover:underline"
+                      >
+                        Mot de passe oublié?
+                      </Link>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -322,7 +321,7 @@ function LoginPageInternal() {
               Inscrivez-vous
             </Link>
           </p>
-          <p className="mt-2 text-center text-xs text-slate-400">
+          <p className="mt-2 text-center text-xs text-slate-500">
             <Link href="/cgu" className="hover:underline">
               Conditions d&apos;utilisation
             </Link>
