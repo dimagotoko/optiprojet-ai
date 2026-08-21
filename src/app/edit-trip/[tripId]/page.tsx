@@ -685,7 +685,10 @@ export default function EditTripPage() {
                           >
                             <FormControl>
                               <SelectTrigger className="h-11">
-                                <SelectValue placeholder="Sélectionnez votre véhicule" />
+                                <SelectValue placeholder="Sélectionnez votre véhicule">
+                                  {selectedVehicle &&
+                                    `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.licensePlate})`}
+                                </SelectValue>
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
