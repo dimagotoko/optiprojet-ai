@@ -190,9 +190,16 @@ export function ProfileSidebar({
             <button
               type="button"
               onClick={() => setShowEditVehicleDialog(true)}
-              className="text-xs text-muted-foreground truncate hover:text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring rounded"
+              className="flex items-center gap-1 max-w-full text-xs text-muted-foreground hover:text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring rounded"
             >
-              {firstVehicle.make} {firstVehicle.model}
+              <span className="min-w-0 flex-1 truncate">
+                {firstVehicle.make} {firstVehicle.model}
+              </span>
+              {!firstVehicle.type && (
+                <Badge variant="outline" className="shrink-0 text-[10px]">
+                  À compléter
+                </Badge>
+              )}
             </button>
           )}
           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
