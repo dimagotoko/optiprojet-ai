@@ -281,9 +281,16 @@ export function ProfileSidebar({
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold truncate">
-                  {firstVehicle.make} {firstVehicle.model} {firstVehicle.year}
-                </p>
+                <span className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold truncate">
+                    {firstVehicle.make} {firstVehicle.model} {firstVehicle.year}
+                  </p>
+                  {!firstVehicle.type && (
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      À compléter
+                    </Badge>
+                  )}
+                </span>
                 <p className="text-xs text-muted-foreground truncate">
                   {firstVehicle.color} · {firstVehicle.licensePlate}
                 </p>
