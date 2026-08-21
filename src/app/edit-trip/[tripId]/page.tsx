@@ -275,6 +275,18 @@ export default function EditTripPage() {
     (v) => v.id === tripForm.watch("vehicleId"),
   ) as Vehicle | undefined;
 
+  const maxSeatsForVehicle = selectedVehicle?.maxSeats ?? 8;
+
+  // Quand le véhicule change, plafonne les places au max autorisé
+  useEffect(() => {
+    const currentSeats = tripForm.getValues("seats");
+    if (selectedVehicle?.maxSeats && currentSeats > selectedVehicle.maxSeats) {
+      tripForm.setValue("seats", selectedVehicle.maxSeats, {
+        shouldValidate: true,
+      });
+    }
+  }, [selectedVehicle?.maxSeats, tripForm]);
+
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
     try {
@@ -606,13 +618,31 @@ export default function EditTripPage() {
                               size="icon"
                               className="h-10 w-10 shrink-0"
                               onClick={() =>
-                                field.onChange(Number(field.value) + 1)
+                                field.onChange(
+                                  Math.min(
+                                    maxSeatsForVehicle,
+                                    Number(field.value) + 1,
+                                  ),
+                                )
+                              }
+                              disabled={
+                                Number(field.value) >= maxSeatsForVehicle
                               }
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
                         </FormControl>
+                        {selectedVehicle && (
+                          <p className="text-xs text-muted-foreground">
+                            Maximum {maxSeatsForVehicle} places pour ce véhicule
+                            (
+                            {VEHICLE_TYPE_CONFIG[
+                              selectedVehicle.type as VehicleType
+                            ]?.label ?? "Autre"}
+                            )
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
