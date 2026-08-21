@@ -14,6 +14,7 @@ import {
   CANADIAN_PROVINCES,
   type VehicleType,
   type ProvinceCode,
+  type Vehicle,
 } from "@/types/db";
 import { SelectOrCustomField } from "@/components/SelectOrCustomField";
 import {
@@ -22,6 +23,7 @@ import {
   DollarSign,
   Minus,
   Plus,
+  Pencil,
   Luggage,
   Briefcase,
   Dog,
@@ -99,6 +101,8 @@ import {
 } from "@/components/ui/form";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { VehiclePhotoPicker } from "@/components/VehiclePhotoPicker";
+import { EditVehicleDialog } from "@/components/EditVehicleDialog";
+import { Badge } from "@/components/ui/badge";
 
 const addressSchema = z.object({
   description: z
@@ -168,6 +172,7 @@ export default function EditTripPage() {
 
   const { toast } = useToast();
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
+  const [showEditVehicleDialog, setShowEditVehicleDialog] = useState(false);
   const [vehiclePhotoBlob, setVehiclePhotoBlob] = useState<Blob | null>(null);
   const [vehiclePhotoPickerKey, setVehiclePhotoPickerKey] = useState(0);
 
@@ -265,6 +270,10 @@ export default function EditTripPage() {
       });
     }
   }, [tripData, tripForm.reset]);
+
+  const selectedVehicle = vehicles?.find(
+    (v) => v.id === tripForm.watch("vehicleId"),
+  ) as Vehicle | undefined;
 
   const handleAddVehicle = async (values: VehicleFormValues) => {
     if (!firestore || !user) return;
@@ -684,6 +693,11 @@ export default function EditTripPage() {
                                 vehicles.map((v) => (
                                   <SelectItem key={v.id} value={v.id}>
                                     {v.make} {v.model} ({v.licensePlate})
+                                    {!v.type && (
+                                      <Badge variant="outline" className="ml-2">
+                                        À compléter
+                                      </Badge>
+                                    )}
                                   </SelectItem>
                                 ))}
                               {vehicles?.length === 0 && (
@@ -693,6 +707,26 @@ export default function EditTripPage() {
                               )}
                             </SelectContent>
                           </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-11 w-11 flex-shrink-0"
+                            disabled={!selectedVehicle}
+                            onClick={() => setShowEditVehicleDialog(true)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">
+                              Modifier le véhicule sélectionné
+                            </span>
+                          </Button>
+                          {selectedVehicle && (
+                            <EditVehicleDialog
+                              vehicle={selectedVehicle}
+                              open={showEditVehicleDialog}
+                              onOpenChange={setShowEditVehicleDialog}
+                            />
+                          )}
                           <Dialog
                             open={showAddVehicleDialog}
                             onOpenChange={(open) => {
