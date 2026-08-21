@@ -14,6 +14,7 @@ import {
   DollarSign,
   Minus,
   Plus,
+  Pencil,
   Luggage,
   Briefcase,
   Dog,
@@ -80,6 +81,8 @@ import { useEffect, useState } from "react";
 import { LoadingLogo } from "@/components/LoadingLogo";
 import { PostTripSkeleton } from "@/components/skeletons/PostTripSkeleton";
 import { VehiclePhotoPicker } from "@/components/VehiclePhotoPicker";
+import { EditVehicleDialog } from "@/components/EditVehicleDialog";
+import { Badge } from "@/components/ui/badge";
 import {
   collection,
   addDoc,
@@ -199,6 +202,7 @@ export default function PostTripPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
+  const [showEditVehicleDialog, setShowEditVehicleDialog] = useState(false);
   const [vehiclePhotoBlob, setVehiclePhotoBlob] = useState<Blob | null>(null);
   const [vehiclePhotoPickerKey, setVehiclePhotoPickerKey] = useState(0);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
@@ -970,7 +974,10 @@ export default function PostTripPage() {
                           >
                             <FormControl>
                               <SelectTrigger className="h-11">
-                                <SelectValue placeholder="Sélectionnez votre véhicule" />
+                                <SelectValue placeholder="Sélectionnez votre véhicule">
+                                  {selectedVehicle &&
+                                    `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.licensePlate})`}
+                                </SelectValue>
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -978,6 +985,11 @@ export default function PostTripPage() {
                                 vehicles.map((v) => (
                                   <SelectItem key={v.id} value={v.id}>
                                     {v.make} {v.model} ({v.licensePlate})
+                                    {!v.type && (
+                                      <Badge variant="outline" className="ml-2">
+                                        À compléter
+                                      </Badge>
+                                    )}
                                   </SelectItem>
                                 ))}
                               {vehicles?.length === 0 && (
@@ -987,6 +999,26 @@ export default function PostTripPage() {
                               )}
                             </SelectContent>
                           </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-11 w-11 flex-shrink-0"
+                            disabled={!selectedVehicle}
+                            onClick={() => setShowEditVehicleDialog(true)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">
+                              Modifier le véhicule sélectionné
+                            </span>
+                          </Button>
+                          {selectedVehicle && (
+                            <EditVehicleDialog
+                              vehicle={selectedVehicle}
+                              open={showEditVehicleDialog}
+                              onOpenChange={setShowEditVehicleDialog}
+                            />
+                          )}
                           <Dialog
                             open={showAddVehicleDialog}
                             onOpenChange={(open) => {
