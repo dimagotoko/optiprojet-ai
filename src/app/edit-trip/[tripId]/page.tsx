@@ -6,11 +6,15 @@ import { fr } from "date-fns/locale";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { vehicleSchema, type VehicleFormValues } from "@/lib/vehicle-schema";
 import {
-  vehicleBaseSchema as vehicleSchema,
-  type VehicleBaseFormValues as VehicleFormValues,
-} from "@/lib/vehicle-schema";
-import { VEHICLE_MAKES, VEHICLE_COLOR_OPTIONS } from "@/types/db";
+  VEHICLE_MAKES,
+  VEHICLE_COLOR_OPTIONS,
+  VEHICLE_TYPE_CONFIG,
+  CANADIAN_PROVINCES,
+  type VehicleType,
+  type ProvinceCode,
+} from "@/types/db";
 import { SelectOrCustomField } from "@/components/SelectOrCustomField";
 import {
   Users,
@@ -204,6 +208,8 @@ export default function EditTripPage() {
       year: new Date().getFullYear(),
       color: "",
       licensePlate: "",
+      province: "QC",
+      type: "berline",
     },
   });
 
@@ -277,9 +283,12 @@ export default function EditTripPage() {
         });
         imageUrl = await getDownloadURL(photoRef);
       }
+      const maxSeats =
+        VEHICLE_TYPE_CONFIG[values.type as VehicleType]?.maxSeats ?? 8;
       await setDoc(vehicleRef, {
         ...values,
         imageUrl,
+        maxSeats,
         ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
@@ -724,6 +733,44 @@ export default function EditTripPage() {
                                   )}
                                   className="grid gap-4 py-4"
                                 >
+                                  <FormField
+                                    control={vehicleForm.control}
+                                    name="type"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Type de véhicule</FormLabel>
+                                        <Select
+                                          onValueChange={field.onChange}
+                                          value={field.value}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger className="h-11">
+                                              <SelectValue placeholder="Sélectionner le type" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {(
+                                              Object.entries(
+                                                VEHICLE_TYPE_CONFIG,
+                                              ) as [
+                                                VehicleType,
+                                                {
+                                                  label: string;
+                                                  maxSeats: number;
+                                                },
+                                              ][]
+                                            ).map(([key, cfg]) => (
+                                              <SelectItem key={key} value={key}>
+                                                {cfg.label} — max {cfg.maxSeats}{" "}
+                                                places
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
                                   <div className="grid grid-cols-2 gap-4">
                                     <SelectOrCustomField
                                       control={vehicleForm.control}
@@ -775,21 +822,84 @@ export default function EditTripPage() {
                                       options={colorOptions}
                                     />
                                   </div>
-                                  <FormField
-                                    control={vehicleForm.control}
-                                    name="licensePlate"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>
-                                          Plaque d'immatriculation
-                                        </FormLabel>
-                                        <FormControl>
-                                          <Input className="h-11" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={vehicleForm.control}
+                                      name="province"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Province</FormLabel>
+                                          <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                          >
+                                            <FormControl>
+                                              <SelectTrigger className="h-11">
+                                                <SelectValue placeholder="Prov." />
+                                              </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                              {(
+                                                Object.entries(
+                                                  CANADIAN_PROVINCES,
+                                                ) as [
+                                                  ProvinceCode,
+                                                  {
+                                                    label: string;
+                                                    plateFormat: string;
+                                                    placeholder: string;
+                                                  },
+                                                ][]
+                                              ).map(([code, p]) => (
+                                                <SelectItem
+                                                  key={code}
+                                                  value={code}
+                                                >
+                                                  {code} — {p.label}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={vehicleForm.control}
+                                      name="licensePlate"
+                                      render={({ field }) => {
+                                        const prov = vehicleForm.watch(
+                                          "province",
+                                        ) as ProvinceCode;
+                                        const fmt = CANADIAN_PROVINCES[prov];
+                                        return (
+                                          <FormItem>
+                                            <FormLabel>Plaque</FormLabel>
+                                            <FormControl>
+                                              <Input
+                                                {...field}
+                                                className="h-11"
+                                                placeholder={
+                                                  fmt?.placeholder ?? "ABC-123"
+                                                }
+                                                onChange={(e) =>
+                                                  field.onChange(
+                                                    e.target.value.toUpperCase(),
+                                                  )
+                                                }
+                                              />
+                                            </FormControl>
+                                            {fmt && (
+                                              <p className="text-xs text-muted-foreground">
+                                                Format : {fmt.plateFormat}
+                                              </p>
+                                            )}
+                                            <FormMessage />
+                                          </FormItem>
+                                        );
+                                      }}
+                                    />
+                                  </div>
                                   <div>
                                     <FormLabel>Photo du véhicule</FormLabel>
                                     <div className="mt-2">
